@@ -1,6 +1,7 @@
 # İş Eşleştirme Projesi — Şirket Profili
 
 > Son güncelleme: 20 Eylül 2026
+> **Kapsam: global** — uygulama tüm dünyaya açık olacak
 > İlgili dokümanlar: `giris-kayit-kararlari.md`, `sirket-dogrulama-ekrani.md`
 
 ---
@@ -17,13 +18,13 @@ Eşleştirmenin tamamı **ilan bazlı** yapılır. Şirket profili yalnızca ada
 Eşleştirmenin dayanacağı tek metin ilandır. İşveren *"Backend Developer aranıyor, Java bilen"* diye üç satır yazarsa vektör zayıf kalır ve eşleştirme kötü çalışır. Bu yüzden ilan oluşturmada **yönlendirilmiş sorular zorunlu** olmalıdır.
 
 **2. Konum ve çalışma şekli ilana taşınır.**
-Konum katı filtredir ve şirket profili filtreye girmediğine göre, filtrenin kullanacağı konum `ilanlar.lokasyon_id` olmalıdır. Şirket profilindeki lokasyon listesi bir **kaynaktır**; filtreye giren şey ilanın seçtiği lokasyondur.
+Konum katı filtredir ve şirket profili filtreye girmediğine göre, filtrenin kullanacağı konum `ilanlar.lokasyon_id` (ve oradan kopyalanan `konum_yolu`) olmalıdır. Şirket profilindeki lokasyon listesi bir **kaynaktır**; filtreye giren şey ilanın seçtiği lokasyondur.
 
 Aynısı çalışma şekli için de geçerlidir — aynı şirketin bir ilanı uzaktan, diğeri ofis olabilir.
 
 ### Doğrulama bilgileri ayrıdır
 
-Vergi numarası, vergi levhası ve diğer belgeler **yalnızca sizde durur**, adaya gösterilmez. Şirket profili adaya görünen yüzdür.
+Tescil/vergi numarası ve yüklenen belgeler **yalnızca sizde durur**, adaya gösterilmez. Şirket profili adaya görünen yüzdür.
 
 ---
 
@@ -75,10 +76,13 @@ Bu kadarı tamamlanınca ilan açılabilir. Gerisi profil puanını yükseltir a
 **İki kademeli, tek tabloda:**
 
 ```sql
-sektorler (id, ad, ust_sektor_id, sira, aktif_mi)
+sektorler (id, kod, ust_sektor_id, sira, aktif_mi)
+sektor_cevirileri (sektor_id, dil_kodu, ad)
 ```
 
 `ust_sektor_id` boşsa üst sektör, doluysa alt sektördür.
+
+> **Global not:** Sektör adları çevrilebilir olmalı. Kod sabit (`bilisim.yazilim`), gösterilen ad kullanıcının arayüz diline göre gelir. Adı doğrudan `sektorler` tablosuna yazarsanız çok dilli desteği sonradan eklemek acı verir.
 
 **Örnek:**
 
@@ -102,7 +106,7 @@ Bilişim
 
 **Neden kapalı liste:** Aday sektöre göre filtreleyecek. Serbest bırakılırsa "Yazılım", "Bilişim", "Teknoloji", "IT" dört ayrı kayıt olur ve filtre çalışmaz.
 
-**Kaynak:** NACE sınıflandırması (TÜİK kullanıyor, kamuya açık) hazır iskelet verir. Doğrudan kullanmayın — çok resmi ve ayrıntılı; sadeleştirerek kendi listenizi çıkarın.
+**Kaynak:** **ISIC** (BM'nin uluslararası sanayi sınıflandırması) global iskelet verir. Avrupa'da NACE, ABD'de NAICS bunun türevleri — üst seviyeleri birbirine eşlenebilir. Doğrudan kullanmayın: çok resmi ve ayrıntılı; sadeleştirerek kendi listenizi çıkarın. **Tek liste tüm ülkelerde kullanılır**, ülke bazlı sektör listesi tutmayın — aynı şirket farklı ülkelerde farklı sektörde görünmemeli.
 
 **"Diğer" seçilip yazılan metinler toplanır**, periyodik olarak gerçek kalem haline getirilir.
 
@@ -110,7 +114,7 @@ Bilişim
 
 Aralık seçimi: `1-10` / `11-50` / `51-200` / `201-500` / `500+`
 
-> Kesin sayı sormayın — şirketler vermek istemez ve zaten değişir. Aralık adayın ihtiyacını karşılar (startup mı, kurumsal mı).
+> Kesin sayı sormayın — şirketler vermek istemez ve zaten değişir. Aralık adayın ihtiyacını karşılar (startup mı, kurumsal mı). Bu aralıklar uluslararası kabul görmüş bantlarla uyumlu.
 
 ### Web sitesi
 
@@ -121,12 +125,14 @@ Format kontrolü yapılır — başında `https://` yoksa eklenir. Yoksa tıklan
 **Ayrı tabloda tutulur:**
 
 ```sql
-sirket_sosyal_medya (sirket_id, platform, url)
+sirket_sosyal_medya (sirket_id, platform, kullanici_adi)
 ```
 
 > Tek tek kolon açmayın (`linkedin_url`, `instagram_url`…) — yeni platform ekleyince şema değiştirmek zorunda kalırsınız.
 
 **Platformlar:** LinkedIn, Instagram, X, Facebook, YouTube
+
+> **Global not:** Platform listesi bölgeye göre farklılaşıyor (Çin'de WeChat, Rusya'da VK, Japonya'da LINE). Platform listesi de tabloda tutulmalı, koda gömülmemeli.
 
 **Giriş biçimi:** Tam URL yerine **kullanıcı adı** istenir (`@abcteknoloji`), başına platform adresi sistem tarafından eklenir. İnsanlar yanlış link yapıştırıyor (paylaşım linki, uygulama içi link) — bu hatayı ortadan kaldırır.
 
@@ -139,7 +145,7 @@ sirket_sosyal_medya (sirket_id, platform, url)
 | | Durum |
 |---|---|
 | Merkez lokasyon | ✅ Zorunlu |
-| Merkez il/ilçe | ✅ Zorunlu (kapalı liste) |
+| Merkez konum *(`konumlar` ağacından)* | ✅ Zorunlu |
 | Merkez açık adres | ❌ Opsiyonel |
 | Ek lokasyonlar | ❌ Opsiyonel |
 
@@ -149,15 +155,63 @@ sirket_sosyal_medya (sirket_id, platform, url)
 - Doğrulama belgesinde adres zaten var — tekrar yazmak yük değil
 
 **Açık adres neden opsiyonel:**
-Bazı şirketler tam adresini paylaşmak istemez (küçük ofis, ev ofis, güvenlik). İl/ilçe yeterlidir.
+Bazı şirketler tam adresini paylaşmak istemez (küçük ofis, ev ofis, güvenlik). Ağaçtan seçilen konum yeterlidir.
+
+### Konum ağacı — global yapı
+
+Ülkelerin idari yapıları farklı olduğu için **sabit kademe (ülke → il → ilçe) kurulmaz.** Kendine referans veren esnek ağaç kullanılır:
+
+```sql
+konumlar (
+  id,
+  ad,
+  normalize_ad,
+  ust_konum_id,        -- kendine referans
+  tip,                 -- ulke | eyalet | bolge | il | ilce | sehir
+  ulke_kodu,           -- TR, US, DE (hızlı filtre için)
+  yol,                 -- 'US/California/San Francisco'
+  seviye,              -- 0=ülke, 1, 2, 3
+  aktif_mi
+)
+```
+
+Her ülke kendi derinliğini taşır:
+
+```
+Türkiye (ulke)
+└── İstanbul (il)
+    └── Kadıköy (ilce)
+
+ABD (ulke)
+└── California (eyalet)
+    └── San Francisco (sehir)
+
+Almanya (ulke)
+└── Bayern (eyalet)
+    └── München (sehir)
+
+Singapur (ulke)          ← tek kademe, alt yok
+```
+
+**Arayüzde kademeli menü yok — tek arama kutusu.**
+
+Kullanıcı "San Fran" yazar, *"San Francisco, California, ABD"* çıkar, tıklar. Arkada hiyerarşi var ama kullanıcı gezinmiyor.
+
+> Kademeli açılır menü 200 ülkede çalışmaz. Arama kutusu global ürünlerde standart çözüm.
+
+**Etiketler dinamik:** İkinci seviyenin adı ülkeye göre değişir (Türkiye'de "İl", ABD'de "Eyalet", Fransa'da "Bölge"). Etiket `tip` alanından okunur, koda gömülmez.
+
+**Veri kaynağı: Geonames** — ücretsiz, ülke/eyalet/şehir hiyerarşisi hazır, tüm dillerde isimler var.
+
+> Tamamını almayın — şehir nüfusu 15 bin üstü olanlar yeterli (~25 bin kayıt), yoksa tablo gereksiz şişer.
 
 ### Uzaktan çalışan şirket muafiyeti
 
 **"Tamamen uzaktan, fiziksel ofisimiz yok"** işareti konur.
 
-İşaretlenirse il/ilçe zorunluluğu kalkar.
+İşaretlenirse konum zorunluluğu kalkar.
 
-> Bu muafiyet olmazsa o şirketler rastgele bir il seçer ve veriyi kirletir.
+> Bu muafiyet olmazsa o şirketler rastgele bir konum seçer ve veriyi kirletir.
 
 ### Veri modeli
 
@@ -166,34 +220,64 @@ Bazı şirketler tam adresini paylaşmak istemez (küçük ofis, ev ofis, güven
 ```sql
 sirket_lokasyonlari (
   sirket_id,
-  ad,              -- "Genel Merkez", "Ankara Ofisi", "Ar-Ge Merkezi"
-  il_id,
-  ilce_id,
+  ad,                  -- "Genel Merkez", "Ankara Ofisi", "Ar-Ge Merkezi"
+  konum_id,            -- konumlar ağacından
+  konum_yolu,          -- 'TR/İstanbul/Kadıköy' (denormalize, filtre için)
+  ulke_kodu,           -- 'TR' (bölümlendirme ve hızlı filtre için)
   acik_adres,
-  merkez_mi,       -- bir tanesi true
+  merkez_mi,           -- bir tanesi true
   sira
 )
 ```
+
+> **`konum_yolu` ve `ulke_kodu` neden denormalize:** Her filtrede ağacı JOIN ile dolaşmak yerine tek `LIKE` karşılaştırması yapılır. Global ölçekte bu fark kritik.
 
 > Ayrı "merkez adresi" kolonu açmayın — "merkez taşındı, şube merkez oldu" durumlarında veri taşımak zorunda kalırsınız.
 
 ### Lokasyon adı alanı
 
-`ad` alanı önemlidir. İlan oluştururken işveren lokasyon seçecek; sadece *"Ankara / Çankaya"* yazan bir liste yerine **isimli seçenekler** çok daha anlaşılırdır.
+`ad` alanı önemlidir. İlan oluştururken işveren lokasyon seçecek; sadece *"San Francisco, California"* yazan bir liste yerine **isimli seçenekler** çok daha anlaşılırdır.
 
 ### İlanla bağlantı
 
 ```
-ilanlar.lokasyon_id → sirket_lokasyonlari.id
+ilanlar.lokasyon_id  → sirket_lokasyonlari.id
+ilanlar.konum_yolu   ← lokasyondan kopyalanır
+ilanlar.ulke_kodu    ← lokasyondan kopyalanır
 ```
 
 **Eşleştirmede katı filtre olarak kullanılan konum, şirketin merkezi değil ilanın lokasyonudur.**
 
-Merkezi İstanbul olan şirketin Ankara ilanı, Ankara'daki adaya düşmelidir.
+Merkezi Berlin olan şirketin İstanbul ilanı, İstanbul'daki adaya düşmelidir.
+
+**Filtre nasıl çalışır:**
+
+```sql
+-- Adayın seçtiği konum, ilanın konum yolunu kapsıyor mu?
+i.konum_yolu LIKE ak.konum_yolu || '%'
+```
+
+| Aday seçimi | İlan konumu | Eşleşir |
+|---|---|:---:|
+| `TR` | `TR/İstanbul/Kadıköy` | ✅ |
+| `TR/İstanbul` | `TR/Ankara/Çankaya` | ❌ |
+| `US/California` | `US/California/San Francisco` | ✅ |
+| `US/California` | `US/Texas/Austin` | ❌ |
+| `DE` | `DE/Bayern/München` | ✅ |
+
+Aday üst seviye seçerse alt seviyelerin tamamı dahil olur.
+
+**Gerekli indeksler:**
+
+```sql
+CREATE INDEX ON sirket_lokasyonlari (ulke_kodu);
+CREATE INDEX ON ilanlar (ulke_kodu, meslek_alani_id, ilan_tipi);
+CREATE INDEX ON ilanlar (konum_yolu text_pattern_ops);
+```
 
 ### Harita pini gerekmez
 
-Mekan projesinde pin zorunluydu çünkü mesafe sıralamada %40 ağırlıktaydı. Burada mesafe hesabı yapılmıyor — filtre il/ilçe düzeyinde. Açık adres yeterlidir.
+Mekan projesinde pin zorunluydu çünkü mesafe sıralamada %40 ağırlıktaydı. Burada mesafe hesabı yapılmıyor — filtre konum ağacı düzeyinde. Açık adres yeterlidir.
 
 *(İleride ofisi haritada göstermek isterseniz eklenebilir.)*
 
@@ -228,6 +312,8 @@ Tek büyük *"şirketinizi tanıtın"* kutusu yerine **dört ayrı soru** sorulu
 
 Somut bir örnek, insanların ne yazacağını anlamasını sağlar ve cevap kalitesini gözle görülür yükseltir.
 
+> **Global not:** Yer tutucu metinler ve soru başlıkları çevrilebilir olmalı — arayüz diline göre gelir.
+
 **Karakter sınırı:** Soru başına 500-800 karakter.
 
 > Sınırsız bırakırsanız birileri tüm şirket tarihçesini yapıştırır, aday okumaz.
@@ -242,6 +328,12 @@ Bu metinler eşleştirmeye **hiç** girmez.
 
 **Neden:** Eşleştirme ilan bazında yapılıyor. Şirket tanıtımı vektöre karışırsa aynı şirketin tüm ilanları birbirine benzer ve pozisyon ayrımı bulanıklaşır — *"backend geliştirici"* ile *"muhasebe uzmanı"* ilanı aynı şirketse birbirine yakın çıkar.
 
+### Tanıtım metninin dili
+
+Şirket metni hangi dilde yazarsa o dilde saklanır. Adaya **olduğu gibi** gösterilir.
+
+> Embedding'e girmediği için çok dilliliğin eşleştirmeye etkisi yok. İleride makine çevirisi eklenebilir, ama MVP'de gerekmiyor.
+
 ---
 
 ## Adım 4 — İmkanlar ve Görseller
@@ -253,7 +345,7 @@ Tamamı opsiyoneldir, profil puanını artırır.
 **Serbest yazma + otomatik tamamlama.** Filtreye girmez, yalnızca bilgi amaçlıdır.
 
 ```sql
-yan_haklar (id, ad, normalize_ad, kullanim_sayisi)
+yan_haklar (id, ad, normalize_ad, dil_kodu, kullanim_sayisi)
 sirket_yan_haklari (sirket_id, yan_hak_id)
 ```
 
@@ -261,12 +353,14 @@ sirket_yan_haklari (sirket_id, yan_hak_id)
 
 > **Filtreye girmediği için serbest yazmanın hiçbir sakıncası yok.** Yetenek ve şirket adındaki mantığın aynısı.
 
-**Başlangıç verisi — önemli:**
-15-20 yaygın kalem elle girilmelidir:
+> **Global not:** Yan haklar ülkeye göre tamamen farklılaşıyor — ABD'de sağlık sigortası kritik, Avrupa'da zaten devlet karşılıyor; Türkiye'de yemek kartı ve servis yaygın, başka ülkelerde kavram bile yok. Serbest yazma bu farkı kendiliğinden çözüyor. Öneri havuzu **kullanıcının diline göre** süzülmeli, yoksa Türk işverene Japonca öneri düşer.
+
+**Başlangıç verisi — ülke/dil başına:**
+15-20 yaygın kalem elle girilmelidir. Türkçe için:
 
 > Özel sağlık sigortası · Yemek kartı / yemekhane · Servis / yol desteği · Uzaktan çalışma · Esnek saat · Eğitim bütçesi · Dil kursu · Spor üyeliği · Kreş desteği · Prim / bonus · Hisse opsiyonu · Ekipman desteği · Doğum izni desteği · Yıllık izin fazlası
 
-İlk şirketler boş öneri listesiyle karşılaşmamalı — yoksa herkes farklı yazar ve öneri sistemi işe yaramaz hale gelir.
+İlk şirketler boş öneri listesiyle karşılaşmamalı — yoksa herkes farklı yazar ve öneri sistemi işe yaramaz hale gelir. **Yeni bir ülke/dil açılırken o dilin başlangıç listesi de hazırlanmalı.**
 
 ### Görseller
 
@@ -306,6 +400,9 @@ Zorlamak yerine **ödüllendirme**:
 - **Çoklu kullanıcı:** Bir şirkette birden fazla İK çalışanı olabilir. Profili kim düzenler, ilanı kim açar?
   → Basit çözüm: ilk kayıt olan "sahip", başkalarını davet eder.
   → Şimdi yazılmasa da veri modelinde **`sirket_kullanicilari`** tablosu bırakılmalı.
-- Aynı vergi numarasıyla ikinci hesap açılmak istenirse ne olacak? (şube / farklı İK kullanıcısı senaryosu)
-- Sektör listesinin nihai içeriği (NACE'den sadeleştirilecek)
+  → **Global not:** Farklı ülkelerdeki ofislerin kendi İK'sı olabilir — yetkilendirme lokasyon bazlı olmalı mı?
+- Aynı tescil numarasıyla ikinci hesap açılmak istenirse ne olacak? (şube / farklı İK kullanıcısı senaryosu)
+- **Çok uluslu şirketler:** Merkezi Almanya, ilanı Türkiye'de olan şirket tek profil mi, ülke bazlı alt profil mi?
+- Sektör listesinin nihai içeriği (ISIC'ten sadeleştirilecek) ve çevirileri
 - Profil tamamlanma yüzdesinin hangi alanlara kaç puan vereceği
+- Şirket adı çok dilli olacak mı? *(Örn. yerel pazarda farklı isimle bilinen markalar)*
