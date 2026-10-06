@@ -2,963 +2,1350 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> Durum: Kararlar tamamlandı, ekip tartışmasına hazır
-> İlgili dokümanlar: `giris-kayit-kararlari.md`, `sirket-dogrulama-ekrani.md`, `sirket-profili.md`, `ilan-olusturma.md`
+> **Sürüm 3** — ekip toplantısı sonrası nihai karar
+> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-v2.md`
 
 ---
 
-## 0. Bu Sürümde Düzeltilenler
+## 0. Bu Sürümde Değişenler
 
-| Konu | Eski | Yeni |
+| Konu | Önceki | Şimdi |
 |---|---|---|
-| Konum | Yaşadığı il/ilçe, çalışmak istediği şehirler | **`konumlar` ağacı** — ülke → eyalet/il → şehir/ilçe |
-| Konum filtresi | Şehir listesi eşleşmesi | **`konum_yolu LIKE`** — üst seviye seçilirse altı dahil |
-| Eğitim dereceleri | 7 sabit kademe | **ISCED eşlemesi** — ülkeler arası karşılaştırma için |
-| Üniversite listesi | YÖK (~200) | **Ülke bazlı** — her lansman ülkesi için ayrı |
-| İş dili varsayılanı | "Türkçe işaretli gelsin" | **Kullanıcının ülkesinin ana dili** |
-| Maaş beklentisi | `net_min_maas` (TL varsayılan) | **Para birimi alanı** eklendi |
-| Öneri havuzları | Tek dil | **Dil bazlı süzme** (`dil_kodu`) |
-| Sürücü belgesi sınıfları | B/C/D/E sabit | **Ülkeye göre** (`ulke_surucu_siniflari`) |
+| **Telefon** | Doğrulanmıyordu | **SMS doğrulama — doğrulanmadan profil yayınlanamaz** |
+| **İletişim görünürlüğü** | Eşleşince otomatik | **Eşleşme sonrası işveren ister, aday onaylarsa** görünür |
+| **E-posta** | Profilde alan | **Giriş hesabından gelir, değiştirilemez** |
+| **Doğum tarihi** | Ülkeye göre çalışma yaşı | **Her ülkede 18+** |
+| **Cinsiyet** | Opsiyonel, işverene gizli | **Zorunlu (kadın / erkek)**, işverene **sadece profil detayında** görünür, **hiçbir filtreye girmez** |
+| **Yaşadığı konum** | Konum ağacı | Aynı — **açık adres alınmaz** |
+| **Çalışmak istediği konumlar** | Sınırsız | **En fazla 10** |
+| **Kısa tanıtım** | Opsiyonel | **Zorunlu**, min 50 / max 500, basit yer tutucu |
+| **İkincil meslek alanı** | Opsiyonel | **Kaldırıldı** — tek meslek alanı |
+| **Eğitim** | Üniversite kapalı liste, not ortalaması, başlangıç yılı, "devam ediyorum" kutusu | Üniversite **öneri + serbest**; not ortalaması ve başlangıç yılı **kalktı**; **Durum: Devam ediyor / Mezun** |
+| **Eğitim filtresi** | En yüksek ISCED ≥ ilan | **Tüm kayıtlar** — seviye + durum (ilandaki "kimler başvurabilir") |
+| **Deneyim — şirket adı** | Onaylılar rozetli | Onaylılar **önce** — rozet yok |
+| **Yetenekler** | Etiket + yıl | **Satır satır** ad + yıl, **opsiyonel**; unvana göre öneri yok |
+| **Sertifikalar** | Ad + kurum + tarihler | **Belge dosyası zorunlu**, alınma tarihi zorunlu, geçerlilik veya **süresiz** |
+| **CV** | Tek PDF | **Belge listesi** — ad + dosya (PDF/JPG/PNG), en fazla 10 |
+| **Belge paylaşımı** | Tüm CV gider | **Başvuru / davet kabulünde aday seçer** (belgeler + sertifika dosyaları) |
+| **Diğer bilgiler** | Opsiyonel | **Dört zorunlu seçim** — boş durum yok |
+| **Askerlik** | Sadece bilgi, işverene görünür | **"Yükümlü değil"** eklendi; ilan şartlıysa **tecilli elenir**; işverene görünür, **süzülemez** |
+| **Aktif araç sahibi** | Bilgi | **Kaldırıldı** |
+| **Başlama zamanı** | Opsiyonel | **Zorunlu** |
+| **Gizlenecek şirketler** | Şirketler | **Sadece onaylı şirketler**, otomatik öneri yok |
+| **Otomatik düşme** | 30-45 gün → fırsatlara açığım | **İki kademe:** 30 gün → fırsatlara açığım, 90 gün → şu an bakmıyorum |
 
 ---
 
-## 1. Bu Bölümün Stratejik Önemi
+## 1. Temel İlkeler
 
-Aday profili bu üründe **tek veri kaynağıdır**. Bunu bir kez netleştirmek, aşağıdaki her kararın gerekçesini açıklıyor:
+### 1.1 Aday profili eşleştirmenin tek aday kaynağı
 
 | Kaynak | Eşleştirmeye giriyor mu? |
 |---|:---:|
-| Şirket profili | ❌ |
-| CV | ❌ |
-| Yorumlar / referanslar | Yok |
 | **Aday profili alanları** | **✅ tek kaynak** |
+| CV ve belgeler | ❌ |
+| Sertifika dosyaları | ❌ |
+| Şirket profili | ❌ |
 
-CV'yi eşleştirmeden çıkarma kararı (adil ve savunulabilir sıralama için) şu bedeli getirdi: **profil alanları zayıfsa eşleştirme zayıf.** Bu yüzden bu bölümde iki şeyi aynı anda optimize etmemiz gerekiyor:
+> **CV neden girmiyor:** Herkes aynı kurallarla değerlendirilsin. *"Neye göre sıraladınız?"* → *"Adayın kendi girdiği yapılandırılmış alanlara göre."* İşe alımda otomatik karar düzenlemeleri (KVKK, GDPR md. 22, AB Yapay Zeka Yasası, NYC Local Law 144) karşısında savunması kolay.
 
-1. **Veri zenginliği** — embedding'in besleneceği metin
-2. **Tamamlama oranı** — 12 adımlı bir formu insanların gerçekten bitirmesi
+### 1.2 Aday tarafında yapay zeka yok
 
-Bu ikisi birbirine ters çalışır. Aşağıdaki kararların çoğu bu gerilimi yönetmek üzerine kurulu.
+İlan tarafında işverenin yazdığı cümleler yapay zekayla ayrıştırılıyor. **Aday tarafında yok** — aday yetenek, yıl, sertifikayı **kendisi yapılandırılmış girer.**
 
-> **Global ölçekte üçüncü bir gerilim eklendi:** aynı formun 50 ülkede, 20 dilde, farklı eğitim ve belge sistemlerinde çalışması. Çözüm deseni her yerde aynı: **sabit değerleri tabloya taşı, koda gömme.**
+> **Neden asimetri:** İşveren bir ilan yazar, cümle kurması doğal. Aday kendini tanımlıyor; "React, 5 yıl" demek ona kolay. Ayrıca aday sayısı ilan sayısının katları — her aday kaydında yapay zeka maliyeti ve hata riski katlanırdı. Aday kendisi seçtiği için "yanlış anlaşılma" olmaz.
 
----
+### 1.3 Serbest yazma + öneri
 
-## 2. Genel Tasarım İlkeleri
+Unvan, okul adı, bölüm, şirket adı, pozisyon, yetenek, sertifika — yazmaya başlayınca öneri gelir; listede varsa seçer, yoksa yazdığı kaydedilir ve öneri havuzuna girer.
 
-Bölüm boyunca tekrar eden dört desen:
+- Öneriler kullanıcının **diline göre** süzülür
+- `normalize_ad` + metin benzerliği (`pg_trgm`) ile yazım farkları yakalanır
+- Embedding çok dilli — "Buchhaltung" ile "muhasebe" yakın çıkar
 
-### 2.1 Serbest yazma + öneri (kullanımdan öğrenen liste)
+**Kapalı liste sadece katı filtre alanlarında:** meslek alanı, konum, diller, eğitim seviyesi, çalışma şekli, diğer bilgiler.
 
-Yetenek, unvan, şirket adı, lise adı, sertifika, bölüm — hepsi böyle. Aday yazmaya başlar, daha önce yazılanlar kullanım sayısına göre sıralı düşer, seçer veya kendi yazar. Yeni kayıt hemen öneri havuzuna girer.
+### 1.4 "+ Ekle" deseni
 
-**Neden çalışıyor:** Embedding anlamsal yakınlığı yakalıyor, bu yüzden isim dağınıklığı ("ReactJS" / "React.js" / "Reakt") eşleştirmeyi bozmuyor.
+Eğitim, deneyim, yetenek, dil, sertifika, proje, belge — hepsi liste. "+ Ekle" → satır / form → kaydet → listeye düşer.
 
-> **Global ölçekte bu daha da değerli:** çok dilli embedding sayesinde "Buchhaltung" ile "muhasebe" aynı vektör uzayında yakın çıkıyor — çeviri tablosu gerekmiyor.
+### 1.5 Görmek ≠ süzmek
 
-**Nerede çalışmıyor:** Katı filtreye giren alanlarda. Orada kapalı liste zorunlu.
+Bazı bilgiler işverene **görünür** ama işveren onlara göre **listeyi süzemez:**
 
-```sql
--- Desen tüm öneri tabloları için aynı
-<tablo> (id, ad, normalize_ad, dil_kodu, kaynak, kullanim_sayisi)
--- kaynak: resmi_liste | kullanici_girdi
-```
+| Bilgi | Görünür | Süzülebilir |
+|---|:---:|:---:|
+| Cinsiyet | ✅ Profil detayında | ❌ **Asla** |
+| Askerlik durumu | ✅ Profil detayında | ❌ — sadece ilan şartı varsa tecilli elenir |
+| Doğum tarihi | ❌ | ❌ |
 
-`normalize_ad` (küçük harf, noktalama temizliği) + `pg_trgm` ile yazım hataları yakalanır.
-
-> **`dil_kodu` neden gerekli:** Öneri havuzu kullanıcının diline göre süzülmeli. Türk adaya Japonca yetenek önerisi düşmemeli. **Ama eşleştirme dilden bağımsız çalışmaya devam eder** — dil ayrımı sadece öneri kalitesi için.
-
-> ⚠️ **Kritik risk:** Öneri havuzları başlangıçta boş. İlk kullanıcılar herkes farklı yazar, veri dağılır ve sistem hiç kendine gelemez. **Başlangıç verisi girilmeden yayına çıkılamaz** — ve bu veri **her lansman dili için ayrı** hazırlanmalı.
-
-### 2.2 Kapalı liste — sadece katı filtre alanlarında
-
-| Alan | Neden kapalı |
-|---|---|
-| Meslek alanı | Kaba filtre; "Bilişim"/"IT"/"Yazılım" dağınıklığı filtreyi öldürür |
-| **Konum (`konumlar` ağacı)** | Konum filtresi; ağaç yapısı kesin eşleşme gerektirir |
-| Diller | Kesişim kontrolü |
-| Üniversite | İşveren filtreleyebilir, standart gerekli |
-| Eğitim derecesi | Seviye karşılaştırması (ISCED üzerinden) |
-
-### 2.3 "+ Ekle" deseni
-
-Eğitim, deneyim, yetenek, dil, sertifika, proje — hepsi liste. Sabit alan yok, "+ Ekle" → satır açılır → kaydet → listeye düşer.
-
-**Neden:** Sabit alanlar hiç kimsenin durumuna tam oturmuyor. İki lisans yapan, üç sertifikası olan, hiç deneyimi olmayan — hepsi aynı yapıda çalışmalı.
-
-> Global ölçekte bu desenin değeri artıyor: ülkelerin eğitim ve kariyer yapıları farklı, esnek liste hepsini kaldırıyor.
-
-### 2.4 Zorlamak yerine göstermek
-
-Zorunlu alan sayısı minimumda. Eksik alanın bedeli adaya **açıkça gösterilir**, ama engel konulmaz:
-
-- Eşleşme gücü göstergesi
-- Eksik filtre uyarısı
-- Profil tamamlanma skorda %5 ağırlık
+> **Neden:** İşe alımda cinsiyete dayalı ayrımcılık Türkiye (İş Kanunu md. 5), AB ve ABD'de yasak. Platformun kendi filtresi bunu kolaylaştırırsa sorumluluk platforma da gelir.
 
 ---
 
-## 3. Adım Adım Alanlar
+## 2. Tüm Alanlar — Tek Tablo
 
-### Adım 1 — Temel Bilgiler
+| Alan | Adım | Zorunlu | Giriş | Embedding | Katı filtre | Skor | İşverene görünür |
+|---|:---:|:---:|---|:---:|:---:|:---:|---|
+| Fotoğraf | 1 | ❌ | Yükleme / avatar | ❌ | ❌ | Kalite | ✅ |
+| Ad, soyad | 1 | ✅ | Serbest | ❌ | ❌ | ❌ | ✅ |
+| Doğum tarihi | 1 | ✅ | Tarih | ❌ | ❌ | ❌ | ❌ |
+| **Cinsiyet** | 1 | ✅ | Kadın / Erkek | ❌ | ❌ **asla** | ❌ | ✅ *sadece detayda* |
+| **Cep telefonu + SMS doğrulama** | 1 | ✅ | Ülke kodu + numara | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
+| **E-posta** | 1 | ✅ | Giriş hesabından, değişmez | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
+| Yaşadığı konum | 1 | ✅ | Konum ağacı | ❌ | ❌ | ❌ | ✅ |
+| Çalışmak istediği konumlar | 1 | ✅¹ | Konum ağacı, çoklu, max 10 | ❌ | ✅ | ❌ | ✅ |
+| Her konumda çalışmaya hazırım | 1 | ❌ | Kutu | ❌ | Konumu atlatır | ❌ | ✅ |
+| Çalışma şekli | 1 | ✅ | Ofis / hibrit / uzaktan — çoklu | ❌ | ✅ | ❌ | ✅ |
+| **Kısa tanıtım** | 1 | ✅ | Serbest, min 50 / max 500 | ✅ | ❌ | ❌ | ✅ |
+| **Meslek alanı** | 2 | ✅ | Kapalı liste, **tek** | ❌ | ✅ | ❌ | ✅ |
+| Unvan | 2 | ✅ | Serbest + öneri | ✅ *ilk satır* | ❌ | ❌ | ✅ |
+| Ne arıyor | 2 | ✅ | İş / staj — çoklu | ❌ | ✅ | ❌ | ❌ |
+| **Eğitim — seviye + durum** | 3 | ✅ *en az 1 kayıt* | Kapalı liste | ❌ | ✅ | ❌ | ✅ |
+| Eğitim — okul adı | 3 | ✅² | Öneri + serbest / serbest | ❌ | ❌ | ❌ | ✅ |
+| **Eğitim — bölüm** | 3 | ✅² | Öneri + serbest / serbest | ✅ | ❌ | ✅ | ✅ |
+| Eğitim — yıl | 3 | ✅² | Yıl | ❌ | ❌ | ❌ | ✅ |
+| Deneyim — şirket adı | 4 | ✅³ | 3 kaynaklı öneri | ❌ | ❌ | ❌ | ✅ *gizlenmediyse* |
+| Deneyim — pozisyon | 4 | ✅³ | Serbest + unvan önerisi | ✅ | ❌ | ❌ | ✅ |
+| Deneyim — çalışma türü | 4 | ✅³ | Kapalı liste | ❌ | ❌ | ✅ *tecrübe* | ✅ |
+| Deneyim — tarihler | 4 | ✅³ | Ay + yıl | ❌ | ❌ | ✅ *tecrübe* | ✅ |
+| **Deneyim — ne yaptın** | 4 | ✅³ | Serbest, min 50 / max 500 | ✅ **en önemli** | ❌ | ❌ | ✅ |
+| Yetenekler | 5 | ❌ | Ad (öneri + serbest) + yıl | ✅ *sadece ad* | ❌ | ✅ | ✅ |
+| Bildiğim diller + seviye | 6 | ❌ | Kapalı liste | ❌ | ❌ | ❌ | ✅ |
+| **İş dilleri** | 6 | ✅ | Kapalı liste, çoklu | ❌ | ✅ | ❌ | ✅ |
+| Sertifika adı | 7 | ✅⁴ | Öneri + serbest | ✅ | ❌ | ✅ | ✅ |
+| Sertifika — kurum | 7 | ❌ | Serbest | ❌ | ❌ | ❌ | ✅ |
+| Sertifika — alınma tarihi | 7 | ✅⁴ | Ay + yıl | ❌ | ❌ | ❌ | ✅ |
+| Sertifika — geçerlilik | 7 | ❌ | Tarih / süresiz | ❌ | ❌ | ✅ *geçersizse sayılmaz* | ✅ |
+| **Sertifika — belge dosyası** | 7 | ✅⁴ | PDF / JPG / PNG | ❌ | ❌ | ❌ | *Başvuru/eşleşmede, seçilirse* |
+| Proje adı + açıklama | 8 | ✅⁵ | Serbest | ✅ | ❌ | ❌ | ✅ |
+| Proje — link, teknolojiler, tarih | 8 | ❌ | | ❌ | ❌ | ❌ | ✅ |
+| **CV ve belgeler** | 9 | ❌ | Ad + dosya, max 10 | ❌ | ❌ | ❌ | *Başvuru/eşleşmede, seçilirse* |
+| **Sürücü belgesi** | 10 | ✅ | Yok / Var + en az bir sınıf | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
+| **Askerlik durumu** | 10 | ✅ | Yapıldı / Muaf / Tecilli / Yükümlü değil | ❌ | ✅ *ilan şartlıysa — tecilli elenir* | ❌ | ✅ *detayda, süzülemez* |
+| **Seyahat engeli** | 10 | ✅ | Yok / Var | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
+| **Vardiyalı çalışma** | 10 | ✅ | Evet / Hayır | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
+| **Başlama zamanı** | 11 | ✅ | Kapalı liste | ❌ | ❌ | ❌ | ✅ |
+| Gizlenecek şirketler | 11 | ❌ | **Sadece onaylı şirketler** | ❌ | ✅ *işveren yönünde* | ❌ | ❌ |
+| Arama durumu | 12 | ✅ | 3 seçenek | ❌ | ✅ *"bakmıyorum" görünmez* | ❌ | ✅ *rozet* |
 
-| Alan | Zorunlu | İşverene görünür | Katı filtre | Embedding |
-|---|:---:|:---:|:---:|:---:|
-| Fotoğraf | ❌ | ✅ | ❌ | ❌ |
-| Ad, soyad | ✅ | ✅ | ❌ | ❌ |
-| Doğum tarihi | ✅ | ❌ | ❌ | ❌ |
-| Cinsiyet | ❌ | ❌ | ❌ | ❌ |
-| Telefon | ✅ | Eşleşmeden sonra | ❌ | ❌ |
-| E-posta | ✅ | Eşleşmeden sonra | ❌ | ❌ |
-| **Yaşadığı konum** | ✅ | ✅ | ❌ | ❌ |
-| **Çalışmak istediği konumlar** | ✅¹ | ✅ | **✅** | ❌ |
-| Her konumda çalışmaya hazırım | ❌ | ✅ | Filtreyi atlatır | ❌ |
-| Çalışma şekli tercihi | ✅ | ✅ | **✅** | ❌ |
-| Kısa tanıtım | ❌ | ✅ | ❌ | **✅** |
+¹ *"Her konumda hazırım" işaretliyse değil*
+² *Seviyeye göre — Bölüm 5'e bakın*
+³ *Deneyim eklendiyse*
+⁴ *Sertifika eklendiyse*
+⁵ *Proje eklendiyse*
 
-¹ *"Her konumda çalışmaya hazırım" işaretliyse zorunlu değil*
+### Özet — hangi alan nereye gidiyor
 
-**Fotoğraf** — yüklenmezse baş harflerden renkli avatar üretilir. Zorunlu değil: hem bazı kişiler koymak istemez, hem fotoğrafa göre seçim ayrımcılık riski taşır.
-
-**Doğum tarihi** — zorunlu ama **işverene gösterilmez**. Sistemde 18 yaş kontrolü ve istatistik için durur. Kartta yaş yazması gereksiz eleme sebebi yaratır.
-
-> **Global not:** Çalışma yaşı ülkeye göre değişiyor (çoğu yerde 15-18 bandı, bazı işlerde 21). **Öneri:** `ulke_calisma_yasi` tablosu — kayıt sırasında kullanıcının ülkesine göre kontrol edilsin.
-
-**Cinsiyet** — opsiyonel, "belirtmek istemiyorum" seçenekli. İşverene gösterilmez, filtreye ve skora hiç girmez.
-
-> 💬 **Ekip tartışması için:** Cinsiyet alanını hiç tutmama seçeneği de var. Tutmanın tek gerekçesi ileride demografik istatistik. Tutmamanın gerekçesi: veri yoksa sızma ve kötüye kullanım riski de yok. **Global ölçekte tutmamak daha da güçlü bir seçenek** — bazı ülkelerde bu veri özel nitelikli kişisel veri sayılıyor ve ek yükümlülük getiriyor.
-
-**İletişim — üç kademeli görünürlük:**
-
-| Aşama | Telefon / e-posta |
-|---|:---:|
-| Keşfet kartı | ❌ |
-| Aday başvurduktan sonra | ❌ |
-| **Eşleşmeden sonra** | ✅ |
-
-> Bu kural olmazsa işveren Keşfet'te 200 adayın telefonunu toplar, uygulamayı hiç kullanmadan dışarıdan arar. **Platform dışına kaçış, bu tür pazar yerlerini öldüren bir numaralı sebeptir.**
-
-**Telefon:** ülke kodu ayrı alan olarak alınsın, numaradan ayrılsın. Yoksa format doğrulaması ve sonraki aramalar bozulur.
-
-#### Konum yapısı — global
-
-**Sabit kademe (ülke → il → ilçe) kurulmaz.** Ülkelerin idari yapıları farklı, esnek ağaç kullanılır:
-
-```sql
-konumlar (
-  id, ad, normalize_ad,
-  ust_konum_id,        -- kendine referans
-  tip,                 -- ulke | eyalet | bolge | il | ilce | sehir
-  ulke_kodu,           -- TR, US, DE (en hızlı filtre)
-  yol,                 -- 'US/California/San Francisco'
-  seviye,              -- 0=ülke, 1, 2, 3
-  aktif_mi
-)
+**Embedding'e girenler (aday vektörü):**
+```
+Unvan                                  ← ilk satır
+Kısa tanıtım
+Deneyim: pozisyon + "ne yaptın"        ← en zengin kaynak
+Eğitim: bölüm adları
+Yetenek adları                         (yıl HARİÇ)
+Sertifika adları                       (kurum, tarih HARİÇ)
+Proje adı + açıklama                   (link, tarih HARİÇ)
 ```
 
+**Katı filtreler:**
 ```
-Türkiye (ulke)          ABD (ulke)                Singapur (ulke)
-└── İstanbul (il)       └── California (eyalet)   ← tek kademe
-    └── Kadıköy (ilce)      └── San Francisco (sehir)
-```
-
-**Aday tarafı iki alan:**
-
-```sql
-aday_profilleri (
-  yasadigi_konum_id,       -- sadece gösterim
-  yasadigi_ulke_kodu
-)
-
-aday_konumlari (           -- çoklu, katı filtre
-  aday_id, konum_id, konum_yolu, ulke_kodu
-)
+Çalışmak istediği konumlar (uzaktan / her konumda istisnası)
+Çalışma şekli · Meslek alanı · Ne arıyor · İş dilleri
+Eğitim (seviye + durum — ilan istediyse)
+Sürücü belgesi · Seyahat · Vardiya · Askerlik (ilan istediyse)
+Gizlenecek şirketler (işveren yönünde)
+Arama durumu ("şu an bakmıyorum" görünmez)
 ```
 
-**Arayüzde kademeli menü yok — tek arama kutusu.** Kullanıcı "San Fran" yazar, *"San Francisco, California, ABD"* çıkar, tıklar.
+**Sadece skor:**
+```
+Yetenekler (ad + yıl) · Sertifikalar (geçerli olanlar) · Bölüm   → yetenek bileşeni
+Deneyim tarihleri + çalışma türü                                 → tecrübe bileşeni
+Profil doluluğu                                                  → kalite bileşeni
+```
 
-> Kademeli açılır menü 200 ülkede çalışmaz. Arama kutusu global ürünlerde standart çözüm.
+**Hiçbir hesaba girmeyen:**
+```
+Fotoğraf (kalite hariç) · Ad · Doğum tarihi · Cinsiyet · Telefon · E-posta
+Yaşadığı konum · Okul adı · Bildiğim diller · Başlama zamanı
+CV ve belgeler · Sertifika dosyaları · Proje linkleri
+```
 
-**Etiketler dinamik:** İkinci seviyenin adı ülkeye göre değişir (Türkiye'de "İl", ABD'de "Eyalet", Fransa'da "Bölge"). Etiket `tip` alanından okunur.
+---
 
-**Aday istediği seviyede seçebilir:**
+## 3. Adım 1 — Temel Bilgiler
 
-| Aday seçimi | Anlamı |
+### Fotoğraf
+
+| | |
 |---|---|
-| `DE` | "Almanya'da çalışırım, şehir farketmez" |
-| `US/California` | "Kaliforniya'da çalışırım" |
-| `TR/İstanbul/Kadıköy` | "Sadece Kadıköy" |
+| Zorunlu | ❌ |
+| Yüklenmezse | Baş harflerden renkli avatar |
+| İşverene | ✅ |
 
-**Filtre — `konum_yolu LIKE`:**
+### Ad, soyad
 
-```sql
-i.konum_yolu LIKE ak.konum_yolu || '%'
+Zorunlu, işverene görünür.
+
+### Doğum tarihi
+
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| İşverene | ❌ **Gösterilmez** |
+| Kullanım | **18 yaş kontrolü** + istatistik |
+
+**Her ülkede 18+.** Kayıtta 18 yaşından küçükse:
+> *"Platformu kullanabilmek için 18 yaşını doldurmuş olmalısınız."*
+
+> **Neden işverene gösterilmez:** Kartta yaş yazması gereksiz eleme sebebi yaratır.
+
+### Cinsiyet
+
 ```
+Cinsiyet *:  ○ Kadın   ○ Erkek
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| Seçenekler | Kadın / Erkek |
+| İşverene | ✅ **Sadece profil detayında** — Keşfet kartında **yok** |
+| Filtre | ❌ **Hiçbir yerde süzülemez** — ne işveren filtresi ne katı filtre |
+| Embedding / skor | ❌ |
+| Ek kullanım | Adalet denetimi — davet ve eşleşme oranları gruplar arasında dengeli mi |
+
+> **Neden Keşfet kartında değil:** Kartta görünürse işveren nitelikleri görmeden cinsiyete göre hızlıca geçebilir — filtre olmasa bile fiilen aynı sonucu üretir. Detayda olunca işveren önce adayın niteliklerini görmüş olur.
+
+> **Neden süzülemez:** İşe alımda cinsiyete dayalı ayrımcılık Türkiye, AB ve ABD'de yasak; platformun filtresi bunu kolaylaştırırsa sorumluluk platforma da gelir.
+
+### Cep telefonu
+
+```
+Cep telefonu *:  [+90 ▾] [532 123 45 67]   [Doğrula]
+                          ↓
+              "Telefonunuza gelen 6 haneli kodu girin"
+                          ↓
+                 +90 532 123 45 67  ✅ Doğrulandı
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| **Doğrulama** | ✅ **SMS — doğrulanmadan profil yayınlanamaz** |
+| Format | Ülke kodu ayrı; **E.164** ile saklanır (`+905321234567`) |
+| İşverene | Sadece **iletişim isteği onaylanınca** (Bölüm 14) |
+| Aynı numara | **Tek aday hesabı** |
+| SMS sınırları | Numara başına saatte 3, kullanıcı başına günde 5 |
+
+**Numara başka aday hesabında kayıtlıysa:**
+```
+"Bu numara başka bir hesapta kayıtlı."
+[Bu numara benim, doğrula]
+  → SMS → kod doğru girilirse:
+       • Yeni hesapta numara AKTİF
+       • Eski hesapta doğrulama PASİF (hesap silinmez)
+       • Eski hesaba e-posta bildirimi
+```
+
+**Numara değişirse:**
+- Doğrulama **anında kalkar**
+- Profil **yayından çıkar** — Keşfet'te görünmez, davet gelmez
+- Yeniden doğrulayınca profil geri döner
+- Mevcut başvuru ve eşleşmeler etkilenmez
+
+### E-posta
+
+| | |
+|---|---|
+| Kaynak | **Giriş hesabından** — Google, Apple veya e-posta + şifre |
+| Değiştirilebilir | ❌ |
+| İşverene | Sadece **iletişim isteği onaylanınca** |
+
+> **Apple "e-postamı gizle":** Adres `xyz@privaterelay.appleid.com` görünür. Adres çalışır — işverenin yazdığı e-posta adayın gerçek kutusuna yönlenir. Bilerek kabul edildi.
+
+> E-posta + şifre ile kaydolanlara doğrulama linki gider ama **zorunlu değil** — ekranın üstünde hatırlatma bandı.
+
+### Yaşadığı konum
+
+```
+Yaşadığın konum *:  [Kadıköy, İstanbul, Türkiye    ]   ← konum ağacından arama
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| Giriş | Konum ağacı — aday istediği seviyede seçer |
+| **Açık adres** | ❌ **Alınmaz** |
+| İşverene | ✅ |
+| Filtre / skor | ❌ — sadece gösterim |
+
+> **Neden açık adres yok:** Hiçbir hesapta kullanılmıyor (mesafe hesabı yok), ev adresi en hassas kişisel verilerden biri, iş başvurusu aşamasında istemek güven kırıcı. İşverenin "aday gelip gidebilir mi" sorusuna ilçe düzeyi yeterli.
+
+### Çalışmak istediği konumlar
+
+```
+Çalışmak istediğim konumlar *                         3 / 10
+[Kadıköy, İstanbul ✕] [Ankara ✕] [Almanya ✕]
+[+ Konum ekle                                        ]
+
+☐ Her konumda çalışmaya hazırım
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ — "Her konumda hazırım" işaretliyse değil |
+| Giriş | Konum ağacı — **global, çoklu** |
+| Sınır | **En fazla 10** |
+| Seviye | Aday seçer: ülke, il/eyalet, ilçe/şehir |
+| Eşleştirme | **Katı filtre** — üst seviye seçilirse altı dahil |
 
 | Aday seçimi | İlan konumu | Eşleşir |
 |---|---|:---:|
-| `TR` | `TR/İstanbul/Kadıköy` | ✅ |
-| `TR/İstanbul` | `TR/Ankara/Çankaya` | ❌ |
-| `US/California` | `US/California/San Francisco` | ✅ |
-| `US/California` | `US/Texas/Austin` | ❌ |
-| `DE` | `DE/Bayern/München` | ✅ |
+| Almanya | München, Bayern, Almanya | ✅ |
+| İstanbul | Kadıköy, İstanbul | ✅ |
+| İstanbul | Çankaya, Ankara | ❌ |
 
-Üst seviye seçilirse alt seviyelerin tamamı dahil olur.
+> **Neden 10 sınırı:** 40 şehir ekleyen aday fiilen "her konumda hazırım" demiş olur. 10'dan fazla isteyen o kutuyu işaretlemeli.
 
-> **`ulke_kodu` neden ayrı kolon:** `LIKE 'TR%'` de çalışır ama `ulke_kodu = 'TR'` eşitlik karşılaştırması ve çok daha hızlı indeksleniyor. Global ölçekte en çok eleyen filtre bu — 5 milyonu 200 bine indiriyor.
+### Her konumda çalışmaya hazırım
 
-**Veri kaynağı: Geonames** — ücretsiz, ülke/eyalet/şehir hiyerarşisi hazır, tüm dillerde isimler var. Nüfusu 15 bin üstü şehirler yeterli (~25 bin kayıt).
+İşaretlenirse konum listesi gri düşer, **konum filtresi tamamen atlanır**. İşverene *"Her konumda çalışabilir"* olarak görünür.
 
-**"Her konumda çalışmaya hazırım"** — önceki "taşınabilirim" alanının yerine geldi.
+> Bu aday tüm dünyadaki ilanlara düşer. Çalışma izni / vize alanı şimdilik yok — aday ilanı görür, kendisi değerlendirir.
 
-> **Neden değişti:** "Taşınabilirim" ile "çalışmak istediğim konumlar" çelişiyordu. Aday hem "Ankara'da çalışırım" hem "taşınabilirim" derse hangisi geçerli belirsiz kalıyordu. Yeni ifade net: işaretlenirse konum listesi zorunluluğu kalkar ve filtre tamamen atlanır. Arayüzde de kutu işaretlenince konum alanı gri düşer.
+### Çalışma şekli
 
-> ⚠️ **Global ölçekte bir uyarı:** "Her konumda çalışırım" işaretleyen aday, çalışma izni olmayan ülkelerdeki ilanlara da düşer. Bu gerçek bir sürtünme kaynağı — açık kalanlar bölümündeki **çalışma izni / vize sponsorluğu** sorusu bu yüzden önemli.
+```
+Çalışma şekli *
+☑ Ofis   ☑ Hibrit   ☐ Uzaktan
+```
 
-**Kısa tanıtım** — 2-4 cümle, 300-500 karakter. **Embedding'e giren üç metinden biri** (diğerleri: deneyim açıklamaları, proje açıklamaları).
+| | |
+|---|---|
+| Zorunlu | ✅ En az bir |
+| Giriş | Çoklu |
+| Eşleştirme | **Katı filtre** |
 
-Yer tutucu örnek metin konulmalı *(arayüz diline göre çevrilir)*:
+**Kural:**
+> **Ortak seçenek yoksa ilan düşmez. Ortak seçeneklerde "uzaktan" varsa konum atlanır; yoksa konum uygulanır.**
 
-> *"5 yıldır e-ticaret alanında backend geliştiriyorum. Ödeme sistemleri ve yüksek trafikli servisler üzerine yoğunlaştım. Şu an mimari kararlara daha çok dahil olabileceğim bir ekipte çalışmak istiyorum."*
+| Aday | İlan | Sonuç |
+|---|---|---|
+| Uzaktan | Uzaktan | ✅ Konum **atlanır** |
+| Uzaktan | Ofis | ❌ Düşmez |
+| Ofis, Uzaktan | Ofis | ✅ Konum **uygulanır** |
+| Ofis, Uzaktan | Ofis, Uzaktan | ✅ Konum **atlanır** |
+| Hibrit | Hibrit | ✅ Konum **uygulanır** |
 
-**Neden opsiyonel:** Zorunlu yapılırsa klişe yazılır ("çalışkan ve takım ruhuna sahip bir bireyim"). O metin embedding'e girdiğinde sinyal değil gürültü olur. Gönüllü yazan gerçek bir şey yazar.
+### Kısa tanıtım
+
+```
+Kendini kısaca tanıt *
+┌──────────────────────────────────────────────────┐
+│ Örn: 5 yıldır e-ticaret alanında backend         │
+│ geliştiriyorum. Ödeme sistemleri üzerine          │
+│ çalıştım, mimari kararlara dahil olmak istiyorum. │
+└──────────────────────────────────────────────────┘
+                                            0 / 500
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| Uzunluk | **Min 50 / max 500** karakter |
+| Yer tutucu | Basit, silik örnek — yazmaya başlayınca kaybolur; arayüz diline göre |
+| İşverene | ✅ |
+| **Embedding** | ✅ |
+| Katı filtre / skor | ❌ |
+
+> **Neden yer tutucu var (şirket profilinde yokken):** Aday tanıtımı **embedding'e giriyor**; iyi yazılması eşleşmeyi doğrudan iyileştiriyor. Şirket tanıtımı ise eşleştirmeye girmiyor.
 
 ---
 
-### Adım 2 — Meslek Alanı, Unvan, Ne Arıyor
+## 4. Adım 2 — Meslek Alanı, Unvan, Ne Arıyor
 
-| Alan | Zorunlu | Giriş şekli | Filtre |
-|---|:---:|---|:---:|
-| Ana meslek alanı | ✅ | Kapalı liste | **Katı** |
-| İkincil meslek alanı | ❌ | Kapalı liste | **Katı** |
-| Unvan | ✅ | Serbest + öneri | ❌ (embedding) |
-| Ne arıyor | ✅ | İş / staj / ikisi — çoklu | **Katı** |
+### Meslek alanı
 
-**Terminoloji:** Şirket profilinde "Sektör", ilan ve adayda "Meslek Alanı" / "Aradığım Meslek Alanı".
-
-> **Neden ayrı isim:** Sektör = şirket ne iş yapıyor (Gıda, İnşaat). Meslek alanı = kişi ne iş yapıyor (Bilişim, Muhasebe). Bir inşaat şirketi muhasebeci arayabilir — eşleşen şey meslek, sektör değil.
-
-**Meslek alanı neden kapalı liste ve neden katı filtre:**
-
-Embedding tek başına bunu güvenilir yapmıyor. "Proje yönetimi, ekip koordinasyonu, bütçe takibi" yazan bir inşaat yöneticisi ile aynı şeyleri yazan bir yazılım proje yöneticisi vektör uzayında çok yakın çıkar. Meslek alanı olmasa ikisi birbirine düşer.
-
-Ayrıca performans: global havuzu ülke filtresinden sonra bir kademe daha daraltır.
-
-```sql
-meslek_alanlari (id, kod, sira, aktif_mi)
-meslek_alani_cevirileri (meslek_alani_id, dil_kodu, ad)
-
-aday_profilleri (
-  ana_meslek_alani_id      NOT NULL,
-  ikincil_meslek_alani_id  NULL
-)
--- filtre: ilan.meslek_alani_id IN (ana, ikincil)
+```
+Meslek alanı *:  [Bilişim ve Yazılım ▾]
 ```
 
-> **Global not:** Kod sabit (`bilisim`), gösterilen ad arayüz diline göre gelir. **Tek liste tüm ülkelerde kullanılır** — ülke bazlı meslek alanı listesi tutulmaz, yoksa aynı iş farklı ülkelerde farklı kategoriye düşer ve filtre bozulur.
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| Sayı | **Tek** |
+| Giriş | Kapalı liste — 15-20 kalem, tek liste tüm ülkelerde, çevrilebilir (kaynak: ISCO-08, sadeleştirilmiş) |
+| Eşleştirme | **Katı filtre** — `ilan.meslek_alani = aday.meslek_alani` |
 
-**İkincil meslek alanı** — opsiyonel, en fazla bir tane. Arayüzde katlanmış dursun ki çoğu kullanıcı hiç dokunmasın.
+**Örnek liste:** Bilişim ve Yazılım · Finans ve Muhasebe · Satış · Pazarlama ve İletişim · Tasarım · İnsan Kaynakları · Mühendislik · Üretim ve İmalat · Lojistik ve Depo · Sağlık · Eğitim · Hukuk · Müşteri Hizmetleri · Turizm, Otel ve Restoran · İnşaat ve Teknik İşler · Perakende ve Mağaza · Tarım · Yönetim …
 
-**İki fayda:** (a) grafik tasarımcı hem Tasarım hem Pazarlama'ya bakabilir, kariyer değiştiren iki alanda arayabilir; (b) ana alan skorda daha ağır sayılır, unvan önerileri ana alandan gelir.
+> **Sektörden farkı:** Sektör (şirket profilinde) = şirket ne iş yapıyor. Meslek alanı = kişi ne iş yapıyor. Bir inşaat şirketi muhasebeci arayabilir — eşleşen şey meslek.
 
-> 💬 **Ekip tartışması için:** Aday tarafında ilan sayısı adaydan az olacak. Tek meslek alanı Keşfet'i boşaltma riski taşıyor. İkincil alan bu riski azaltıyor ama filtre gücünü de bir miktar düşürüyor. İlk veriyle ölçüp ayarlanacak bir parametre.
+> **Neden embedding yetmiyor:** "Proje yönetimi, ekip koordinasyonu, bütçe takibi" yazan inşaat proje yöneticisi ile yazılım proje yöneticisi vektörde çok yakın çıkar. Meslek alanı olmasa birbirlerinin ilanlarına düşerler.
 
-**Unvan** — serbest + öneri, ana meslek alanına bağlı liste. Katı filtreye girmez.
+> **İkincil meslek alanı neden kaldırıldı:** Aday "Yazılım Geliştirici" olup ikincil olarak "Tarım" seçerse tarım ilanlarına düşer ama profili, deneyimi, tanıtımı yazılım anlatıyor — alakasız ilanlar görür, işveren de ona uymayan aday görür. **Kariyer değiştiren aday meslek alanını yeni alanına çevirir** ve profilini ona göre günceller; filtre ve vektör aynı yönü gösterir.
 
-> **Neden serbest:** "Yazılım Mühendisi" ile "Backend Developer" farklı isim, aynı iş. Katı filtre yapılırsa doğru adaylar elenir. Unvan sadece gösterimde ve embedding'de kullanılır — vektörlenen metnin ilk satırı.
+### Unvan
 
-> **Global not:** Unvan her dilde birikecek. `dil_kodu` öneri havuzunu süzmek için gerekli. Ama **embedding çok dilli olduğu için** "Backend Developer" ile "Backend Geliştirici" yine eşleşir.
+```
+Unvan *:  [Yazılım Geliştirici          ]
+           ┌────────────────────────────┐
+           │ Yazılım Geliştirici        │
+           │ Backend Developer          │
+           └────────────────────────────┘
+```
 
-**Ne arıyor** — çoklu seçim (iş / staj / ikisi de). İlan tarafında tek değer.
+| | |
+|---|---|
+| Zorunlu | ✅ |
+| Giriş | Serbest + öneri — *"Yazılımcı"*, *"Komi"*, *"Muhasebeci"* |
+| Öneriler | Meslek alanına bağlı, kullanım sayısına göre, kullanıcının dilinde |
+| **Embedding** | ✅ — aday vektörünün **ilk satırı** |
+| Katı filtre | ❌ |
 
-| İlan tipi | Aday tercihi | Sonuç |
+> **Neden filtre değil:** "Yazılım Mühendisi" ile "Backend Developer" farklı isim, aynı iş. Embedding yakalıyor.
+
+### Ne arıyor
+
+```
+Ne arıyorsun? *
+☑ İş   ☐ Staj
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ En az bir |
+| Giriş | Çoklu |
+| Eşleştirme | **Katı filtre** — ilan tipi seçimlerden birinde olmalı |
+
+| İlan | Aday | Sonuç |
 |---|---|:---:|
-| İş | [iş] | ✅ |
-| İş | [staj] | ❌ |
-| İş | [iş, staj] | ✅ |
-| Staj | [staj] | ✅ |
-| Staj | [iş] | ❌ |
-| Staj | [iş, staj] | ✅ |
-
-> **Asimetri neden mantıklı:** Son sınıf öğrencisi hem staj hem iş arar. Ama bir ilan tek tip olmak zorunda — formları, ücret yapısı, alanları farklı.
-
-**Kartta rozet:** İlan listesinde tipi büyük punto ve farklı renkle görünsün. Aday tıklamadan ayırt etsin.
+| İş | İş | ✅ |
+| İş | Staj | ❌ |
+| İş | İş + Staj | ✅ |
+| Staj | Staj | ✅ |
+| Staj | İş + Staj | ✅ |
 
 ---
 
-### Adım 3 — Eğitim
+## 5. Adım 3 — Eğitim
 
-**"+ Okul Ekle" → tür seçimi → türe göre alanlar → kaydet → liste**
+### Ekleme akışı
 
-| Seçilen tür | Görünen alanlar |
-|---|---|
-| İlkokul / Ortaokul | Mezuniyet yılı |
-| Lise | Okul adı *(serbest + öneri)*, bölüm, mezuniyet yılı |
-| Ön lisans / Lisans / Y.Lisans / Doktora | Üniversite *(kapalı liste + "Diğer")*, bölüm, başlangıç–mezuniyet yılı, "devam ediyorum", not ortalaması *(opsiyonel)* |
+**"+ Eğitim ekle" → 1. Seviye seç → 2. Seviyeye göre form → 3. Kaydet**
 
-```sql
-okullar (id, ad, normalize_ad, tip, ulke_kodu, kaynak)
--- tip: universite | lise
--- kaynak: resmi_liste | kullanici_girdi
+```
+Eğitim ekle
 
-aday_egitimleri (aday_id, derece_isced, okul_id, serbest_okul_adi,
-                 bolum, baslangic_yil, mezuniyet_yil,
-                 devam_mi, not_ortalamasi, not_sistemi)
+Sadece devam ettiğiniz veya mezun olduğunuz eğitimleri ekleyin.
+
+Seviye *
+○ İlkokul
+○ Ortaokul
+○ Lise
+○ Ön lisans
+○ Lisans
+○ Yüksek lisans
+○ Doktora
 ```
 
-#### Eğitim dereceleri — ISCED eşlemesi
+### Seviyeye göre alanlar
 
-> ⚠️ **Global ölçekte en sinsi sorun bu.** Eğitim dereceleri ülkeler arasında birebir örtüşmüyor: Almanya'da *Ausbildung*, ABD'de *Associate Degree*, Türkiye'de ön lisans, Fransa'da *BTS*. "En az lisans" filtresi ülkeler arası çalışmaz.
+| Seviye | Okul adı | Bölüm | Durum | Yıl |
+|---|---|---|:---:|:---:|
+| **İlkokul / Ortaokul** | Serbest | — | — *(mezun sayılır)* | — |
+| **Lise** | Serbest, öneri yok | Serbest, öneri yok — **opsiyonel** | ✅ | ✅ |
+| **Ön lisans → Doktora** | **Öneri** — listede yoksa serbest | **Öneri** — listede yoksa serbest — **zorunlu** | ✅ | ✅ |
 
-**Çözüm: ISCED (BM standardı, 0-8) üzerinden karşılaştırma.**
+**Ön lisans ve üstü:**
+```
+Okul adı *:   [Orta Doğu Tek|                      ]
+              ┌────────────────────────────────────┐
+              │ Orta Doğu Teknik Üniversitesi       │
+              │ Middle East Technical University    │
+              └────────────────────────────────────┘
+              Listede yoksa yazdığınız gibi kaydedilir
 
-```sql
-egitim_dereceleri (id, isced_seviye, ulke_kodu, kod)
-egitim_derecesi_cevirileri (derece_id, dil_kodu, ad)
+Bölüm *:      [Bilgisayar Mühendisliği            ]
+
+Durum *:      ○ Devam ediyor   ● Mezun
+
+Mezuniyet yılı *:  [2023 ▾]
+
+[Kaydet]
 ```
 
-- Kullanıcıya **kendi ülkesinin adıyla** gösterilir ("Ön lisans", "Associate Degree")
-- Karşılaştırma **ISCED numarasıyla** yapılır
-- `aday_profilleri.en_yuksek_isced` otomatik hesaplanır → ilanın eğitim filtresi bunu kullanır
+**Lise:**
+```
+Okul adı *:      [Kadıköy Anadolu Lisesi        ]
+Alan / bölüm:    [Bilişim Teknolojileri         ]   (opsiyonel)
+Durum *:         ○ Devam ediyor   ○ Mezun
+Yıl *:           [2018 ▾]
+```
 
-| ISCED | Karşılık |
-|:---:|---|
-| 1-2 | İlkokul / ortaokul |
-| 3 | Lise |
-| 5 | Ön lisans / Associate |
-| 6 | Lisans / Bachelor |
-| 7 | Yüksek lisans / Master |
-| 8 | Doktora / PhD |
+**İlkokul / Ortaokul:**
+```
+Okul adı *:      [_______________________]
+```
 
-**Neden üniversite kapalı, lise serbest:**
+**Yıl alanının adı duruma göre:**
 
-| | Gerekçe |
+| Durum | Yıl |
 |---|---|
-| Üniversite | Sayıları yönetilebilir, resmi listeler var. İşveren "şu okullardan mezun" diye filtreleyebilir → standart gerekli. **Ülke bazlı liste** (`okullar.ulke_kodu`). |
-| Lise | Her ülkede on binlerce, listeye almak imkansız. Kimse liseye göre filtrelemiyor → serbest kalması zarar vermez. |
+| Devam ediyor | Beklenen mezuniyet yılı |
+| Mezun | Mezuniyet yılı |
 
-> **Üniversite listesi kaynağı:** Türkiye'de YÖK, global için açık veri setleri (Hipolabs universities API, UNESCO listeleri) başlangıç iskeleti verir. **Her lansman ülkesi için ayrı hazırlanmalı.** Listede olmayan için "Diğer" + serbest yazma kaçışı her zaman bulunmalı.
+> **Lisede bölüm neden opsiyonel:** Genel liselerde anlamlı bir bölüm yok. Meslek liselerinde ise alan önemli (Elektrik-Elektronik, Muhasebe, Bilişim) — yazılırsa embedding'e girer.
 
-**Not ortalaması — sistem farkı:**
+> **Lise / ortaokulda "devam ediyor" neden var:** Platform 18+ ama açık öğretim veya akşam lisesine devam eden yetişkinler var.
 
-Not sistemleri farklı (Türkiye 4'lük, ABD 4'lük ama farklı hesap, Almanya 1-6 ters ölçek, Fransa 20'lik).
+### Liste
 
-> **Öneri:** `not_sistemi` alanı tutulsun ve not **olduğu gibi gösterilsin**, normalize edilmesin. Zaten skora girmiyor — dönüştürme çabası hata üretir, faydası yok.
+```
+Eğitim                                         [+ Eğitim ekle]
 
-**Kurallar:**
-- Aynı tür birden fazla eklenebilir (iki lisans yapan var, engellenmemeli)
-- Liste en yeni üstte (CV mantığı)
-- "Devam ediyorum" işaretliyse mezuniyet yılı gri düşer, yerine "beklenen mezuniyet yılı" gelir
-- **En yüksek ISCED seviyesi otomatik hesaplanır** → ilanın eğitim filtresi bunu kullanır
-- **Bölüm adı embedding'e girer**; okul adı ve not girmez
+🎓 Yüksek lisans · Bilgisayar Mühendisliği
+   Boğaziçi Üniversitesi · Devam ediyor (2026)          [Düzenle]
 
-> **Okul adı neden embedding'e girmiyor:** Girerse aynı okuldan mezunlar birbirine yakın çıkar. Bu istediğimiz bir sinyal değil — hatta okul bazlı önyargı üretme riski taşıyor. **Global ölçekte bu risk daha büyük:** belirli ülkelerin üniversiteleri sistematik avantaj kazanabilir.
+🎓 Lisans · Bilgisayar Mühendisliği
+   ODTÜ · Mezun (2023)                                  [Düzenle]
+```
 
-> **Not ortalaması neden opsiyonel ve skora girmiyor:** Zorunlu yapılırsa ya uydurulur ya kayıt bırakılır. Skora katmak ayrımcılık tartışması açabilir. Gösterilir, kararı işveren verir.
+En yeni üstte. **En az bir kayıt zorunlu** — "örgün eğitim kaydım yok" seçeneği **yok**. En kolay kayıt (ilkokul) sadece okul adı istiyor.
 
-**"Devam ediyorum" işareti** staj/öğrenci filtresi için kritik.
+### Öğrenim durumu
+
+**Öğrenim durumu = en yüksek kayıt.** Kartta işverene bu özet görünür:
+```
+🎓 Lisans · Bilgisayar Mühendisliği · Mezun
+```
+
+**Etiket ve seviye adları her dilde/ülkede o yerin kullandığı adla:**
+
+| Dil | Etiket | Örnek |
+|---|---|---|
+| Türkçe | Öğrenim durumu | Lisans |
+| İngilizce | Education level | Bachelor's degree |
+| Almanca | Bildungsabschluss | Bachelor |
+
+**Türkiye'deki 7 seviye ve ISCED karşılıkları:**
+
+| Resmi kademe | Seviye | ISCED |
+|---|---|:---:|
+| Temel eğitim | İlkokul | 1 |
+| | Ortaokul | 2 |
+| Ortaöğretim | Lise | 3 |
+| Yükseköğretim | Ön lisans | 5 |
+| | Lisans | 6 |
+| | Yüksek lisans | 7 |
+| | Doktora *(tıpta uzmanlık, sanatta yeterlik dahil)* | 8 |
+
+> Eski sistem mezunları ("ilköğretim", 5+3) ilkokul/ortaokul seviyesine denk gelir.
+
+### Filtre — tüm kayıtlara bakar
+
+İlanda "Kimler başvurabilir" (öğrenci / mezun / ikisi / şart yok) + "Hangi seviyede" var. Filtre **en yüksek kayda değil, tüm kayıtlara** bakar:
+
+```
+Aday:  Lisans — Mezun (2023)
+       Yüksek lisans — Devam ediyor
+```
+
+| İlan | Sonuç |
+|---|:---:|
+| Sadece mezunlar · Lisans | ✅ *(lisans mezun kaydı var)* |
+| Sadece devam eden öğrenciler · Yüksek lisans | ✅ *(Y.lisans devam kaydı var)* |
+| Sadece devam eden öğrenciler · Lisans *(sadece lisans işaretli)* | ❌ |
+
+> Sadece en yükseğe bakılsaydı bu aday "lisans mezunu" isteyen ilanlara düşmezdi.
+
+| | Katı filtre | Embedding | Skor |
+|---|:---:|:---:|:---:|
+| Seviye + durum | ✅ | ❌ | ❌ |
+| Bölüm | ❌ | ✅ | ✅ *(ilanın tercih ettiği bölümlerle)* |
+| Okul adı | ❌ | ❌ | ❌ |
+
+> **Okul adı neden hiçbir yere girmiyor:** Girerse aynı okuldan mezunlar birbirine yakın çıkar — okul bazlı önyargı. Global ölçekte belirli ülkelerin üniversiteleri sistematik avantaj kazanırdı.
+
+### Kaldırılanlar
+
+| Alan | Neden |
+|---|---|
+| Başlangıç yılı | Filtre sadece mezuniyet / beklenen yılı kullanıyor |
+| Not ortalaması | Hiçbir yere girmiyor; ülkeler arası karşılaştırılamaz (4'lük, 20'lik, ters ölçek) |
+| "Ayrıldı" durumu | Ekip kararı — iki durum yeterli; bırakılan eğitim eklenmez |
+| Üniversite kapalı listesi | Okul adı hiçbir hesaba girmiyor; kapalı liste her ülke için büyük hazırlık ve "listede yok" sorunu demek |
+| Mezuniyet hatırlatması | Ekip kararı — yok |
+
+### Okul önerileri — kaynak
+
+| Seviye | Öneri kaynağı |
+|---|---|
+| Ön lisans → Doktora | **ROR** (Research Organization Registry — açık, CC0, çok dilli isimler) + diğer açık listeler + adayların yazdıkları |
+| Lise / ilkokul / ortaokul | Öneri yok — serbest yazma |
+
+- Adayın ülkesindeki okullar önce gelir; yurt dışı okullar da aranabilir
+- Seçilen okulun **ROR kimliği** saklanır — ileride gerekirse veri standart
+- Alabildiğimiz kadar okul yüklenir; liste ne kadar geniş olursa olsun **serbest yazma her zaman açık**
+
+### Global doğruluk — bilinen sınırlar
+
+**Türkiye için %100'e yakın, global için %90+ doğru.** Kayabilecek noktalar:
+
+| Sorun | Örnek |
+|---|---|
+| Birebir oturmayan dereceler | Almanya *Ausbildung*, İngiltere *A-levels / HND*, Fransa *Bac+2/+3/+5*, ABD *Associate / GED* |
+| Ara seviye | ISCED 4 (lise sonrası mesleki eğitim) — mesleki eğitimin güçlü olduğu ülkelerde yaygın |
+| Beyana dayalı | Platform eğitim belgesi doğrulamıyor |
+
+**Sağlamlaştırma:**
+
+| Önlem | |
+|---|---|
+| **Seviye adları ülkeye göre** | Aday kendi sisteminin adını görür, arkada doğru ISCED'e eşlenir |
+| **Her seviyenin altında kısa açıklama** | *"Lisans: 3-4 yıllık üniversite diploması (Bachelor)"* |
+| **Eşleme tablosu veritabanında** | Ülke × yerel derece → ISCED; hata bulunca tablo düzeltilir |
+| **Her lansman ülkesinde yerel kontrol** | Ülke açılmadan eşleme yerel biriyle gözden geçirilir |
+
+> **Form yapısı her yerde aynı** (seviye → okul → bölüm → durum → yıl). Sadece **seviye seçeneklerinin adları** ülkeye göre — aynı form, kendi dilinde/sisteminde.
 
 ---
 
-### Adım 4 — Deneyim
+## 6. Adım 4 — Deneyim
 
-**"+ Deneyim Ekle" → alanlar → kaydet → liste**
+**Adım zorunlu değil** — yeni mezun, staj arayan için. **Eklenen her kayıtta alanlar zorunlu.**
 
-| Alan | Zorunlu | Giriş şekli |
-|---|:---:|---|
-| Şirket adı | ✅ | Serbest + öneri **(üç kaynaklı)** |
-| Pozisyon | ✅ | Serbest + öneri |
-| Başlangıç (ay/yıl) | ✅ | |
-| Bitiş (ay/yıl) | ✅¹ | "Halen çalışıyorum" işaretliyse gri düşer |
-| Çalışma türü | ✅ | Tam zamanlı / yarı zamanlı / staj / freelance / dönemsel / gönüllü |
-| **Bu işte ne yaptın** | ✅ | 2-3 cümle — **embedding'e girer** |
-| Şirket adını gizle | ❌ | İşaret kutusu |
+### Ekleme formu
 
-¹ *"Halen çalışıyorum" işaretliyse zorunlu değil*
+```
+Deneyim ekle
 
-**Şirket adı — üç kaynaklı öneri:**
+Şirket adı *:      [ABC Tekn|                         ]
+                   ┌──────────────────────────────────┐
+                   │ ABC Teknoloji        (platformda) │  ← 1. onaylı şirketler
+                   │ ABC Teknik Servis                 │  ← 2. adayların yazdıkları
+                   └──────────────────────────────────┘
+                   Listede yoksa yazdığınız gibi kaydedilir   ← 3.
 
-1. **Onaylı işveren şirketleri** → rozetli, listede üstte
-2. Adayların daha önce yazdıkları → rozetsiz
-3. Serbest yazma → hiçbiri uymuyorsa
+☐ Şirket adını gizle
 
-```sql
-sirketler (id, ad, normalize_ad, ulke_kodu,
-           dogrulanmis_mi, isveren_hesabi_var_mi)
+Pozisyon *:        [Backend Geliştirici            ]   ← unvan havuzundan öneri
 
-aday_deneyimleri (aday_id, sirket_id, serbest_sirket_adi, pozisyon,
-                  baslangic, bitis, halen_mi, calisma_turu,
-                  ne_yaptin, gizli_mi)
+Çalışma türü *:    [Tam zamanlı ▾]
+                    Tam zamanlı · Yarı zamanlı · Staj ·
+                    Freelance · Dönemsel · Gönüllü
+
+Başlangıç *:       [Mart ▾] [2022 ▾]
+Bitiş *:           [Ay ▾]   [Yıl ▾]
+                   ☑ Halen burada çalışıyorum   → bitiş gri düşer
+
+Bu işte ne yaptın? *
+┌──────────────────────────────────────────────────┐
+│ Ödeme altyapısında mikroservis geliştirdim,      │
+│ günde 2 milyon işlemi taşıyan sistemin           │
+│ performansını iyileştirdim.                      │
+└──────────────────────────────────────────────────┘
+                                            0 / 500
+[Kaydet]
 ```
 
-`sirket_id` doluysa kayıtlı şirkete bağlı; boşsa `serbest_sirket_adi` kullanılır.
+### Liste
 
-> 💡 **Öneri — sonradan eşleştirme:** Aday serbest yazdığı bir şirket sonradan sisteme kaydolursa, arka planda çalışan bir iş `normalize_ad` üzerinden eşleşenleri bulup bağlayabilir. Yan faydası: şirket kaydolduğunda *"sizde çalışmış 12 aday var"* bilgisi doğal olarak çıkar — işveren tarafında güçlü bir ilgi çekici.
+```
+Deneyim                                        [+ Deneyim ekle]
 
-> **`normalize_ad` neden kritik:** Gizlenen şirketler özelliği ancak şirket adları standartsa çalışır. "ABC A.Ş." ile "ABC AŞ" iki ayrı kayıt olursa gizleme boşa gider.
+💼 Backend Geliştirici · ABC Teknoloji
+   Tam zamanlı · Mart 2022 – Halen                       [Düzenle]
+   "Ödeme altyapısında mikroservis geliştirdim..."
 
-> **Global not:** Aynı şirket farklı ülkelerde farklı yasal isimle kayıtlı olabilir (ABC GmbH / ABC Ltd / ABC A.Ş.). Öneri listesinde grup şirketlerini bağlamak ileride gerekebilir; şimdi gerekmiyor ama veri modelinde `ust_sirket_id` alanı bırakmak ucuz.
+💼 Yazılım Stajyeri · Şirket adı gizli
+   Staj · Haz 2021 – Ağu 2021                            [Düzenle]
+```
 
-**"Bu işte ne yaptın" — bu bölümün en önemli alanı**
+### Alanlar
 
-Zorunlu, en az bir-iki cümle. **Embedding'in en çok beslendiği yer.**
+| Alan | Zorunlu | Embedding | Skor | İşverene |
+|---|:---:|:---:|:---:|---|
+| Şirket adı | ✅ | ❌ | ❌ | ✅ *gizlenmediyse* |
+| Şirket adını gizle | ❌ | — | — | *"Şirket adı gizli"* |
+| Pozisyon | ✅ | ✅ | ❌ | ✅ |
+| Çalışma türü | ✅ | ❌ | ✅ *tecrübe ağırlığı* | ✅ |
+| Başlangıç / bitiş | ✅ | ❌ | ✅ *tecrübe yılı* | ✅ |
+| **Bu işte ne yaptın** | ✅ — **min 50 / max 500** | ✅ **en önemli kaynak** | ❌ | ✅ |
 
-CV eşleştirmeye girmiyor, yetenekler sadece etiket, şirket profili hiç girmiyor. Adayın gerçek ayırt ediciliği bu metinlerden çıkıyor.
+### Şirket adı — üç kaynaklı öneri
 
-> 💬 **Ekip tartışması için:** Bu alanı zorunlu tutmak deneyim ekleme oranını düşürebilir. Alternatif: zorunlu tutmayıp "bu alan boşsa eşleşme gücü düşük" uyarısı vermek. Zorunlu tutma kararının arkasındayız çünkü boş deneyim kaydı sisteme hiçbir şey katmıyor — ama ilk verilerle ölçülmeli.
+```
+1. Platformdaki onaylı şirketler     ← önce, en üstte
+2. Diğer adayların yazdığı şirketler ← kullanım sayısına göre
+3. Yazdığı gibi kaydedilir           ← öneri havuzuna girer
+```
 
-**Çalışma türü — tek liste**
+- Tek arama kutusunda bu sırayla
+- Yazılan ad sonradan diğer adaylara öneri olur
+- O şirket ileride platforma onaylanırsa, isim benzerliğiyle **onaylı kayda bağlanır**
+- Rozet yok — platformdaki tüm şirketler zaten onaylı
 
-Ayrı bir "staj mı" kutusu yok, hepsi tek listede. Böylece "tam zamanlı + staj işaretli" gibi çelişkili durumlar oluşmaz.
+### "Bu işte ne yaptın" — bölümün en önemli alanı
 
-**Sistemde kullanımı:**
-- **Tecrübe yılı tarihlerden otomatik hesaplanır** — aday ayrıca "5 yıl tecrübem var" yazmaz
-- Çalışma türüne göre ağırlıklandırma: tam zamanlı tam, staj ve yarı zamanlı kısmi, gönüllü tecrübe hesabına girmez (profilde görünür)
-- Öğrenci/yeni mezun ayrımı: staj kayıtları + eğitimde "devam ediyorum" birlikte değerlendirilir
+CV eşleştirmeye girmiyor, şirket profili girmiyor. Adayın gerçek ayırt ediciliği bu metinlerden çıkıyor. Boş deneyim kaydı sisteme hiçbir şey katmaz — bu yüzden kayıt eklenince zorunlu.
 
-**Şirket adını gizle**
+### Toplam tecrübe — otomatik
 
-İşaretlenirse kartta şöyle görünür:
+Aday ayrıca yazmaz; tarihlerden hesaplanır:
+
+| Çalışma türü | Ağırlık |
+|---|:---:|
+| Tam zamanlı, freelance | × 1.0 |
+| Yarı zamanlı, staj, dönemsel | × 0.5 |
+| Gönüllü | Sayılmaz *(profilde görünür)* |
+
+Örtüşen dönemler iki kez sayılmaz.
+
+### Şirket adını gizle
 
 ```
 Şirket adı gizli
-Backend Developer
-2022 – Halen
+Backend Developer · 2022 – Halen
 "Ödeme altyapısında mikroservis geliştirdim..."
 ```
 
-Pozisyon, tarih ve açıklama görünür; sadece isim gizli. Ek sektör/çalışan sayısı bilgisi sorulmaz.
-
-> ⚠️ **Bilinen sınırlılık:** Bu gizleme yanıltıcı olabilir. Pozisyon + tarih + iş açıklaması yazılı bir profil, o şirkette çalışan biri için genelde tanınabilir. Asıl korumayı **gizlenen şirketler** özelliği (Adım 11) sağlıyor. Bu alan ikincil bir rahatlık.
+> ⚠️ **Sınırlılık:** Pozisyon + tarih + açıklama o şirkette çalışan biri için tanınabilir olabilir. Asıl koruma **gizlenecek şirketler** (Adım 11).
 
 ---
 
-### Adım 5 — Yetenekler
+## 7. Adım 5 — Yetenekler
 
-**"+ Yetenek Ekle" → ad + yıl → liste**
+**Opsiyonel** — hiç eklenmeyebilir.
 
-| Alan | Zorunlu | Giriş |
-|---|:---:|---|
-| Yetenek adı | ✅ | Serbest + öneri (kullanım sayısına göre sıralı, dile göre süzülü) |
-| Deneyim yılı | ✅ | Sayı |
+```
+Yeteneklerim                                      2 / 30
 
-**Sınır: en fazla 30** (ilan tarafıyla simetrik).
+┌──────────────────────────────┐  ┌────────┐
+│ React                        │  │ 5 yıl ▾│   🗑
+└──────────────────────────────┘  └────────┘
+┌──────────────────────────────┐  ┌────────┐
+│ PostgreSQL                   │  │ 4 yıl ▾│   🗑
+└──────────────────────────────┘  └────────┘
 
-**Yıldız/seviye yok, sadece yıl.**
-
-> **Neden:** Yıldız öz-değerlendirmedir, güvenilmez. Zamanla herkes 4-5 yıldız verir ve ayırt ediciliği kaybolur. "3 yıl React" ise doğrulanabilir bir iddia ve işverenin ilanında yazdığı şeyle doğrudan karşılaştırılabilir.
-
-**Nereye gidiyor:**
+[+ Ekle]
+```
 
 | | |
-|---|:---:|
+|---|---|
+| Zorunlu | ❌ |
+| En fazla | 30 |
+| Giriş | **[+ Ekle]** → yeni satır → yetenek adı + yıl |
+| Yetenek adı | **Otomatik tamamlama** — listede varsa seçer, yoksa yazdığı kaydedilir |
+| Yıl | Açılır liste: `<1 · 1 · 2 · 3 … 10+` — satır doluysa zorunlu |
+| Seviye / yıldız | ❌ **Yok** — sadece yıl |
+| Unvana göre öneri | ❌ **Yok** — kişi kendisi ekler |
+| **Embedding** | ✅ **Sadece ad** (yıl girmez) |
+| **Skor** | ✅ Yetenek bileşeni (ad + yıl) |
 | Katı filtre | ❌ |
-| Embedding | ✅ **sadece yetenek adı** |
-| Skor | ✅ `yetenek_ortusmesi`, %15 |
 
-> **Yıl neden embedding'e girmiyor:** Sayılar vektör uzayında anlamlı çalışmıyor. "React 4 yıl" ile "React 1 yıl" metin olarak neredeyse aynı görünür. Üstelik sayılar metne karışınca asıl sinyali seyreltir. Yıl skorda aritmetikle hesaplanır.
+> **Neden yıl:** İlan "React 5 yıl" isterse, 3 yıl bilen aday 1 yıl bilenin önüne geçer:
+> ```
+> React 3 yıl → 0.5 + 0.5 × 3/5 = 0.80
+> React 1 yıl → 0.5 + 0.5 × 1/5 = 0.60
+> ```
 
-**İki koldan eşleşir:**
-1. **Etiket kesişimi** — aynı `yetenek_id` varsa doğrudan
-2. **Embedding** — etiket tutmasa bile "React" ile "frontend geliştirme" yakınlığı yakalanır
+> **Neden yıldız yok:** Öz-değerlendirme güvenilmez; zamanla herkes 4-5 yıldız verir. "3 yıl React" ilanla doğrudan karşılaştırılabilir.
 
-> İkinci kol sayesinde serbest yazmanın dağınıklığı eşleştirmeyi bozmuyor. **Bu, tüm serbest yazma kararlarının dayandığı temel.** Global ölçekte ayrıca diller arası köprü kuruyor.
+> **Neden yıl embedding'e girmiyor:** Sayılar vektör uzayında anlamsız — "React 4 yıl" ile "React 1 yıl" neredeyse aynı görünür.
 
-**Katı filtre olmaması bilinçli:** "React zorunlu" diyen ilana, React yazmamış ama 5 yıl frontend yapmış aday da düşer, sadece skoru düşük olur. İşveren kartta görür, kendi karar verir.
+> **Neden katı filtre değil:** "React zorunlu" diyen ilana React yazmamış ama yıllarca frontend yapmış aday da düşer — sadece skoru düşük olur.
 
----
+> **Bilerek kabul edilen:** Yetenek girmeyen aday, yetenek isteyen ilanlarda bu bileşenden düşük alır (eşleşmenin %20'si). Elenmez, sıralamada geride kalır. **Eşleşme gücü** göstergesi bunu söyler.
 
-### Adım 6 — Diller
-
-**İki ayrı bölüm.** Bu ayrım kritik:
-
-#### A — Bildiğim Diller *(gösterim)*
-
-Dil (kapalı liste) + seviye (Başlangıç / Orta / İleri / Anadil). İstediği kadar ekler.
-
-| Katı filtre | Embedding | Skor |
-|:---:|:---:|:---:|
-| ❌ | ❌ | ❌ |
-
-Sadece kartta gösterilir.
-
-> **Neden hiçbir yere girmiyor:** İlan tarafında karşılığı yok — ilanda sadece "iş dili" var. Karşılaştırılacak alan olmadığı için eşleştirmeye giremez. Embedding'e de girmemesi bilinçli: "İngilizce C1, Almanca A2" gibi metin vektöre karışsa, dil bilen tüm adaylar birbirine yakın çıkar ve asıl sinyali seyreltir.
-
-> **Global ölçekte değeri artıyor:** Çok dilli bir pazarda işveren için bu bilgi kartta gerçekten önemli — ama sistem ölçmüyor, insan değerlendiriyor.
-
-#### B — Çalışabileceğim İş Dilleri *(katı filtre)*
-
-Çoklu seçim, kapalı liste, **zorunlu**. Seviye sorulmaz.
-
-**Otomatik kural:** Bildiğim dillerde **"Anadil"** seçilen dil, iş dillerine **otomatik işaretli** düşer. Aday görür, isterse kaldırır.
-
-> **Neden sadece anadil, ileri değil:** Anadil tartışmasız. Ama "İngilizce - İleri" diyen biri İngilizce ortamda çalışmak istemeyebilir — o kararı kendisi vermeli.
-
-> **Neden otomatik ekleme, uyarı değil:** Uyarı kullanıcıya *soru* sorar; otomatik ekleme *doğru şeyi yapar*. Ayrıca uyarı diyalogları okunmadan kapatılıyor. **Otomatik eklenen işaret görünür ve değiştirilebilir olmalı** — sessizce arkada set edilmemeli.
-
-**Filtre — kesişim kontrolü:**
-
-| İlan iş dili | Aday iş dilleri | Sonuç |
-|---|---|:---:|
-| [Türkçe] | [Türkçe] | ✅ |
-| [Türkçe] | [Türkçe, İngilizce] | ✅ |
-| [Türkçe] | [İngilizce] | ❌ |
-| [İngilizce] | [Türkçe, İngilizce] | ✅ |
-| [Türkçe, İngilizce] | [İngilizce] | ✅ |
-| [Türkçe, İngilizce] | [Almanca] | ❌ |
-
-> ⚠️ **En büyük tek risk:** Bu alan boş kalırsa aday **hiçbir ilanla eşleşmez** ve sebebini anlamaz. İki koruma zorunlu:
-> 1. **Kullanıcının ülkesinin ana dili varsayılan işaretli gelsin** *(Türkiye'de Türkçe, Almanya'da Almanca, ABD'de İngilizce)*
-> 2. Alan boş bırakılamaz
-
-> **Global ölçekte ikinci bir işlevi var:** Embedding çok dilli olduğu için Türkçe yazılmış profil, İngilizce yazılmış ilanla **eşleşebiliyor** — ama aday o ilanı okuyamayabilir. Dil filtresi bunu engelliyor: okuyamayacağı ilan adaya hiç gösterilmiyor.
+**İki koldan eşleşme:**
+1. **Skor:** ilanın onaylı etiketleriyle karşılaştırma (yazım farkları benzerlik kontrolüyle)
+2. **Embedding:** etiket tutmasa bile "React" ↔ "frontend geliştirme" yakınlığı
 
 ---
 
-### Adım 7 — Sertifikalar
+## 8. Adım 6 — Diller
 
-**"+ Sertifika Ekle" → alanlar → liste**
+### A — Bildiğim diller *(sadece gösterim)*
 
-| Alan | Zorunlu |
-|---|:---:|
-| Sertifika adı | ✅ |
-| Veren kurum | ❌ |
-| Alınma tarihi | ❌ |
-| Geçerlilik bitişi | ❌ |
+```
+Bildiğim diller                                [+ Dil ekle]
+İngilizce   [İleri ▾]       🗑
+Almanca     [Başlangıç ▾]   🗑
+```
 
-Serbest + öneri. İlan tarafındaki sertifika alanıyla simetrik.
-
-**Nereye gidiyor:**
-
-| Katı filtre | Embedding | Skor |
-|:---:|:---:|:---:|
-| ❌ | ✅ *(sadece ad)* | ✅ |
-
-> **Katı filtre neden değil:** İsimler tutmaz. "PMP" / "PMP Sertifikası" / "Project Management Professional" üç ayrı kayıt olur; katı filtre yapılırsa **sertifikası olan aday bile elenir.**
-
-> **Embedding neden gerekli:** İsim dağınıklığını çözen tek şey bu. Aday "PMP" yazmış, ilan "Proje Yönetimi Sertifikası" istemiş — etiket kesişimi tutmuyor ama embedding ikisini yakın görüyor.
-
-**Sadece sertifika adı embedding'e girer.** Veren kurum ve tarihler girmez.
-
-> **Global not:** Bazı sertifikalar uluslararası geçerli (PMP, AWS, CFA, CISSP), bazıları tamamen yerel (Türkiye'de İSG uzmanlığı ve SMMM, Almanya'da Meisterbrief). Serbest yazma bu farkı kendiliğinden çözüyor — ayrı bir yapı gerekmiyor. **Yerel sertifikalar ülke sınırlarını aşmıyor, bu doğal ve doğru.**
-
-**Geçerlilik:** Süresi dolmuş sertifika kartta "süresi geçmiş" olarak gösterilir, skorda sayılmaz.
-
----
-
-### Adım 8 — Projeler / Portföy
-
-**Tamamen opsiyonel adım.**
-
-| Alan | Zorunlu | Not |
-|---|:---:|---|
-| Proje adı | ✅¹ | **Embedding'e girer** |
-| Kısa açıklama | ✅¹ | 1-3 cümle — **embedding'e girer** |
-| Link | ❌ | GitHub, Behance, kişisel site, Dribbble |
-| Kullanılan teknolojiler | ❌ | Serbest + öneri (yetenek havuzundan) |
-| Tarih | ❌ | Ay/yıl |
-
-¹ *Proje ekliyorsa zorunlu*
-
-**Sadece proje adı ve açıklama embedding'e girer.** Link ve tarih girmez.
-
-**Link doğrulaması yapılmaz** — çalışıp çalışmadığını kontrol etmek gereksiz iş. Sadece format kontrolü.
-
-> 💡 **Kimler için kritik:** Yeni mezun ve staj arayanlar. Deneyim kaydı olmayan adayın embedding'e girecek metni neredeyse yok — unvan, bölüm ve kısa tanıtım kalıyor. Proje açıklaması o boşluğu doldurur.
->
-> **Öneri:** Staj/öğrenci akışında bu adımı öne çıkarın: *"Deneyimin yoksa projelerini ekle, daha çok ilanla eşleşirsin."*
-
----
-
-### Adım 9 — CV ve Belgelerim
-
-| Alan | Zorunlu | Kısıtlar |
-|---|:---:|---|
-| CV | ❌ | PDF, en fazla 5 MB, tek dosya |
-| *(İleride)* Diğer belgeler | ❌ | Diploma, transkript, referans |
-
-**Eşleştirmeye hiç girmez** — ne embedding, ne filtre, ne skor.
-
-> **Neden:** Tüm adaylar aynı kurallarla değerlendirilsin. CV yükleyen kişi ekstra sinyalle öne geçmesin. Bu hem daha adil, hem **otomatik karar verme** düzenlemeleri açısından savunması kolay: *"Neye göre sıraladınız?"* → *"Adayın kendi girdiği yapılandırılmış alanlara göre."*
-
-> ⚠️ **Global ölçekte bu karar daha da değerli:** AB Yapay Zeka Yasası işe alım amaçlı YZ sistemlerini **yüksek riskli** sınıfa alıyor; New York City'de otomatik işe alım araçları için bağımsız önyargı denetimi (Local Law 144) zorunlu. Şeffaf ve açıklanabilir bir skor yapısı, bu rejimlerde uyum maliyetini ciddi düşürüyor. **Alt skorların saklanması zorunlu tutulmalı.**
-
-**Aday tarafı:** Yükler, **içeriğini önizlemede görür**, **kendi dosyasını indirebilir**.
-
-**İşveren tarafı — kademeli erişim:**
-
-| Yer | CV durumu |
+| | |
 |---|---|
-| Keşfet | **Hiç görünmez** |
-| Davet gönderildi, cevap bekleniyor | Görünmez |
-| **Başvuranlar** | Görüntüle + **indir** |
-| **Eşleşmeler** | Görüntüle + **indir** |
+| Zorunlu | ❌ |
+| Giriş | Dil (kapalı liste) + seviye: Başlangıç / Orta / İleri / Anadil |
+| Filtre / embedding / skor | ❌ |
+| İşverene | ✅ |
 
-> **Keşfet'te neden hiç görünmüyor:** İşveren 200 kart kaydırıyor. Hepsinin CV'sini açabiliyorsa bu bir veri toplama aracına dönüşür. Keşfet kartında profil bilgileri karar vermek için yeterli.
+> İlanda karşılığı yok (ilanda sadece "iş dili" var). Embedding'e girse dil bilen herkes birbirine yakın çıkardı.
 
-**Şart:** Başvuru onay diyaloğunda aday bunu bilsin — *"CV'niz işverenle paylaşılacak."*
+### B — Çalışabileceğim iş dilleri *(katı filtre)*
 
-**Teknik:** Supabase Storage, özel bucket, RLS ile erişim.
+```
+İş dilleri *
+[Türkçe ✕] [İngilizce ✕]   [+ Ekle]
+```
 
-> 💬 **Ekip tartışması için:** İndirme açık olması "gerçek silme" taahhüdünü zorlaştırıyor — aday hesabını silse bile indirilmiş CV'ler işverenlerin bilgisayarlarında kalır. **Global ölçekte bu GDPR'ın silme hakkı (md. 17) açısından daha keskin bir sorun.** Alternatif: sadece görüntüleme. Mevcut karar indirmeye izin veriyor; aydınlatma metninde açıkça belirtilmeli.
+| | |
+|---|---|
+| Zorunlu | ✅ En az bir |
+| Giriş | Kapalı liste, çoklu, seviye yok |
+| Varsayılan | **Adayın ülkesinin ana dili** dolu gelir |
+| Otomatik | "Bildiğim diller"de **Anadil** seçilen dil otomatik eklenir — görünür, kaldırılabilir |
+| Eşleştirme | **Katı filtre** — ilanla en az bir ortak dil |
 
----
+> ⚠️ **En büyük tek risk:** Bu alan boş kalırsa aday hiçbir ilanla eşleşmez. Bu yüzden varsayılan dolu ve boş bırakılamaz.
 
-### Adım 10 — Diğer Bilgiler
-
-İlan tarafındaki "hazır kutular" katı filtresinin karşılığı.
-
-| Alan | Zorunlu | Katı filtre | Giriş |
-|---|:---:|:---:|---|
-| Sürücü belgesi | ❌ | **✅** | Yok / var → sınıf *(ülkeye göre liste)* |
-| Aktif araç sahibi | ❌ | ❌ | İşaret kutusu |
-| Askerlik durumu | ❌ | ❌ | Yapıldı / muaf / tecilli |
-| Seyahat engeli yok | ❌ | **✅** | İşaret kutusu |
-| Vardiyalı çalışabilirim | ❌ | **✅** | İşaret kutusu |
-
-**Kararların gerekçeleri:**
-
-| Alan | Karar | Gerekçe |
-|---|---|---|
-| Sürücü belgesi | Katı filtre, sınıf eşleşmeli | Şoför ilanına ehliyetsiz aday düşmemeli. |
-| Aktif araç sahibi | Sadece bilgi | Araç sahibi olmayan biri araç alabilir veya şirket araç verebilir. |
-| **Askerlik** | **Sadece bilgi** | Filtre yapılırsa kadın adaylar için bu alan boş olduğundan sürekli istisna kuralı gerekir; o kural bir yerde unutulursa **tüm kadın adaylar elenir**. Hukuki risk global: Türkiye'de İş Kanunu md. 5, AB'de 2000/78/EC istihdam eşitliği direktifi, ABD'de Title VII. |
-| Seyahat engeli | Katı filtre | Saha satış, bölge sorumlusu gibi pozisyonlarda gerçekten esnemez. |
-| Vardiyalı çalışma | Katı filtre | Fabrika, hastane, çağrı merkezi, güvenlik — olmazsa olmaz. |
-
-> **Global not — sürücü belgesi sınıfları:** Sınıflandırma ülkeye göre farklı (AB'de A/B/C/D/E ortak, ABD'de eyalet bazlı Class A/B/C + CDL, Japonya kendi sistemi). Liste `ulke_surucu_siniflari` tablosunda tutulmalı.
->
-> **Öneri:** Sınıf eşleşmesini **sadece aynı ülke içinde** uygulayın. Ülkeler arası ilanlarda "ehliyet var/yok" düzeyinde kalın — yoksa yanlış eleme yapılır. Ayrıca ehliyetin başka ülkede geçerli olup olmaması ayrı bir konu, sistemin çözemeyeceği bir şey.
-
-**Filtre sadece iki şart bir aradayken devreye girer:**
-1. İlan o şartı **istemiş** (kutu işaretli)
-2. Adayda o bilgi **yok veya uymuyor**
-
-Yazılımcı ilanı açan işveren ehliyet kutusuna dokunmuyor → ehliyeti olmayan aday rahatça eşleşiyor.
-
-> **Askerliği filtreden çıkarma kararının yan faydası:** "Askerlik alanı boş olanlar otomatik geçer" istisna kuralına gerek kalmadı. Sistem sadeleşti ve unutma riski ortadan kalktı.
+> **Global işlevi:** Embedding çok dilli olduğu için Türkçe profil İngilizce ilanla eşleşebilir — ama aday o ilanı okuyamayabilir. Dil filtresi bunu önler.
 
 ---
 
-### Adım 11 — Beklentiler
+## 9. Adım 7 — Sertifikalar
 
-| Alan | Zorunlu | Giriş | Filtre |
+**Adım opsiyonel.** Eklenen her sertifikada:
+
+```
+Sertifika adı *:     [SRC Belgesi                ]   ← öneri + serbest
+Veren kurum:         [_______________]                (opsiyonel)
+Alınma tarihi *:     [Ay ▾] [Yıl ▾]
+Geçerlilik bitişi:   [Ay ▾] [Yıl ▾]   ☐ Süresiz      (opsiyonel)
+Belge *:             [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
+                                                      🗑
+[+ Ekle]
+```
+
+| Alan | Zorunlu | Embedding | Skor |
+|---|:---:|:---:|:---:|
+| Sertifika adı | ✅ | ✅ | ✅ |
+| Veren kurum | ❌ | ❌ | ❌ |
+| **Alınma tarihi** | ✅ | ❌ | ❌ |
+| Geçerlilik bitişi / süresiz | ❌ | ❌ | ✅ *geçerlilik kontrolü* |
+| **Belge dosyası** | ✅ | ❌ | ❌ |
+
+### Geçerlilik
+
+| Aday ne girdi | Sistem |
+|---|---|
+| Bitiş tarihi, henüz geçmedi | ✅ Geçerli |
+| Bitiş tarihi **geçmiş** | ❌ Skorda sayılmaz; kartta *"süresi geçmiş"* |
+| "Süresiz" | ✅ Her zaman geçerli |
+| Hiçbiri | ✅ Süresiz kabul edilir |
+
+> Ad, geçerlilik fark etmeksizin embedding'e girer (etkisi küçük); **skor geçerliliğe bakar.**
+
+### Skorda
+
+İlanın **olmazsa olmaz** ve **tercih edilen** sertifika kutularıyla eşleşir — yetenek bileşeni içinde.
+
+```
+İlan:   Olmazsa olmaz: [SRC belgesi]    Tercih edilen: [İSG eğitimi]
+Aday:   SRC Belgesi — geçerli           İSG Eğitimi — süresi geçmiş
+
+SRC  → olmazsa olmaz kümede → 1.0
+İSG  → tercih edilen kümede → 0.0  (süresi geçmiş)
+```
+
+### Belge dosyası
+
+| | |
+|---|---|
+| İşverene — Keşfet | ❌ Sadece sertifika adı |
+| İşverene — Başvuranlar / Eşleşmeler | ✅ Görüntüle + indir — **aday paylaşmayı seçtiyse** (Bölüm 15) |
+| Şirkette kim görür | İlanın sorumlusu + sahip + yönetici |
+
+> ⚠️ **Dosya yüklenmesi doğrulama değildir.** Platform belgeyi kontrol etmiyor. Kartta **"doğrulanmış" gibi bir ibare olmaz** — yanlış güven verir. İşveren dosyayı görüp kendisi değerlendirir.
+
+> **Neden katı filtre değil:** İsimler tutmuyor — "PMP" / "Project Management Professional". Katı filtre olsa sertifikası olan aday da elenir.
+
+---
+
+## 10. Adım 8 — Projeler / Portföy
+
+**Tamamen opsiyonel.**
+
+```
+Proje adı *:              [Kargo takip uygulaması          ]
+Açıklama *:               ┌────────────────────────────────┐
+                          │ Küçük kargo firmaları için     │
+                          │ Flutter ile takip uygulaması.  │
+                          └────────────────────────────────┘
+Link:                     [https://github.com/...          ]
+Kullanılan teknolojiler:  [Flutter] [Firebase]
+Tarih:                    [Ay ▾] [Yıl ▾]
+                                                           🗑
+[+ Ekle]
+```
+
+| Alan | Zorunlu | Embedding |
+|---|:---:|:---:|
+| Proje adı | ✅ *(proje eklendiyse)* | ✅ |
+| Açıklama | ✅ *(proje eklendiyse)* — 1-3 cümle | ✅ |
+| Link | ❌ — sadece format kontrolü | ❌ |
+| Kullanılan teknolojiler | ❌ — yetenek havuzundan otomatik tamamlama | ❌ |
+| Tarih | ❌ | ❌ |
+
+Katı filtre / skor: ❌
+
+> **Kimler için kritik:** Deneyimi olmayan yeni mezun ve staj arayanlar. Embedding'e girecek metinleri az — proje açıklaması boşluğu doldurur.
+
+---
+
+## 11. Adım 9 — CV ve Belgelerim
+
+**Opsiyonel.** Tek CV yerine **belge listesi:**
+
+```
+CV ve Belgelerim
+
+Belge adı *:  [Özgeçmiş                    ]
+Dosya *:      [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
+[Yükle]
+
+📄 Özgeçmiş                     PDF   [Önizle] [İndir] [Sil]
+📄 Lisans Diploması              JPG   [Önizle] [İndir] [Sil]
+📄 Referans Mektubu              PDF   [Önizle] [İndir] [Sil]
+
+[+ Belge ekle]
+```
+
+| | |
+|---|---|
+| Zorunlu | ❌ |
+| Belge adı | ✅ Serbest — aday verir |
+| Format | PDF, JPG, PNG |
+| Boyut | Dosya başına en fazla 5 MB |
+| Adet | En fazla **10** |
+| **Eşleştirme** | ❌ **Hiçbir yere girmez** |
+
+### İşverene görünürlük
+
+| Yer | Belgeler |
+|---|---|
+| Keşfet | ❌ |
+| Davet gönderildi, cevap bekleniyor | ❌ |
+| **Başvuranlar** | ✅ Görüntüle + **indir** — **sadece adayın o başvuruda seçtikleri** |
+| **Eşleşmeler** | ✅ Görüntüle + **indir** — **sadece seçilenler** |
+
+- Şirkette: **ilanın sorumlusu + sahip + yönetici** — diğer uzmanlar görmez
+- **İndirme açık** — aydınlatma metninde açıkça belirtilir (aday hesabını silse bile indirilmiş kopyalar işverende kalabilir)
+- **Teknik:** Supabase Storage, özel bucket, RLS ile erişim
+
+---
+
+## 12. Adım 10 — Diğer Bilgiler
+
+İlandaki "diğer şartlar"ın karşılığı. **Dört zorunlu seçim** — varsayılan seçili gelmez.
+
+```
+Diğer bilgiler *
+
+Sürücü belgesi *:     ○ Yok
+                      ○ Var → en az bir sınıf: [B] [C] [D] [E] ...
+
+Askerlik durumu *:    ○ Yapıldı  ○ Muaf  ○ Tecilli  ○ Yükümlü değil
+
+Seyahat engeli *:     ○ Yok   ○ Var
+
+Vardiyalı çalışma *:  ○ Evet, çalışabilirim   ○ Hayır
+```
+
+| Alan | Zorunlu | Katı filtre — sadece ilan şart koyduysa | İşverene |
 |---|:---:|---|:---:|
-| Başlama zamanı | ❌ | Kapalı liste | ❌ gösterim |
-| Gizlenecek şirketler | ❌ | Kayıtlı şirketlerden arama + seçim | **✅ katı** |
+| Sürücü belgesi | ✅ — "Var" ise **en az bir sınıf** | İlan "gerekli + sınıf" → sınıf eşleşmeli | ✅ |
+| Askerlik | ✅ | İlan "askerlik engeli olmamalı" → **tecilli elenir** *(sadece iş ilanında)* | ✅ *detayda, süzülemez* |
+| Seyahat engeli | ✅ | İlan "seyahat engeli olmamalı" → "Var" elenir | ✅ |
+| Vardiyalı çalışma | ✅ | İlan "vardiyalı çalışabilmeli" → "Hayır" elenir | ✅ |
 
-**Başlama zamanı** — kapalı liste: Hemen / 2 hafta içinde / 1 ay içinde / 2-3 ay içinde / Esnek.
+**Filtre sadece ilanda şart varsa çalışır** — iş ilanında da staj ilanında da. İlan "gerekli değil" dediyse o alana bakılmaz.
 
-Filtreye girmez, sadece gösterim.
+> **Neden zorunlu:** Eskiden aday bu alanları boş bırakabiliyor, şartlı ilanlardan **sessizce** eleniyordu. Artık iki tarafta da seçim zorunlu — boş durum yok, filtre tek satır, "doldurmadın" uyarısına gerek kalmadı.
 
-> **Neden filtre değil:** İşveren "hemen başlayacak" diye süzüp, 1 ay sonra başlayabilecek mükemmel adayı kaybetmesin.
+### Askerlik
 
-> **Neden kapalı liste:** Sınırlı sayıda anlamlı cevap var. Serbest bırakılırsa "2 hafta" / "iki hafta" / "15 gün" birikir, hiçbir faydası olmaz.
+- **"Yükümlü değil":** Kadın adaylar, askerliği olmayan ülkelerdeki adaylar, yabancı uyruklular — kimse kendini yanlış kategoriye koymak zorunda kalmaz
+- Form **her ülkede aynı**
+- İlan şartı **"askerlik engeli olmamalı"** — sadece **tecilli** elenir; yapıldı / muaf / yükümlü değil geçer
+- **Staj ilanında askerlik şartı yok** — öğrencilerin çoğu tecilli
+- İşverene **profil detayında görünür**, işveren **askerliğe göre süzemez**
 
-> **Global not:** İhbar süreleri ülkeye göre çok farklı (Almanya'da kıdeme göre 1-7 ay, ABD'de genelde 2 hafta, Türkiye'de 2-8 hafta). Seçenekler bu yelpazeyi kapsamalı — "3 ay+" seçeneği eklenmeli.
+### Sürücü belgesi sınıfları
 
-#### Maaş beklentisi — profilden çıkarıldı
+Sınıf listesi ülkeye göre (AB'de B/C/D/E, ABD'de eyalet bazlı). Liste adayın ülkesine göre gelir.
 
-> **Neden çıkarıldı:** Maaş beklentisi **pozisyona özeldir**. Aynı aday farklı pozisyonlar için farklı bekler. Profilde tek rakam istemek adayı en alt sınırını yazmaya zorlar.
+### Kaldırılan
 
-**Yeni yer: başvuru anında.**
+**Aktif araç sahibi** — ilanda karşılığı yoktu, hiçbir yere girmiyordu.
+
+---
+
+## 13. Adım 11 — Beklentiler
+
+### Başlama zamanı
 
 ```
-Net minimum maaş beklentiniz (opsiyonel)
-[____] [TRY ▾]        ← varsayılan: ilanın para birimi
-
-Not (opsiyonel)
-[_________________________]
+Ne zaman başlayabilirsin? *
+○ Hemen   ○ 2 hafta içinde   ○ 1 ay içinde   ○ 2-3 ay içinde   ○ 3 ay+   ○ Esnek
 ```
 
-**Kararların gerekçeleri:**
-
-| Karar | Gerekçe |
+| | |
 |---|---|
-| Tek rakam, aralık değil | Aralık pazarlıkta işe yaramıyor — işveren her zaman alt sınırı okur. |
-| "Net minimum" ifadesi | Net/brüt karışıklığı çoğu ülkede ciddi. "Minimum" aralık belirsizliğini kaldırıyor. |
-| **Para birimi alanı** | Varsayılan ilanın para birimi. Aday isterse değiştirir. |
-| Opsiyonel | Bazı aday "görüşmede konuşalım" der. Zorunlu yapılırsa rastgele sayı girilir. |
-| Not alanı | "Esnek olabilirim", "yan haklara göre değişir" — işveren için değerli. |
+| Zorunlu | ✅ |
+| Giriş | Kapalı liste, tek seçim |
+| Filtre / embedding / skor | ❌ |
+| İşverene | ✅ — sadece gösterim |
 
-**Maaş katı filtre listesinde değil** — karşılaştırılacak iki taraf yok.
+> **Neden filtre değil:** İşveren "hemen başlayacak" diye süzüp, 1 ay sonra başlayabilecek iyi adayı kaybetmesin.
 
-**İşveren tarafında:** Başvuranlar listesinde kolon olarak görünür, sıralanabilir/gruplanabilir.
+### Maaş beklentisi — profilde yok
 
-```sql
-basvurular (aday_id, ilan_id, net_min_maas, para_birimi,
-            not, tarih, durum)
+Pozisyona özel olduğu için **başvuru anında** sorulur (Bölüm 15).
+
+### Gizlenecek şirketler
+
+```
+Gizlemek istediğim şirketler
+
+[ABC Tekn|                              ]
+┌─────────────────────────────────────┐
+│ ABC Teknoloji                        │  ← sadece onaylı şirketler
+└─────────────────────────────────────┘
+
+[ABC Teknoloji ✕]  [XYZ Lojistik ✕]
 ```
 
-> **Kur çevrimi yapılmadan saklanır** — kur değişince geçmiş veriler bozulmasın. Gösterimde yaklaşık karşılık verilebilir *(ileride, kur servisi gerekir)*.
+| | |
+|---|---|
+| Zorunlu | ❌ |
+| Kaynak | **Sadece platformdaki onaylı şirketler** |
+| Serbest yazma | ❌ — listede yoksa gizlenemez |
+| Otomatik öneri | ❌ Yok — aday kendisi arar |
+| Eşleştirme | **Katı filtre — işveren yönünde** |
 
-> 💡 **Beklenmeyen fayda:** Aday, maaş yazmayan ilana başvururken ne yazacağını bilemez — bu işvereni maaş yazmaya iter.
-
-**Davet durumunda:** İşveren Keşfet'ten davet ederse maaş konuşulmamış olur. Aday daveti kabul ederken beklentisini yazabilir, ya da sohbette konuşulur.
-
-#### Gizlenecek şirketler
-
-**En hassas özellik.** Aday şu an çalışıyor ve mevcut işvereninin onu görmesini istemiyor.
-
-```sql
-aday_gizlenen_sirketler (aday_id, sirket_id)
-```
+> **Neden sadece onaylı şirketler:** Adayları sadece onaylı şirketler görebiliyor. Elle yazılmış bir şirket adının platformda hesabı yok — gizlemek işe yaramaz, eşleşme de yapılamaz.
 
 **Tek yönlü çalışır:**
 
 | | |
 |---|---|
-| **İşveren adayı göremez** | Keşfet'te çıkmaz, davet gönderemez, profiline erişemez |
-| **Aday ilanları görebilir** | Hatta başvurabilir |
+| İşveren adayı **göremez** | Keşfet'te çıkmaz, davet gönderemez, profile erişemez |
+| Aday ilanları **görür** | Hatta başvurabilir |
 
-> **Neden tek yönlü:** Aday mevcut işvereninin onu *bulmasını* istemiyor, ama o şirketin ilanlarını görmekten rahatsız değil — hatta kendi şirketindeki başka bir pozisyona başvurmak isteyebilir.
+> **Neden tek yönlü:** Aday mevcut işvereninin onu bulmasını istemiyor ama o şirketin ilanlarını görmekten rahatsız değil — kendi şirketinde başka pozisyona başvurmak isteyebilir.
 
-**Başvuru durumunda uyarı:**
+**Gizlediği şirkete başvururken uyarı:**
+> *"Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"*
 
-> "Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"
-
-**Sorgudaki yeri:**
-
-```sql
--- İşveren tarafı (aday havuzu): gizleme UYGULANIR
--- Aday tarafı (ilan havuzu): gizleme UYGULANMAZ
-```
-
-**Üç kritik nokta:**
-
-1. **Sadece kayıtlı şirketler gizlenebilir.** Sistemde olmayan şirket ilan açmıyor.
-2. **`normalize_ad` üzerinden arama** + `pg_trgm` ile yazım hatası toleransı.
-3. **RLS ile korunmalı.** Gizlenen şirket adayı veritabanı seviyesinde okuyamasın.
-
-**Gizlenen aday istatistiklerde de sayılmaz.**
-
-> **Global not — grup şirketleri:** Aday "ABC Türkiye"yi gizledi ama "ABC GmbH" ayrı kayıt olarak duruyor ve onu görebiliyor. Grup şirketi bağlantısı (`ust_sirket_id`) kurulursa gizleme tüm gruba uygulanabilir. Şimdi gerekmiyor, veri modelinde alan bırakmak yeterli.
-
-> 💡 **En işe yarayacak detay — otomatik öneri:** Aday deneyim kaydında "halen çalışıyorum" işaretli bir şirket varsa ve o şirket sistemde kayıtlıysa, gizleme ekranında öneri olarak düşsün:
->
-> *"Şu an ABC Teknoloji'de çalışıyorsunuz. Bu şirketten gizlenmek ister misiniz?"*
+- **RLS ile korunur** — gizlenen şirket adayı veritabanı seviyesinde okuyamaz
+- Gizlenen aday şirketin **istatistiklerinde de sayılmaz**
+- **Şirket bazlı** — şirketin tüm kullanıcıları (sahip, yönetici, uzman) için geçerli
 
 ---
 
-### Adım 12 — Önizleme, Arama Durumu, Yayınlama
+## 14. İletişim Bilgilerinin Paylaşılması
 
-#### 1. Kart önizlemesi
-
-Keşfet kartıyla **aynı bileşen** — işverenin göreceği birebir hal.
-
-Gizli alanlar burada da görünmez: doğum tarihi, cinsiyet, telefon, e-posta.
-
-#### 2. Profil tamamlanma yüzdesi
-
-Yüzde + eksik alan listesi. Her eksiğin yanında **"düzenle" bağlantısı**.
-
-#### 3. Arama özeti
-
-**Bu bölümün en faydalı parçası.** Filtrelerin ne yaptığı düz dille:
-
-> *"Bilişim alanında, Almanya (Bayern) ve Türkiye (İstanbul)'da, Türkçe ve Almanca iş dilinde, tam zamanlı iş ilanları size gösterilecek."*
-
-> **Neden kritik:** Katı filtreler **sessizce** eliyor. Aday yanlışlıkla tek konum seçmiş, iş dilinden bir dili kaldırmış veya sürücü belgesi alanını boş bırakmışsa — *"hiç ilan gelmiyor"* der ve sebebini asla bulamaz.
-
-#### 4. Eşleşme gücü ve uyarılar
-
-Önizleme ekranında **ve** profil ana ekranında:
+Telefon ve e-posta **eşleşmeden sonra bile otomatik görünmez.**
 
 ```
-Eşleşme gücün: Zayıf ●○○
-
-Güçlendirmek için:
-+ Yeteneklerini ekle    (en çok fark yaratan)
-+ Deneyimlerini ekle
-+ Kısa tanıtım yaz
-
-⚠️ Sürücü belgesi, seyahat ve vardiya bilgilerini doldurmadın.
-   Bu şartları isteyen ilanlarla eşleşemezsin.
+Eşleşme → sohbet açılır
+        ↓
+İşveren: [📞 İletişim bilgisi iste]
+        ↓
+Aday: "ABC Teknoloji telefon ve e-posta bilginizi görmek istiyor."
+      [Paylaş]   [Şimdilik hayır]
 ```
 
-**İkisi farklı şey söylüyor, o yüzden ikisi de gerekli:**
-
-| | Mesaj | Psikolojik etki |
-|---|---|---|
-| Eşleşme gücü | "Eşleşeceksin ama zayıf" | Kazanç fırsatı |
-| Uyarı | "Bu ilanları hiç göremeyeceksin" | **Somut kayıp** |
-
-> Kayıp, kazançtan daha çok harekete geçirir.
-
-**Uygulama detayları:**
-- **Satırlar tıklanabilir** olsun, doğrudan o adıma götürsün
-- **Gösterge dolarken anında değişsin** — anlık geri bildirim
-- Uyarıda **"bu şartları isteyen"** ifadesi kritik — aday tüm ilanları kaybettiğini sanmasın
-
-#### 5. Arama durumu
-
-Yayınla butonunun **hemen üstünde** sorulur:
-
-| Durum | Anlamı | Sistemde etkisi |
-|---|---|---|
-| 🟢 **Aktif arıyorum** | Hemen başlayabilirim | Rozet görünür, sıralamada hafif avantaj |
-| 🟡 **Fırsatlara açığım** | Çalışıyorum ama doğru teklife bakarım | Normal görünür — **varsayılan** |
-| ⚪ **Şu an bakmıyorum** | Pasif | Keşfet'te hiç görünmez, davet gelmez |
-
-**"Şu an bakmıyorum" seçilince:**
-- Keşfet'te görünmez, davet gelmez
-- **Mevcut eşleşmeler ve sohbetler devam eder**
-- Profil ana ekranında uyarı: *"Profilin gizli, işverenler seni göremiyor"*
-
-**İki yerde erişilebilir:**
-1. Adım 12'de (ilk kurulum)
-2. **Profil ana ekranında, en üstte** — tek tıklamayla
-
-**Otomatik bakım:** 30-45 gün hiç giriş yapmamış "aktif arıyorum" profiline bildirim gitsin. Cevap yoksa **otomatik "fırsatlara açığım"a düşsün**.
-
-> **Neden gerekli:** Havuz ölü profillerle dolarsa işveren davet atar, cevap alamaz ve sisteme güveni gider. **Bu, ürünü sessizce öldüren şeylerden biri.**
-
-> **Global not:** Hatırlatma bildirimi kullanıcının **saat dilimine** göre gönderilmeli.
-
-#### 6. Yayınla butonu
-
-Basınca profil aktif olur, arka planda embedding üretilir ve uygun ilanlar hesaplanır.
-
----
-
-## 4. Yayına Girme Eşiği
-
-**Zorunlu 4 adım:**
-
-| Adım | Neden zorunlu |
+| Kural | |
 |---|---|
-| **1 — Temel Bilgiler** | Konum ve çalışma şekli katı filtreler; olmadan eşleştirme yapılamaz |
-| **2 — Meslek Alanı, Unvan, Ne Arıyor** | Kaba filtrenin tamamı burada |
-| **3 — Eğitim** | Eğitim seviyesi (ISCED) katı filtre + bölüm adı embedding'e girecek tek garantili metin |
-| **6 — İş dili** | Boş kalırsa aday **hiçbir ilanla eşleşmez** |
+| Aday kendiliğinden de paylaşabilir | Sohbette **[İletişim bilgimi paylaş]** |
+| "Şimdilik hayır" | Sohbet devam eder, işveren sonra tekrar isteyebilir |
+| Telefon + e-posta | **Birlikte** paylaşılır |
+| **İlan bazlı** | ABC'nin "Backend" ilanında paylaşıldı diye, ABC'nin başka ilanının sorumlusu otomatik görmez |
+| Şirkette kim görür | **İlanın sorumlusu + sahip + yönetici** — diğer uzmanlar görmez |
+| Devredilirse | Yeni sorumlu görür, eski sorumlunun erişimi kalkar |
+| Erişim kaydı | Kim, ne zaman açtı — kayıt tutulur (KVKK/GDPR, kötüye kullanım) |
 
-**Opsiyonel:** Deneyim, yetenekler, sertifikalar, projeler, CV, diğer bilgiler, beklentiler
+> **Neden otomatik değil:** Eşleşme zaten iki tarafın onayı, ama aday 10 şirketle eşleşirse 10 şirkete telefonunu otomatik vermiş olurdu. Aday kime vereceğine **kendisi** karar verir. Konuşma önce uygulama içinde kalır — platform dışına erken kaçış azalır.
 
-> **Kapı kapanmıyor:** Eğitim kaydında en düşük tür "İlkokul" ve orada sadece mezuniyet yılı isteniyor.
+---
 
-### Eşiğin sonuçları — bilerek kabul edilen bedeller
+## 15. Başvuru ve Davet Kabulü Anında
 
-| Eksik alan | Sonuç | Adaya söyleniş |
-|---|---|---|
-| Yetenek, deneyim, tanıtım | **Zayıf eşleşme** (çalışır ama kaba) | "Eşleşme gücün zayıf" |
-| Ehliyet, seyahat, vardiya | **Eleme** (sessiz kayıp) | "Bu şartları isteyen ilanlarla eşleşemezsin" |
+Aday tarafında **profilde olmayan, başvuruya özel** bilgiler burada sorulur.
 
-**Sadece eşik doldurulmuşsa embedding metni şu kadar:**
+```
+Başvuruyu onayla
 
+Senior Backend Developer · ABC Teknoloji
+
+Net minimum maaş beklentiniz (opsiyonel):  [______] [TRY ▾]
+Not (opsiyonel):                            [______________]
+
+Bu başvuruyla paylaşılacak belgeler:
+☑ Özgeçmiş
+☑ Lisans Diploması
+☑ Referans Mektubu
+☑ SRC Belgesi          ← sertifika dosyası
+☑ Forklift Ehliyeti    ← sertifika dosyası
+
+[Başvur]
+```
+
+### Maaş beklentisi
+
+| | |
+|---|---|
+| Zorunlu | ❌ |
+| Biçim | **Net minimum** — tek rakam |
+| Para birimi | Varsayılan: ilanın para birimi |
+| Not | Opsiyonel — *"esnek olabilirim"*, *"yan haklara göre değişir"* |
+| Filtre | ❌ |
+| İşverene | Başvuranlar listesinde kolon |
+
+> **Neden profilde değil:** Maaş beklentisi pozisyona özel. Profilde tek rakam istemek adayı en alt sınırını yazmaya zorlar.
+
+> **Kur çevrimi yapılmaz** — kur değişince geçmiş veriler bozulmasın.
+
+### Belge paylaşımı
+
+| | |
+|---|---|
+| Liste | Adayın yüklediği **tüm belgeler + sertifika dosyaları** |
+| Varsayılan | **Hepsi işaretli** — aday dokunmadan "Başvur" diyebilir |
+| Aday seçebilir | İstediğinin tikini kaldırır |
+| Hiç belgesi yoksa | Bu bölüm görünmez |
+| Kayıt | **Başvuru bazlı** — işveren sadece o başvuruda paylaşılanları görür |
+
+> **Neden:** Mevcut işvereninden çekinen aday referans mektubunu her şirketle paylaşmak istemeyebilir; farklı pozisyonlar için farklı özgeçmiş yükleyen aday doğrusunu seçer.
+
+### Davet kabulü
+
+Aday daveti kabul ederken **aynı ekran** — maaş beklentisi + belge seçimi.
+
+### Telefon kontrolü
+
+Yayındaki her profilin telefonu doğrulanmış (yayın eşiği). Başvuru ve davet kabulünde sunucu yine kontrol eder — numara değişmiş ve doğrulanmamışsa:
+```
+"Devam etmek için telefonunuzu doğrulayın"
+SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
+```
+
+---
+
+## 16. Adım 12 — Önizleme, Arama Durumu, Yayınla
+
+### 1 — Profil önizlemesi
+
+İşverenin **izin almadan** görebildiği her şey — birebir onun ekranı:
+
+```
+Önizleme — İşveren seni böyle görür
+
+┌──────────────────────────────────────────────┐
+│ [Foto]  Ayşe Kaya                    🟢 Aktif │
+│ Backend Geliştirici · Bilişim                 │
+│ 📍 Kadıköy, İstanbul                           │
+│ Çalışmak istediği: İstanbul, Almanya          │
+│ Ofis · Hibrit · Başlayabilir: 1 ay içinde     │
+│                                               │
+│ Kadın                                         │
+│ "5 yıldır e-ticaret alanında backend..."      │
+│                                               │
+│ 🎓 Lisans · Bilgisayar Müh. · ODTÜ · Mezun     │
+│ 💼 Backend Geliştirici · ABC Teknoloji        │
+│    2022 – Halen · "Ödeme altyapısında..."     │
+│ 🛠 React (5 yıl) · PostgreSQL (4 yıl)          │
+│ 🌐 İş dilleri: Türkçe, İngilizce               │
+│    Bildiği: İngilizce (İleri)                  │
+│ 📜 SRC Belgesi (2023, süresiz)                 │
+│ 📁 Projeler: Kargo takip uygulaması            │
+│ 🚗 Sürücü belgesi: B · Seyahat engeli yok ·    │
+│    Vardiyalı çalışabilir                      │
+│ 🎖 Askerlik: Yapıldı                           │
+└──────────────────────────────────────────────┘
+
+🔒 İşverenin göremediği:
+   Doğum tarihi · Telefon · E-posta
+   CV ve belgeler (sadece başvuru/eşleşmede, seçtiklerin)
+   Sertifika dosyaları (sadece başvuru/eşleşmede, seçtiklerin)
+```
+
+> Cinsiyet ve askerlik **Keşfet kartında değil, bu detay görünümünde.**
+
+### 2 — Profil tamamlanma yüzdesi
+
+```
+Profilin %75 dolu
+Eksikler:  + Yetenek ekle   + Proje ekle
+```
+
+Her eksiğe tıklayınca ilgili adıma gider.
+
+### 3 — Arama özeti
+
+> *"Bilişim alanında, İstanbul ve Almanya'da, Türkçe ve İngilizce iş dilinde, ofis ve hibrit **iş ilanları** sana gösterilecek."*
+
+> **Neden kritik:** Katı filtreler sessizce eler. Aday yanlışlıkla tek konum seçmiş veya bir iş dilini kaldırmışsa *"hiç ilan gelmiyor"* der ve sebebini bulamaz.
+
+### 4 — Eşleşme gücü
+
+```
+Eşleşme gücün: Orta ●●○
+```
+
+Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiya doldurmadın" uyarısı kaldırıldı — bu alanlar artık zorunlu.)*
+
+### 5 — Arama durumu
+
+```
+🟢 Aktif arıyorum   🟡 Fırsatlara açığım   ⚪ Şu an bakmıyorum
+```
+
+| Durum | Etkisi |
+|---|---|
+| 🟢 **Aktif arıyorum** | Rozet görünür |
+| 🟡 **Fırsatlara açığım** | **Varsayılan** |
+| ⚪ **Şu an bakmıyorum** | Keşfet'te **görünmez**, davet gelmez; **mevcut eşleşme ve sohbetler devam eder** |
+
+**Hızlı değiştirilebileceği yerler:**
+
+| Yer | Nasıl |
+|---|---|
+| Adım 12 | Yayınla butonunun üstünde |
+| **Profil ana ekranı** | En üstte, tek dokunuş |
+| **Keşfet ekranı** | Üst köşede durum rozeti — dokununca değişir |
+| Ayarlar | Hesap bölümünde |
+
+"Şu an bakmıyorum" seçiliyse profil ana ekranında:
+> *"Profilin gizli, işverenler seni göremiyor."* **[Aktif et]**
+
+### 6 — Otomatik düşme — iki kademe
+
+```
+🟢 Aktif arıyorum
+      │  30 gün giriş yok
+      ↓
+🟡 Fırsatlara açığım
+      │  toplam 90 gün giriş yok
+      ↓
+⚪ Şu an bakmıyorum   → Keşfet'te görünmez, davet gelmez
+```
+
+| | |
+|---|---|
+| Kademe 1 | 30 gün giriş yoksa → **Fırsatlara açığım** |
+| Kademe 2 | 90 gün giriş yoksa → **Şu an bakmıyorum** |
+| Başlangıç durumu fark etmez | Zaten "fırsatlara açığım" olan da 90 günde düşer |
+| Önceden haber | Her düşüşten **7 gün önce** bildirim — adayın saat dilimine göre |
+| Mevcut eşleşme ve sohbetler | **Devam eder** |
+| Geri dönünce | *"Profilin gizli. Tekrar iş aramaya başlamak ister misin?"* **[Aktif et]** — **otomatik açılmaz** |
+| Süreler | Veritabanında — gerçek veriyle ayarlanabilir |
+
+> **Neden:** Havuz ölü profillerle dolarsa işveren davet atar, cevap alamaz, platforma güveni gider. **Bu, ürünü sessizce öldüren şeylerden biri.**
+
+> **Neden geri dönüşte otomatik açılmıyor:** Belki işe girmiş, sadece mesajlarına bakmak için girmiş. Kendisi karar verir.
+
+### 7 — Yayınla
+
+```
+[Yayınla]
+  → Zorunlu adımlar tamam mı?          Hayır → eksik adıma götür
+  → Telefon doğrulanmış mı?             Hayır → SMS doğrulama
+  → Evet → profil yayına girer
+           embedding üretilir
+           uygun ilanlar hesaplanır
+```
+
+---
+
+## 17. Yayın Eşiği
+
+**Adımlar taslak olarak kaydedilir** — aday yarıda bırakıp dönebilir. Ama aşağıdakiler tamamlanmadan **profil yayınlanamaz:**
+
+| Adım | Zorunlu | Neden |
+|---|:---:|---|
+| **1 — Temel bilgiler** | ✅ | Konum, çalışma şekli (filtre), tanıtım (embedding), cinsiyet |
+| **Telefon doğrulaması** | ✅ | Sahte profilleri azaltır; başvuru ve davet için güvence |
+| **2 — Meslek alanı, unvan, ne arıyor** | ✅ | Kaba filtre + embedding |
+| **3 — Eğitim** *(en az bir kayıt)* | ✅ | Eğitim filtresi |
+| 4 — Deneyim | ❌ | Yeni mezun için |
+| 5 — Yetenekler | ❌ | Eşleşme gücüne yansır |
+| **6 — İş dilleri** | ✅ | Boş kalırsa hiç eşleşme yok |
+| 7 — Sertifikalar | ❌ | |
+| 8 — Projeler | ❌ | |
+| 9 — CV ve belgeler | ❌ | |
+| **10 — Diğer bilgiler** | ✅ | Dört katı filtre — boş durum olmasın |
+| **11 — Başlama zamanı** | ✅ | |
+
+**Sadece eşik doldurulmuşsa embedding metni:**
 ```
 Unvan: Backend Geliştirici
+Kısa tanıtım: (min 50 karakter)
 Bölüm: Bilgisayar Mühendisliği
 ```
 
-> 💬 **Ekip tartışması için — en önemli açık soru:** Yetenekleri (en az 3) eşiğe eklemek adayın kendi yararına olabilir. Karşı argüman: her zorunlu alan tamamlama oranını düşürür.
->
-> **Öneri:** İlk sürümde eşiğe eklemeyin, ama **tamamlama oranı ve eşleşme kalitesini ölçün**.
+> Kısa tanıtımın zorunlu olmasıyla, en minimal profilde bile embedding'in en az birkaç cümlelik metni oluyor.
 
 ---
 
-## 5. Veri Akışı Özeti
-
-### Embedding'e giren metinler
+## 18. Eşleştirmeye Etkisi — Skor
 
 ```
-Unvan
-Kısa tanıtım
-Yetenek adları (yıl HARİÇ)
-Deneyim: pozisyon + "ne yaptın" metinleri
-Eğitim: bölüm adları (okul adı HARİÇ, not HARİÇ)
-Sertifika adları (veren kurum ve tarih HARİÇ)
-Proje adı + açıklaması (link ve tarih HARİÇ)
+skor = 0.65 × anlamsal       ← aday vektörü ↔ ilan vektörü
+     + 0.20 × yetenek        ← yetenek (ad + yıl) + sertifika (geçerli) + bölüm
+     + 0.10 × tecrübe        ← deneyim tarihleri + çalışma türü (stajda nötr)
+     + 0.05 × kalite         ← işveren yönünde: aday profil doluluğu
 ```
 
-**Dil karışık olabilir — sorun değil.** Çok dilli model tüm dilleri aynı vektör uzayına gömüyor.
+### Kalite — işveren yönü (aday profil doluluğu)
 
-### Katı filtreye giren alanlar
+Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** alanlar:
 
-| Alan | Adım |
+| Kriter | Puan |
 |---|:---:|
-| **Ülke kodu** | 1 |
-| Çalışmak istediği konumlar (`konum_yolu`) | 1 |
-| Çalışma şekli | 1 |
-| Meslek alanı (ana + ikincil) | 2 |
-| Ne arıyor (iş/staj) | 2 |
-| Eğitim seviyesi (ISCED) | 3 |
-| İş dili | 6 |
-| Sürücü belgesi, seyahat, vardiya | 10 |
-| Gizlenecek şirketler | 11 |
+| En az bir deneyim kaydı | 0.30 |
+| En az 5 yetenek | 0.25 |
+| Proje veya sertifika var | 0.15 |
+| Fotoğraf var | 0.15 |
+| En az bir belge (CV vb.) yüklenmiş | 0.15 |
+| **Toplam** | **1.00** |
 
-### Sadece skora giren
+> **Kaldırılan kriterler:** "Kısa tanıtım yazılmış" ve "eğitim kaydı tam" — artık zorunlu, her profilde dolu.
 
-| Alan | Bileşen |
-|---|---|
-| Yetenekler (yıl dahil) | `yetenek_ortusmesi` %15 |
-| Toplam tecrübe (otomatik hesaplanan) | `tecrube_uyumu` %10 |
-| Konum yakınlığı | `konum_uyumu` %10 |
-| Profil tamamlanma | `profil_kalitesi` %5 |
-
-### Hiçbir yere girmeyen (sadece gösterim)
-
-Fotoğraf · Doğum tarihi · Cinsiyet · Yaşadığı konum · Bildiği diller + seviye · Aktif araç sahibi · Askerlik durumu · Başlama zamanı · Not ortalaması · CV · Link'ler
-
-### İki altın kural
-
-1. **Sayısal alanlar embedding'e girmez.** Yıl, maaş, not, tarih — hepsi aritmetikle hesaplanır.
-2. **Katı filtre sadece gerçekten esnemeyen şeyler için.** Yetenek, tecrübe, bölüm, sertifika skorda ağırlık taşır.
+> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-v2.md`
 
 ---
 
-## 6. Yayına Çıkmadan Önce Hazırlanması Gerekenler
+## 19. Yayına Çıkmadan Hazırlanması Gerekenler
 
 | Veri | Miktar | Kaynak |
 |---|---|---|
 | Konumlar | ~25 bin (nüfus 15K+) | **Geonames** |
-| Meslek alanları | 15-20 + **çevirileri** | ISCO-08'den sadeleştirilecek |
-| Unvanlar | 300-500 × **her lansman dili** | ISCO-08 (çok dilli) |
-| Yetenekler | 200-300 × **her lansman dili** | Elle |
-| Üniversiteler | **Ülke başına** | YÖK (TR) + açık veri setleri |
-| Eğitim dereceleri | **ISCED eşlemesi + ülke adları** | ISCED (BM) |
+| Meslek alanları | 15-20 + çevirileri | ISCO-08'den sadeleştirilmiş |
+| Unvanlar | 300-500 × her lansman dili | ISCO-08 (çok dilli) |
+| Yetenekler | 200-300 × her lansman dili | Elle |
+| **Üniversiteler** | Alabildiğimiz kadar | **ROR** + açık listeler — öneri havuzu |
+| Eğitim dereceleri | ISCED eşlemesi + ülke adları + açıklamalar | ISCED (BM) + her lansman ülkesinde yerel kontrol |
 | Diller | 20-30 | ISO 639 |
-| Sürücü belgesi sınıfları | **Ülke başına** | Elle |
+| Sürücü belgesi sınıfları | Ülke başına | Elle |
 | Para birimleri | ISO 4217 | Standart liste |
-| Çalışma yaşı | **Ülke başına** | Elle + hukuki danışma |
 
-> ⚠️ **Boş öneri havuzu, bu bölümün en büyük sessiz riski.** İlk 50 kullanıcı boş liste görürse herkes farklı yazar, veri dağılır ve öneri sistemi bir daha kendine gelemez.
+> ⚠️ **Boş öneri havuzu en büyük sessiz risk.** İlk 50 kullanıcı boş liste görürse herkes farklı yazar, veri dağılır.
 
-> ⚠️ **Her yeni ülke/dil açmak bir veri hazırlık işidir** — sadece arayüz çevirisi değil: unvan havuzu, yetenek havuzu, üniversite listesi, eğitim eşlemesi, ehliyet sınıfları, çalışma yaşı.
-
----
-
-## 7. Açık Sorular — Ekip Tartışması İçin
-
-| # | Soru | Öneri |
-|:---:|---|---|
-| 1 | Yetenekler eşiğe eklenecek mi? | İlk sürümde hayır, ölç ve karar ver |
-| 2 | Cinsiyet alanı hiç tutulmasın mı? | Tutmamak daha güvenli; global ölçekte daha da güçlü argüman |
-| 3 | İşveren CV indirebilsin mi? | Şu an evet; GDPR silme hakkı açısından tartışmalı |
-| 4 | "Ne yaptın" metni zorunlu kalsın mı? | Evet, ama deneyim ekleme oranı ölçülmeli |
-| 5 | İkincil meslek alanı filtre gücünü ne kadar düşürüyor? | Gerçek veriyle ölçülecek |
-| 6 | Doğum tarihi işverene gösterilsin mi? | Şu an hayır |
-| 7 | Profil tamamlanma yüzdesi hangi alanlara kaç puan verecek? | Belirlenmedi |
-| 8 | Skor ağırlıklarının nihai değerleri | Veritabanında tutulacak, gerçek veriyle ayarlanacak |
-| 9 | **Çalışma izni / vize sponsorluğu alanı eklenecek mi?** | Global ölçekte gerçek bir katı filtre adayı — aday "çalışma iznim var/yok", ilan "vize desteği veriyoruz" |
-| 10 | **Hangi ülkelerle lansmana çıkılacak?** | Veri hazırlığı ve hukuki uyum buna bağlı |
-| 11 | **Veri yerleşimi (data residency)** | Bazı ülkeler kişisel verinin yurt dışına çıkmasını kısıtlıyor — mimari konu |
-| 12 | Eğitim ISCED eşlemesi kim tarafından yapılacak? | Ülke başına elle |
+> ⚠️ **Her yeni ülke / dil bir veri hazırlık işidir** — arayüz çevirisi, unvan ve yetenek havuzu, eğitim eşlemesi, sürücü sınıfları.
 
 ---
 
-## 8. Sırada
+## 20. Diğer Dokümanlara Etkisi
 
-| Bölüm | Durum |
+| Doküman | Değişecek |
 |---|---|
-| Giriş / kayıt | ✅ |
-| Şirket doğrulama | ✅ |
-| Şirket profili | ✅ |
-| İlan oluşturma | ✅ |
-| **Aday profili** | ✅ |
-| **Eşleştirme motoru** | ⏭️ Sırada |
-| Keşfet, başvuru, davet, eşleşme, sohbet | Bekliyor |
-| Bildirimler | Bekliyor |
-| Admin paneli | Bekliyor |
-| Veri koruma (KVKK / GDPR / diğer) | Bekliyor |
-
-**Eşleştirme motorunda konuşulacaklar:** filtre zincirinin sırası, skor formülleri, iki yön ayrı skor, arka plan işinin tetikleyicileri, `pg_cron` düzeni, boş sonuç senaryoları, **global ölçekte bölümlendirme ve kuyruk yapısı.**
+| **Eşleştirme Motoru** | İkincil meslek alanı kalktı (filtre tek eşitlik); eğitim filtresi tüm kayıtlarda seviye + durum; diğer bilgiler zorunlu (boş durum yok); işveren yönü kalite kriterleri yeni; telefon doğrulaması yayın eşiğinde; otomatik düşme iki kademe; numara değişince profil yayından çıkar |
+| **İşveren Paneli / Keşfet** | İletişim isteği akışı; belgeler başvuru bazlı; cinsiyet ve askerlik detayda görünür, süzülemez |
+| **Auth** | Aday telefon doğrulaması artık yayın eşiğinde (sadece başvuruda değil) |
+| **Veri koruma** *(yazılacak)* | Cinsiyet zorunlu ve işverene görünür; belge indirme açık; iletişim bilgisi erişim kaydı; aydınlatma metninde açık bilgilendirme |
