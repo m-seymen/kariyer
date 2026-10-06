@@ -2,10 +2,10 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm 2 — final**
+> **Sürüm 3 — final** (eğitim şartı yeni yapıya geçti)
 > Durum: Ekip toplantısı sonrası nihai karar
 > İlgili dokümanlar: `isveren-paneli-v2.md`, `eslestirme-motoru.md`, `aday-profili.md`
-> Kapsam dışı: **Staj ilanı** → ayrı dokümanda
+> Kapsam dışı: **Staj ilanı** → `staj-ilani.md`
 
 ---
 
@@ -54,7 +54,7 @@ Yetenekler ve sertifikalar için işveren **iki ayrı kutuya** yazar. Bir öğen
 
 ### 1.4 Katı filtre sadece gerçekten esnemeyen şeyler için
 
-Yetenek, tecrübe, bölüm, sertifika **kimseyi elemez** — sadece sıralamayı etkiler. Eleyen alanlar: meslek alanı, konum, çalışma şekli, çalışma tipi, iş dili, eğitim seviyesi (seçildiyse), diğer şartlar (gerekliyse).
+Yetenek, tecrübe, bölüm, sertifika **kimseyi elemez** — sadece sıralamayı etkiler. Eleyen alanlar: meslek alanı, konum, çalışma şekli, çalışma tipi, iş dili, eğitim şartı ("şart yok" seçilmediyse), diğer şartlar (gerekliyse).
 
 ### 1.5 Şirket bilgisi ile ilan bilgisi ayrı
 
@@ -75,7 +75,8 @@ Yetenek, tecrübe, bölüm, sertifika **kimseyi elemez** — sadece sıralamayı
 | **Olmazsa olmaz yetenekler** | 2 | ❌ | Serbest metin | ✅ ad + yıl | ✅ ham metin | ❌ | ✅ | ✅ |
 | **Tercih edilen yetenekler** | 2 | ❌ | Serbest metin | ✅ ad | ✅ ham metin | ❌ | ✅ | ✅ |
 | **Toplam tecrübe** | 2 | ❌ | Min – max yıl | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **Eğitim seviyesi** | 2 | ❌ | Kapalı liste, varsayılan "Şart yok" | ❌ | ❌ | ✅ *seçildiyse* | — | ✅ |
+| **Kimler başvurabilir** | 2 | ✅ | Öğrenci / mezun / ikisi / şart yok | ❌ | ❌ | ✅ *şart yok değilse* | — | ✅ |
+| **Hangi seviyede** | 2 | ✅ *şart yoksa gizli* | İlkokul → doktora — çoklu | ❌ | ❌ | ✅ | — | ✅ |
 | **Tercih edilen bölümler** | 2 | ❌ | Serbest metin | ✅ bölüm adları | ✅ ham metin | ❌ | ✅ | ✅ |
 | **İş dili** | 2 | ✅ | Kapalı liste, çoklu | ❌ | ❌ | ✅ | — | ✅ |
 | **Sürücü belgesi** | 2 | ✅ *seçim* | Gerekli değil / Gerekli + sınıf | ❌ | ❌ | ✅ *gerekliyse* | — | ✅ |
@@ -115,7 +116,7 @@ Tercih edilen sertifika ve belgeler  →  [ad]
 **Katı filtreler (adayı eler):**
 ```
 Meslek alanı · İş yeri konumu · Çalışma şekli · Çalışma tipi · İş dili
-Eğitim seviyesi (seçildiyse)
+Kimler başvurabilir + seviye ("Eğitim şartı yok" seçilmediyse)
 Sürücü belgesi · Seyahat · Vardiya · Askerlik (gerekliyse)
 ```
 
@@ -328,27 +329,83 @@ Bu sayede 8 yıllık adayın Keşfet'ine junior ilanlar üst sıralarda düşmez
 
 > Formüllerin tamamı → `eslestirme-motoru.md`
 
-### 5.3 Eğitim seviyesi
+### 5.3 Eğitim şartı
 
 ```
-En az:  [Şart yok ▾]
-         Şart yok
-         Lise
-         Ön lisans
-         Lisans
-         Yüksek lisans
-         Doktora
+Kimler başvurabilir? *
+○ Sadece devam eden öğrenciler
+○ Sadece mezunlar
+○ İkisi de
+○ Eğitim şartı yok
+
+Hangi seviyede? *            ← "Eğitim şartı yok" seçilirse gizlenir
+☐ İlkokul   ☐ Ortaokul   ☐ Lise   ☐ Ön lisans   ☑ Lisans   ☑ Yüksek lisans   ☑ Doktora
 ```
 
-| | |
+| | Kimler başvurabilir | Hangi seviyede |
+|---|---|---|
+| Zorunlu | ✅ Tek seçim | ✅ En az bir *(şart yoksa gizli)* |
+| Eşleştirme | **Katı filtre** *("şart yok" hariç)* | **Katı filtre** |
+
+> **Staj ilanıyla aynı yapı.** İki ilan tipinde tek bir eğitim mantığı var — tek kod, tek filtre. Staj ilanından farkı: iş ilanında **"Eğitim şartı yok"** seçeneği ve **ilkokul / ortaokul** seviyeleri var.
+
+**Filtre kuralı:**
+
+| İşveren seçimi | Aday geçer, eğer… |
 |---|---|
-| Zorunlu | ❌ — varsayılan **"Şart yok"** |
-| Eşleştirme | **Seçildiyse katı filtre** — altındaki adaylar elenir. "Şart yok" ise filtreye girmez |
-| Global | Arkada **ISCED** (BM standardı) seviyesiyle karşılaştırılır; kullanıcı kendi ülkesinin derece adını görür |
+| **Sadece devam eden öğrenciler** | Seçilen seviyelerden birinde **"devam ediyorum"** işaretli eğitim kaydı var |
+| **Sadece mezunlar** | Seçilen seviyelerden birinde **tamamlanmış** eğitim kaydı var |
+| **İkisi de** | Yukarıdakilerden herhangi biri |
+| **Eğitim şartı yok** | Filtre çalışmaz |
 
-> **Neden opsiyonel:** Birçok pozisyonda eğitim şartı yok. Zorunlu olsa işveren bir şey seçmek zorunda kalır ve gereksiz eleme olur.
+**Örnek — "Sadece mezunlar, Lisans ve üstü":** Lisans, yüksek lisans veya doktora mezunları geçer; lisans öğrencisi geçmez.
 
-> **Neden ISCED:** Eğitim dereceleri ülkeler arasında birebir örtüşmüyor (Almanya'da *Ausbildung*, ABD'de *Associate Degree*). "En az lisans" filtresi ülkeler arası ancak ortak bir ölçekle çalışır.
+**Örnek — "İkisi de, Lisans ve üstü":** Yarı zamanlı iş için lisans öğrencisi de, mezunu da geçer.
+
+### Neden bu yapı
+
+> **Eski hali** "En az [Lisans]" idi — sadece mezunları kapsıyordu. **Öğrenci almak isteyen işveren** (kafe, mağaza, çağrı merkezi, yarı zamanlı yazılım) için yolu yoktu; lisans 3. sınıftaki öğrenci elenirdi. Yeni yapı bu eksiği kapatıyor.
+
+> **"Eğitim şartı yok" neden var:** İş ilanlarının önemli kısmında (garson, kurye, satış danışmanı, depo) eğitim şartı yok. Bu seçenek olmasa işveren bir şey işaretlemek zorunda kalır ve gereksiz eleme olur.
+
+### Üst seviyeler otomatik işaretlenir
+
+Bir seviye işaretlenince **üstündekiler de otomatik işaretlenir**; işveren isterse kaldırır.
+
+```
+Lisans'ı işaretledi  →  Lisans ☑  Yüksek lisans ☑  Doktora ☑
+```
+
+> Yoksa işveren sadece "Lisans"ı işaretler, yüksek lisanslı aday yanlışlıkla elenir. Eski "en az lisans" davranışı varsayılan olarak korunuyor.
+
+### İlkokul ve ortaokul — çocuk işçiliği kuralı
+
+"En az ilkokul mezunu" isteyen işveren (örn. bazı üretim işleri) ilkokulu işaretleyebilir. Ama:
+
+| Seçim | İzin |
+|---|:---:|
+| İlkokul / ortaokul **mezunu** | ✅ |
+| İlkokul / ortaokul **öğrencisi** | ❌ **Engellenir** |
+
+**Arayüzde:**
+- "Sadece devam eden öğrenciler" seçilirse ilkokul ve ortaokul kutuları **gri düşer**
+- "İkisi de" seçilirse bu iki seviye için **sadece mezunlar** filtreden geçer
+
+> İlkokul ve ortaokul öğrencileri çocuktur; onlara iş ilanı açılması hemen her ülkede yasaktır ve platform için ciddi risktir.
+
+### Global
+
+Seviyeler arkada **ISCED** (BM standardı) ile karşılaştırılır; kullanıcı kendi ülkesinin derece adını görür. Eğitim dereceleri ülkeler arasında birebir örtüşmüyor (Almanya'da *Ausbildung*, ABD'de *Associate Degree*) — ortak ölçek olmadan seviye filtresi ülkeler arası çalışmaz.
+
+### Yeni mezun ayrımı
+
+İş ilanında ayrı bir "mezuniyet süresi" filtresi **yok.** "Yeni mezun" isteyen işveren bunu **toplam tecrübe** ile ifade eder:
+
+```
+Toplam tecrübe:  [ 0 ] – [ 2 ] yıl
+```
+
+Yeni mezunlar üst sıralarda çıkar, 10 yıllık deneyimli aday alt sıralarda kalır (aday yönünde de bu ilan onun için "geriye adım" olarak düşük skor alır). Ayrı bir filtre, iş değiştiren deneyimli birini gereksiz yere elerdi.
 
 ### 5.4 Tercih edilen bölümler
 
@@ -872,7 +929,7 @@ Tercih edilen sertifika ve belgeler:  [ham metin]
 
 **Ne zaman yeniden üretilir:** Bu yedi metinden biri değişince (hash kontrolü). Maaş, konum, durum değişikliği vektörü etkilemez.
 
-**Girmeyenler:** Meslek alanı, konum, çalışma şekli, çalışma tipi, iş dili, eğitim seviyesi, diğer şartlar, toplam tecrübe, maaş, başlama zamanı, serbest şartlar, şirket profilinin tamamı.
+**Girmeyenler:** Meslek alanı, konum, çalışma şekli, çalışma tipi, iş dili, eğitim şartı, diğer şartlar, toplam tecrübe, maaş, başlama zamanı, serbest şartlar, şirket profilinin tamamı.
 
 ---
 
@@ -929,4 +986,4 @@ Tüm alanlar — iş tanımı, yetenekler, eğitim, iş dili, diğer şartlar, s
 | **Eşleştirme Motoru** | "LLM yok" → **"LLM sadece ilan kaydında ayrıştırma için"**; yetenek bileşeninin yeni formülü (sertifika + bölüm dahil, yıl opsiyonel); ilan kalitesi kriterlerinin yeni dağılımı; askerlik filtresi (tecilli elenir); diğer şartlarda boş durum kalktı |
 | **Aday Profili** | Diğer bilgiler (sürücü belgesi, seyahat, vardiya, askerlik) **zorunlu** — yayın eşiğine giriyor; askerlikte **"Yükümlü değil"** seçeneği; askerlik işverene gösterilmez; boş alan uyarıları kaldırılıyor |
 | **İşveren Paneli** | İlan kartında yayın ve uzatma sayıları; [Uzat] ve [Tekrar yayınla] butonları |
-| **Staj İlanı** *(yazılacak)* | Bu dokümanın yapısını temel alır; farklılaşan alanlar ayrıca |
+| **Staj İlanı** | `staj-ilani.md` — bu dokümanın yapısını temel alır; eğitim şartı iki ilan tipinde aynı mantıkla çalışır |
