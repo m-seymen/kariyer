@@ -2,1269 +2,1765 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> Durum: Kararlar tamamlandı, ekip tartışmasına hazır
-> İlgili dokümanlar: `ilan-olusturma.md`, `aday-profili.md`, `sirket-profili.md`
+> **Sürüm: final** — ekip toplantısı sonrası
+> İlgili dokümanlar: `aday-profili-v3.md`, `is-ilani-v3.md`, `staj-ilani.md`, `isveren-paneli-v2.md`, `auth-kararlari.md`
+> Kapsam dışı: **Bakım işleri** (süreler, temizlik, otomatik düşme, sayaç düzeltme, silmeler) → `bakim-isleri.md`
 
 ---
 
 ## 0. Yönetici Özeti
 
-Eşleştirme motoru, **ürünün kalbi**. Diğer tüm bölümler (profil, ilan, doğrulama) bu motora veri hazırlamak için var.
+Eşleştirme motoru **ürünün kalbi.** Aday profili, ilan formu, şirket doğrulama — hepsi bu motora doğru veri hazırlamak için var.
 
-**Motorun tek cümlelik tanımı:**
+**Tek cümleyle:**
 
-> Katı filtreyle havuzu daraltır, vektör benzerliğiyle anlamsal yakınlığı ölçer, ağırlıklı skorla iki tarafın da çıkarına göre ayrı ayrı sıralar ve sonucu önceden hazırlar.
+> Katı filtreyle uygun olmayanları eler, kalanları embedding ile anlamsal yakınlığa göre daraltır, dört parçalı bir skorla **iki tarafın da çıkarına göre ayrı ayrı** sıralar ve sonucu önceden hazırlar.
 
-**Altı aşama:**
+### Aşamalar
 
 ```
-1. EMBEDDING       Metin → vektör (bir kez, metin değişince)
+1. EMBEDDING       Metin → vektör                  (metin değişince, bir kez)
+2. AYRIŞTIRMA      İlan metni → etiket listesi      (sadece ilan, LLM, bir kez)
        ↓
-2. KATI FİLTRE     5.000.000 → 500   (SQL, milisaniyeler)
+3. KATI FİLTRE     5.000.000 → ~500                 "Uygun mu?"   — eler
+4. VEKTÖR          ~500 → en benzer 200             "En yakınlar"
+5. SKOR            200 çift × 2 yön                 "Ne kadar uygun?" — sıralar
        ↓
-3. VEKTÖR          500 → 200         (pgvector, milisaniyeler)
-       ↓
-4. SKOR            Her çift için İKİ skor (aritmetik)
-       ↓
-5. SONUÇ TABLOSU   Önbellek — Keşfet buradan okur
-       ↓
-6. TETİKLEYİCİLER  Ne zaman çalışır, bakım işleri
+6. SONUÇ TABLOSU   Önbellek — Keşfet buradan okur, hesap yapmaz
 ```
 
-**Kritik tasarım kararları — bir bakışta:**
+### Kritik tasarım kararları
 
 | Karar | Gerekçe |
 |---|---|
-| **LLM yok** | Maliyet, hız, açıklanabilirlik. Embedding + aritmetik yeterli |
-| **CV eşleştirmeye girmez** | Adil ve savunulabilir sıralama; düzenleyici uyum |
+| **LLM sadece ilan kaydında, metni listeye çevirmek için** | İşveren yetenekleri cümleyle yazıyor; "React 5 yıl" bilgisini **sayı olarak** çıkarmak için gerekli. Sıralama ve skorlamada LLM **yok** — maliyet, hız, açıklanabilirlik |
+| **Aday tarafında LLM yok** | Aday her şeyi yapılandırılmış giriyor (yetenek + yıl). Aday sayısı ilan sayısının katları — maliyet ve hata riski katlanırdı |
+| **Embedding + etiket — iki yol** | Embedding genel benzerliği, etiket karşılaştırması kesin şartları ölçer. Biri tek başına yetmez (Bölüm 2) |
+| **CV, belgeler, sertifika dosyaları eşleştirmeye girmez** | Herkes aynı kurallarla, kendi girdiği yapılandırılmış alanlara göre değerlendirilir — adil ve savunulabilir |
 | **Şirket profili eşleştirmeye girmez** | Eşleştirme ilan bazlı; aynı şirketin ilanları birbirine benzemesin |
-| **Konum skorda değil, katı filtrede** | Aday zaten kendi seçti; ikinci kez yorumlamak gereksiz |
-| **Eşik değil limit** | Kıtlık döneminde boş ekran olmasın |
-| **İki yön, iki skor** | İşveren ve adayın çıkarı farklı (fazla nitelikli aday örneği) |
-| **Tek tablo, iki skor kolonu** | Hangi taraf tetiklerse diğerinin listesi de güncellenir |
-| **Karma hesaplama** | Aktif kullanıcı önceden, pasif kullanıcı açınca — israf %85 azalır |
-| **Tüm ağırlıklar veritabanında** | Kod değişmeden ayarlanabilir |
+| **İlan konumu şirketten bağımsız** | İş, ofisten farklı yerde olabilir (saha, şantiye, İK ajansının müşterisi) |
+| **Konum skorda değil, katı filtrede** | Aday konumlarını kendisi seçti; aralarında sıralama yapmak kararını ikinci kez yorumlamak olur |
+| **Koşullu şartlar iki tarafta zorunlu seçim** | Sürücü belgesi, seyahat, vardiya, askerlik — "aday boş bıraktı, sessizce elendi" durumu yok |
+| **Görmek ≠ süzmek** | Cinsiyet ve askerlik işverene görünür ama **hiçbir filtrede kullanılamaz** |
+| **Eşik değil limit** | Kıtlıkta boş ekran olmasın — her zaman en iyi 200 |
+| **İki yön, iki skor** | İşveren ve adayın çıkarı farklı (fazla nitelikli aday örneği — Bölüm 5.4) |
+| **Tek sonuç tablosu** | Hangi taraf tetiklerse diğerinin listesi de otomatik güncellenir |
+| **Karma hesaplama** | Aktif kullanıcı önceden, pasif kullanıcı açınca — gereksiz hesap ~%85 azalır |
+| **Her şey kuyrukla, asenkron** | Kullanıcı beklemez; ani yük emilir; hiçbir iş kaybolmaz |
+| **Tüm ağırlıklar veritabanında** | Kod değişmeden gerçek veriyle ayarlanır |
+
+### Bu sürümde değişenler
+
+| Konu | Önceki | Şimdi |
+|---|---|---|
+| LLM | Hiç yok | İlan kaydında ayrıştırma — **onay ekranı yok**, "Algılanan" satırı + [Düzenle] |
+| İlan vektörü | Yetenek adları + iş tanımının 4 sorusu | **7 metin, ham haliyle** — unvan, 5 kutu, iş tanımı |
+| Yetenek skoru | Sadece yetenekler | **"Nitelik uyumu"** — yetenek + sertifika + bölüm |
+| İlan konumu | Şirket lokasyonundan kopya | **İlanın kendi konumu** |
+| Eğitim filtresi | "En az seviye" | **Kimler başvurabilir + seviye**, tüm kayıtlar |
+| Meslek alanı | Ana + ikincil | **Tek** |
+| Çalışma tipi | İlanda tek seçim, adayda yok | **İki tarafta çoklu**, katı filtre |
+| Diğer şartlar | Opsiyonel, boş bırakılabiliyordu | **İki tarafta zorunlu seçim** |
+| Askerlik | Filtrede yok | **Sadece tecilli elenir**; stajda yok |
+| Tecrübe — staj | Açık soru | **0.5 nötr** |
+| Kalite kriterleri | Eski alanlara göre | Zorunlu hale gelen alanlar çıkarıldı, yeniden dağıtıldı |
+| Aksiyonlar | "Geç" | **"Bir daha gösterme"** (onaylı) + Gizlediklerim |
+| Cevapsız başvuru / davet | Belirsiz | **30 gün / 10 gün** → süresi doldu |
+| Liste | Sabit 200 | 200 + **[Daha fazla getir]** |
+| Arka plan | `pg_cron` | **Kuyruk + işçiler** (Supabase Queues + Edge Functions) |
+| Bildirim | Herkese | Push **FCM**, işverende **sadece ilanın sorumlusuna** |
 
 ---
 
-## 1. Embedding Üretimi
+## 1. Embedding
 
-### Ne zaman çalışır
+### 1.1 Embedding nedir, neden var
 
-Aday profili veya ilan **kaydedildiğinde / güncellendiğinde**.
+Embedding, bir metni **anlamını taşıyan sayı dizisine** (vektör) çevirir. Anlamca yakın metinlerin vektörleri birbirine yakın düşer:
 
 ```
-Metin alanları birleştirilir
-  → metin_hash hesaplanır
-  → eski hash ile karşılaştırılır
-       değişmişse  → embedding API'ye gider → vektör saklanır
-       değişmemişse → hiçbir şey yapılmaz
+"Ödeme altyapısında mikroservis geliştirdim"
+"Ödeme sistemlerimizde dağıtık mimari üzerinde çalışacaksınız"
+→ kelimeler farklı, vektörler yakın
 ```
 
-> **`metin_hash` neden kritik:** Kullanıcılar profillerini sık kaydeder ama metin çoğu zaman aynıdır (sadece maaş veya konum değişmiştir). Hash kontrolü olmasa her kayıtta API'ye gidilir — gereksiz maliyet ve gecikme.
+Bu sayede adayın kendi cümleleriyle yazdığı deneyim, işverenin farklı kelimelerle yazdığı iş tanımıyla eşleşebiliyor. **Çok dilli model** kullanıldığı için "Buchhaltung" ile "muhasebe" de yakın çıkıyor — çeviri gerekmiyor.
 
-### Aday vektörüne giren metinler
+### 1.2 Aday vektörüne girenler
 
-| Alan | Kaynak adım | Not |
-|---|:---:|---|
-| Unvan | Profil 2 | Metnin ilk satırı |
-| Kısa tanıtım | Profil 1 | Tamamı |
-| Yetenek adları | Profil 5 | **Yıl HARİÇ** |
-| Deneyim: pozisyon | Profil 4 | Her kayıt |
-| Deneyim: "bu işte ne yaptın" | Profil 4 | Her kayıt — **en zengin kaynak** |
-| Eğitim: bölüm adı | Profil 3 | **Okul adı ve not HARİÇ** |
-| Sertifika adları | Profil 7 | **Veren kurum ve tarih HARİÇ** |
-| Proje adı + açıklaması | Profil 8 | **Link ve tarih HARİÇ** |
+| # | Alan | Profil adımı | Zorunlu mu | Ne girer | Ne girmez |
+|:---:|---|:---:|:---:|---|---|
+| 1 | **Unvan** | 2 | ✅ | Unvan — **metnin ilk satırı** | — |
+| 2 | **Kısa tanıtım** | 1 | ✅ (min 50) | Tamamı | — |
+| 3 | **Deneyim** | 4 | Varsa | Her kayıtta **pozisyon + "bu işte ne yaptın"** | Şirket adı, tarihler, çalışma türü |
+| 4 | **Eğitim** | 3 | Ön lisans+ zorunlu | **Tüm kayıtların bölüm adları** | Okul adı, seviye, durum, yıl |
+| 5 | **Yetenekler** | 5 | Varsa | **Yetenek adları** | Yıl |
+| 6 | **Sertifikalar** | 7 | Varsa | **Sertifika adları** (süresi geçmiş olanlar dahil) | Kurum, tarihler, belge dosyası |
+| 7 | **Projeler** | 8 | Varsa | **Proje adı + açıklama** | Link, teknolojiler, tarih |
 
-### İlan vektörüne giren metinler
+**Kural:** Ne doluysa girer, boş olan girmez. Deneyimi olmayan adayın vektörü unvan + tanıtım + bölüm + (varsa) yetenek, sertifika, proje ile oluşur — ek bir telafi kuralı yok.
 
-| Alan | Kaynak adım | Not |
-|---|:---:|---|
-| İlan başlığı / unvan | İlan 1 | Metnin ilk satırı |
-| Yetenek adları | İlan 2 | **Yıl ve zorunlu/tercihen HARİÇ** |
-| Tercih edilen bölüm | İlan 2 | |
-| Sertifika adları | İlan 2 | |
-| İş tanımının 4 soru cevabı | İlan 3 | **En zengin kaynak** |
+**Neden unvan ilk satır:** Embedding modelleri metnin başına biraz daha fazla ağırlık verme eğiliminde. Unvan adayın ne iş yaptığını en kısa ve net söyleyen alan.
 
-### Hiç girmeyenler — ve nedenleri
+**Neden kısa tanıtımın zorunlu olması önemli:** Eskiden deneyimsiz ve tanıtımsız bir adayın vektörü sadece *"Unvan + Bölüm"* idi — çok kaba. Artık en minimal profilde bile adayın kendi cümleleriyle yazdığı bir metin var.
+
+**Neden "ne yaptın" en zengin kaynak:** CV, şirket profili, belgeler eşleştirmeye girmiyor. Adayın gerçekte ne iş yaptığı — *"ödeme altyapısı, mikroservis, performans"* — sadece bu metinlerde yazıyor.
+
+**Neden şirket adı girmez:** Girerse aynı şirketten gelenler birbirine yakın çıkar — iş içeriği değil şirket benzerliği eşleşir. Ayrıca "şirket adını gizle" vektörde de korunmuş olur.
+
+**Neden okul adı girmez:** Aynı okuldan mezunlar birbirine yakın çıkar — okul bazlı önyargı. Global ölçekte belirli ülkelerin üniversiteleri sistematik avantaj kazanırdı.
+
+**Neden yetenek yılı girmez:** Sayılar vektörde anlamsız — "React 5 yıl" ile "React 1 yıl" neredeyse aynı görünür. Yıl, skorun **nitelik uyumu** parçasında aritmetikle kullanılır.
+
+**Neden projede "kullanılan teknolojiler" girmez:** Bunlar çoğu zaman adayın yetenek listesinde zaten var; ikinci kez girerse aynı kelimeler vektörde fazla ağırlık kazanır.
+
+### 1.3 İlan vektörüne girenler
+
+| # | Alan | İlan adımı | Zorunlu mu | Embedding (YOL 1) | Etiket → skor (YOL 2) |
+|:---:|---|:---:|:---:|:---:|:---:|
+| 1 | **Unvan** | 1 | ✅ | ✅ İlk satır | ❌ |
+| 2 | **Olmazsa olmaz yetenekler** | 2 | ❌ | ✅ Ham metin | ✅ Ad + yıl |
+| 3 | **Tercih edilen yetenekler** | 2 | ❌ | ✅ Ham metin | ✅ Ad |
+| 4 | **Tercih edilen bölümler** | 2 | ❌ | ✅ Ham metin | ✅ Bölüm adları |
+| 5 | **Olmazsa olmaz sertifikalar** | 2 | ❌ | ✅ Ham metin | ✅ Ad |
+| 6 | **Tercih edilen sertifikalar** | 2 | ❌ | ✅ Ham metin | ✅ Ad |
+| 7 | **İş tanımı / staj tanımı** | 3 | ✅ (min 100) | ✅ Tamamı | ❌ |
+
+İş ilanı ve staj ilanı **aynı yapıyı** kullanır.
+
+**Neden iş tanımı sadece embedding'e:** İş tanımı "ne iş yapılacak"ı anlatıyor — "var/yok" diye sayılacak bir şeyi yok. Sayılacak şeyler (yetenek, sertifika, bölüm) kendi kutularında.
+
+**Neden kutuların ham metni, etiketler değil:** Ham metin bağlamı taşır — *"PostgreSQL'e hakim, yüksek trafikli sistemlerde"* gibi ifadeler etiket listesinde kaybolurdu. **Etiketler skor için, ham metin anlamsal eşleşme için.** Ham metindeki "5 yıl" gibi sayılar vektöre girer ama zararsızdır — vektör onları anlamlı okumaz, yıl karşılaştırmasını skor yapar.
+
+### 1.4 Hiçbir zaman girmeyenler
 
 | Kategori | Örnekler | Neden |
 |---|---|---|
-| **Sayısal alanlar** | Yıl, maaş, not, tarih, çalışan sayısı | Vektör uzayında anlamlı çalışmıyor — "3 yıl" ile "5 yıl" neredeyse aynı görünür |
-| **Katı filtre alanları** | Konum, dil, çalışma şekli, meslek alanı, ilan tipi | Zaten kesin olarak filtreleniyor; vektöre karışırsa sinyali seyreltir |
-| **Kişisel / hassas** | Ad, doğum tarihi, cinsiyet, fotoğraf | Ayrımcılık riski |
-| **Şirket profili** | Tanıtım, yan haklar, sektör | Aynı şirketin farklı pozisyonları birbirine benzemesin |
-| **Okul adı** | | Okul bazlı önyargı riski |
-| **CV** | | Herkes aynı kurallarla değerlendirilsin |
+| **Sayısal alanlar** | Tecrübe yılı, maaş, tarihler | Vektörde anlamsız — aritmetikle hesaplanır |
+| **Katı filtre alanları** | Konum, meslek alanı, dil, çalışma şekli/tipi, eğitim seviyesi | Zaten kesin olarak filtreleniyor; çift sayılmasın, sinyali seyreltmesin |
+| **Kişisel / hassas** | Ad, doğum tarihi, cinsiyet, askerlik, fotoğraf | Ayrımcılık riski |
+| **Şirket profili** | Tanıtım, imkanlar, sektör | Aynı şirketin farklı pozisyonları birbirine benzemesin |
+| **CV, belgeler, sertifika dosyaları** | | Herkes aynı kurallarla değerlendirilsin |
 
 > **İki altın kural:**
-> 1. Sayısal alanlar embedding'e girmez — aritmetikle hesaplanır.
-> 2. Katı filtreye giren alanlar embedding'e girmez — çift sayılmasın.
+> 1. Sayılar embedding'e değil, aritmetiğe.
+> 2. Katı filtre alanları embedding'e değil, filtreye.
 
-### Saklama
+### 1.5 Saklama
 
 ```sql
 CREATE TABLE embeddings (
-  varlik_tipi  text   NOT NULL,   -- 'aday' | 'ilan' | (ileride başka türler)
+  varlik_tipi  text   NOT NULL,         -- 'aday' | 'ilan'
   varlik_id    bigint NOT NULL,
-  model_adi    text   NOT NULL,
-  boyut        int    NOT NULL,
-  metin_hash   text   NOT NULL,
+  model_adi    text   NOT NULL,         -- hangi modelle üretildi
+  boyut        int    NOT NULL,         -- 1024
+  metin_hash   text   NOT NULL,         -- 7 metnin özeti
   vektor       vector(1024) NOT NULL,
   guncelleme   timestamptz DEFAULT now(),
   PRIMARY KEY (varlik_tipi, varlik_id)
 );
+
+-- Aramalar hep KARŞI tarafa yapılır → tür bazlı iki indeks
+CREATE INDEX emb_aday_hnsw ON embeddings
+  USING hnsw (vektor vector_cosine_ops) WHERE varlik_tipi = 'aday';
+
+CREATE INDEX emb_ilan_hnsw ON embeddings
+  USING hnsw (vektor vector_cosine_ops) WHERE varlik_tipi = 'ilan';
 ```
 
-**`varlik_tipi` genişletilebilir.** Yarın yeni bir eşleşme türü (örneğin özel ders ilanı) eklenirse şema değişmez, sadece yeni bir değer eklenir. Ancak o tür için eşleştirme tablosu ve filtre fonksiyonu ayrı kurulur.
+| Karar | Neden |
+|---|---|
+| **Ayrı tablo** (profil / ilan tablosunda değil) | Ana tablolar hafif kalır (vektör ~4 KB); model değişimi tek tabloda; 1M+ ölçekte vektörler ayrı bir vektör veritabanına tek parça taşınır |
+| **Her varlık için tek satır** | Metin değişince üstüne yazılır, eski vektör tutulmaz |
+| **İki kısmi indeks** | İlan için aday ararken ilan vektörleri arasında dolaşılmaz |
+| **`metin_hash`** | Kullanıcı sık kaydeder ama metin çoğu zaman aynıdır (sadece konum/maaş değişmiştir). Hash aynıysa API'ye gidilmez |
+| **`model_adi`, `boyut`** | Model değişince eski vektörler bulunup yeniden üretilir |
+| **Staj ayrı tür değil** | `ilanlar.ilan_tipi = 'staj'`, `varlik_tipi = 'ilan'` |
 
-> Not: **Staj ayrı bir varlık türü değildir.** `ilanlar` tablosunda `ilan_tipi = 'staj'` olarak durur, `varlik_tipi = 'ilan'` kullanır.
-
-**`model_adi` ve `boyut` neden var:** Model değiştiğinde vektör boyutu da değişir ve **tüm kayıtların yeniden üretilmesi** gerekir. Bu kolonlar olmadan hangi kaydın eski olduğunu bilemezsiniz. "Yeniden vektörle" işi baştan yazılmalı.
-
-### Embedding servisi
+### 1.6 Embedding servisi
 
 | Karar | Gerekçe |
 |---|---|
-| **API ile başla** | Hız; MVP'de kendi sunucu kurmak gereksiz yük |
-| **Tek çok dilli model** | Tüm diller aynı vektör uzayında — "Buchhaltung" ile "muhasebe" yakın çıkar, çeviri gerekmez |
-| **1024 boyut** | pgvector HNSW indeksi 2000 boyuta kadar destekliyor; 3072 indekslenemez. Kalite kaybı çok az |
-| **`embed()` tek fonksiyon** | Sağlayıcı değişimi tek dosya değişikliği |
-| **Flutter'dan asla çağrılmaz** | API anahtarı istemciye gömülürse çalınır |
+| **API ile başla** | Başlangıçta kendi sunucu kurmak gereksiz yük |
+| **Tek çok dilli model** | Tüm diller aynı vektör uzayında — çeviri gerekmez |
+| **1024 boyut** | `pgvector` HNSW indeksi 2000 boyuta kadar destekliyor; kalite kaybı çok az |
+| **`embed()` tek fonksiyon arkasında** | Sağlayıcı değişimi tek yerde |
+| **İstemciden asla çağrılmaz** | API anahtarı Flutter / Next.js'e gömülürse çalınır — sadece sunucuda |
 
 **Adaylar:** OpenAI `text-embedding-3-large` (`dimensions=1024`) veya Cohere `embed-multilingual-v3`.
 
-> 💬 **Ekip tartışması için:** Sağlayıcı seçimi masabaşında yapılmamalı. **20-30 gerçek profil ve 5-6 gerçek ilan** ile iki modeli yan yana test edin — hangisi doğru adayı üste çıkarıyor, gözle görülür. Yarım günlük iş.
+> 💬 **Seçim masa başında yapılmamalı:** 20-30 gerçek profil ve 5-10 gerçek ilanla iki modeli yan yana test edin — hangisi doğru adayı üste çıkarıyor, gözle görülür.
 
-> 💡 **Kendi servise geçiş sinyali:** Aylık fatura belirli bir eşiği aşınca veya kurumsal müşteri "verilerimiz yurt dışına çıkmasın" deyince. Açık kaynak çok dilli modeller (BGE-M3, multilingual-E5) aday.
+> 💡 **Kendi servise geçiş sinyali:** Aylık fatura belirli bir eşiği aşınca veya veri yerleşimi gereksinimi doğunca. Açık kaynak çok dilli modeller (BGE-M3, multilingual-E5) aday.
 
 ---
 
-## 2. Katı Filtre
+## 2. İlan Metinleri — İki Yol
 
-### Amacı
+### 2.1 Neden iki yol
 
-Vektör hesabından **önce** havuzu daraltmak. Pahalı işlemi sadece küçük bir küme üzerinde yapmak.
+Embedding **bütün metni karıştırıp tek bir genel anlam** çıkarıyor. İlanın metninde yüzlerce kelime var; tek tek yeteneklerin varlığı ya da yokluğu bu genel anlamı çok az değiştiriyor.
 
-```
-5.000.000 aday
-  → katı filtre
-  → ~500 aday
-  → vektör hesabı sadece bunlar üzerinde
-```
-
-### Filtre sırası — en çok eleyen önce
+**Örnek — olmazsa olmaz: React, .NET, Kubernetes**
 
 ```
-1. Sistem kontrolleri   ilan yayında mı, aday aktif mi, profil eşiği
-2. Ülke / konum         en çok eleyen (uzaktan istisnası var)
-3. Meslek alanı         kaba filtre
-4. İlan tipi            iş / staj
-5. Çalışma şekli        dizi kesişimi
-6. İş dili              dizi kesişimi
-7. Koşullu filtreler    eğitim, ehliyet, seyahat, vardiya
-8. Dışlamalar           gizlenen şirketler, önceki aksiyonlar
+Aday A: React
+Aday B: React, .NET, Kubernetes
+(geri kalan her şeyleri benzer — ikisi de backend geliştirici)
 ```
 
-### Konum — üç yollu kural
+**Sadece embedding olsaydı:**
+```
+Aday A:  anlamsal = 0.84
+Aday B:  anlamsal = 0.87      ← sadece 3 puan fark
+```
+İkisi de "backend geliştirici" anlamı taşıyor. A'nın tanıtımı biraz daha detaylıysa **A, B'nin önüne bile geçebilir** — işveren üç zorunlu yetenekten ikisi eksik adayı üstte görür.
+
+**İki yol olunca:**
+```
+Aday A:  React ✅  .NET ❌  Kubernetes ❌   → olmazsa olmaz = 1/3 = 0.33
+Aday B:  React ✅  .NET ✅  Kubernetes ✅   → olmazsa olmaz = 3/3 = 1.00
+
+Aday A:  0.65 × 0.84 + 0.20 × (0.75 × 0.33) + …  ≈ 0.596
+Aday B:  0.65 × 0.87 + 0.20 × (0.75 × 1.00) + …  ≈ 0.716
+```
+**Fark 3 puandan 12 puana çıktı.** B açıkça üstte.
+
+| | Embedding | Etiket karşılaştırması |
+|---|---|---|
+| Neyi görür | "Ödeme altyapısı" ↔ "ödeme sistemleri" yakın | ".NET var mı?" → yok, kesin |
+| Neyi göremez | Bir yeteneğin **olmadığını**, sayıları | Eş anlamlıları ("mikroservis" ↔ "dağıtık mimari") |
+
+> **Embedding "genel olarak benziyor mu" der. Etiket "şart koşulan şeyler tek tek var mı" der.** Birlikte, embedding'in "neredeyse aynı" gördüğü iki adayı işverenin şartlarına göre ayırıyoruz.
+
+### 2.2 Akış
 
 ```
-Konum filtresi UYGULANIR, şu durumlar HARİÇ:
-
-  1. Aday "her konumda çalışmaya hazırım" işaretlemişse
-  2. "uzaktan" ∈ (aday.calisma_sekli ∩ ilan.calisma_sekli)
+İşveren yazar:
+"5 yıl React bilen, 8 yıl .NET tecrübesi olan, PostgreSQL'e hakim"
+        │
+        ├── YOL 1 — Embedding
+        │   Ham metin OLDUĞU GİBİ, LLM'e uğramadan ilan vektörüne girer
+        │   → ANLAMSAL skor (%65)
+        │
+        └── YOL 2 — Etiket
+            LLM cümleyi listeye çevirir
+            [React · 5 yıl] [.NET · 8 yıl] [PostgreSQL]
+            → adayın listesiyle TEK TEK karşılaştırılır
+            → NİTELİK UYUMU (%20)
 ```
 
-**Dikkat — uzaktan için iki taraf da uzaktan demeli:**
+**LLM eşleştirme yapmıyor.** Sadece işverenin cümlesini, adayla karşılaştırılabilecek bir **listeye** çeviriyor. Karşılaştırmayı sistem basit aritmetikle yapıyor.
 
-| İlan | Aday | Ortak | Konum |
-|---|---|---|---|
-| [uzaktan] | [uzaktan] | uzaktan | **Atlanır** |
-| [ofis, uzaktan] | [uzaktan] | uzaktan | **Atlanır** |
-| [ofis, uzaktan] | [ofis] | ofis | **Uygulanır** — aday ofise gidecek |
-| [uzaktan] | [ofis] | — | Zaten elenir (kesişim yok) |
-| [hibrit] | [hibrit] | hibrit | **Uygulanır** — hibrit konum gerektirir |
+> LLM olmasaydı işverenden yetenekleri tek tek liste halinde girmesini istemek zorunda kalırdık. İşveren cümle yazmak istediği için LLM bu çeviriyi yapıyor.
 
-**Konum uygulandığında — ağaç yolu:**
+### 2.3 Beş kutu
+
+| Kutu | YOL 1 | LLM ne çıkarır | Hangi kümeye gider |
+|---|:---:|---|---|
+| Olmazsa olmaz yetenekler | Ham metin | Ad **+ yıl** | Olmazsa olmaz (0.75) |
+| Tercih edilen yetenekler | Ham metin | Ad | Tercih edilen (0.25) |
+| Tercih edilen bölümler | Ham metin | Bölüm adları | Tercih edilen (0.25) — **tek öğe** |
+| Olmazsa olmaz sertifikalar | Ham metin | Ad | Olmazsa olmaz (0.75) |
+| Tercih edilen sertifikalar | Ham metin | Ad | Tercih edilen (0.25) |
+
+**Olmazsa olmaz / tercih edilen ayrımını kutu belirler** — LLM tahmin etmez. Tek kutu olsaydı LLM "şart", "artı" gibi kelimelerden tahmin yapmak zorunda kalırdı.
+
+**Tercih edilenlerde de neden iki yol:** Yıl olmasa da "var mı, yok mu" sorusunu embedding cevaplayamıyor. Docker ve Kubernetes'i bilen aday ile bilmeyen, embedding'de neredeyse aynı puanı alır (~2 puan fark); etiket karşılaştırması farkı net koyar (1.0 vs 0.0). Ek maliyet yok — aynı LLM isteğinde ayrıştırılıyor.
+
+### 2.4 Onay ekranı yok — "Algılanan" satırı
+
+LLM sonucu **işverene onaylatılmaz.** Her kutunun altında algılanan etiketler görünür:
+
+```
+Olmazsa olmaz yetenekler
+┌──────────────────────────────────────────────────┐
+│ 5 yıl React bilen, 8 yıl .NET tecrübesi olan     │
+└──────────────────────────────────────────────────┘
+Algılanan:  React · 5 yıl   .NET · 8 yıl                [Düzenle]
+```
+
+| | |
+|---|---|
+| Nerede görünür | İlan düzenleme ekranında, önizlemede, adayın gördüğü ilan detayında |
+| Zorunlu aksiyon | **Yok** — işveren hiçbir şeye basmak zorunda değil |
+| [Düzenle] | Etiket ekle / sil / adı düzelt / yılı değiştir |
+
+**Neden onay yok:** İşveren için bir ekran ve bir karar daha demekti; "onay bekliyor" durumları, hatırlatmalar, otomatik kabul gibi yan kurallar doğuruyordu. Etiketlerin görünür ve düzenlenebilir olması, kaliteyi zorlamadan koruyor.
+
+### 2.5 Etiket tablosu
+
+```sql
+CREATE TABLE ilan_etiketleri (
+  ilan_id       bigint NOT NULL,
+  tur           text   NOT NULL,   -- yetenek | sertifika | bolum
+  oncelik       text   NOT NULL,   -- olmazsa_olmaz | tercih_edilen
+  ad            text   NOT NULL,   -- 'React'
+  normalize_ad  text   NOT NULL,   -- 'react'  (karşılaştırma için)
+  yil           int,               -- sadece olmazsa olmaz yetenekte, varsa
+  kaynak        text   NOT NULL    -- llm | isveren_duzeltti
+);
+```
+
+| Tablo | Hangi skor parçası |
+|---|---|
+| `embeddings` | Anlamsal |
+| `ilan_etiketleri` | Nitelik uyumu |
+
+**`kaynak` neden var:**
+- **Açıklanabilirlik:** Bir etiketin LLM'den mi, işverenin düzeltmesinden mi geldiği bilinir
+- **Koruma:** Metin sonradan değişip LLM yeniden çalışırsa, **işverenin düzelttiği etiketler korunur** — LLM üstüne yazmaz
+- **Kalite izleme:** İşverenlerin ne sıklıkla düzelttiği ölçülür
+
+Aday tarafında ayrıca etiket tablosu yok — adayın yetenek, sertifika ve eğitim tabloları zaten yapılandırılmış.
+
+### 2.6 LLM kalitesi
+
+Onay olmadığı için kalite sistem tarafında korunur:
+
+| Önlem | Ne yapar |
+|---|---|
+| **Kesin çıktı formatı** | LLM serbest metin değil, belirli yapıda liste döndürür |
+| **Örnekli talimat** | Farklı dillerde ve yazım şekillerinde örneklerle yönlendirilir |
+| **Mantık kontrolü** | Yıl 0-40 dışında mı, aynı etiket iki kez mi — hatalı çıktı reddedilir, tekrar denenir |
+| **Test seti** | 100-200 gerçek ilan cümlesiyle doğruluk ölçülür; model veya talimat değişince tekrar ölçülür |
+| **İzleme** | [Düzenle] kullanım oranı takip edilir — artarsa LLM sorunu var |
+| **Küçük, hızlı model** | Görev basit; ilan başına maliyet bir sentin çok altında |
+| **Sadece metin değişince** | 5 kutunun hash'i tutulur; maaş veya konum değişince LLM çağrılmaz |
+
+### 2.7 LLM cevap vermezse
+
+İşveren hiçbir zaman takılmaz:
+
+```
+İşveren [Kaydet] → LLM cevap vermedi
+  → İlan YİNE kaydedilir, yayınlanabilir
+  → Kuyruğa: "İlan #5 → ayrıştır"
+  → Geçici: adayın yetenek adları ilan metninde aranır (yılsız, var/yok)
+
+Ayrıştırma işçisi tekrar dener → başarılı
+  → Etiketler SESSİZCE uygulanır (bildirim yok)
+  → Eşleştirme yenilenir
+```
+
+| Skor parçası | Ayrıştırma bitmeden |
+|---|---|
+| Anlamsal (%65) | ✅ Normal — ham metin LLM'e muhtaç değil |
+| Nitelik uyumu (%20) | ⚠️ Geçici yöntem |
+| Tecrübe, kalite | ✅ Normal |
+
+---
+
+## 3. Katı Filtre
+
+### 3.1 Amacı
+
+Vektör ve skor hesabından **önce** uygun olmayanları eler. **Kimseyi sıralamaz, sadece eler.**
+
+```
+Katı filtre:  "Uygun mu?"      → evet / hayır
+Skor:         "Ne kadar uygun?" → 0-1 arası puan
+```
+
+React bilmeyen aday React isteyen ilandan **elenmez** (yetenek katı filtre değil) — ama skoru düşük olduğu için listenin altında kalır.
+
+### 3.2 Filtre sırası
+
+En çok eleyen önce — sonraki filtreler daha küçük havuzda çalışır:
+
+| # | Filtre | Karşılaştırma |
+|:---:|---|---|
+| 1 | **Sistem kontrolleri** | İlan yayında · aday yayında · arama durumu |
+| 2 | **Konum** | Adayın istediği konumlar ↔ ilanın konumu |
+| 3 | **Meslek alanı** | Tek eşitlik |
+| 4 | **Ne arıyor** | İş / staj |
+| 5 | **Çalışma şekli** | Ortak seçenek |
+| 6 | **Çalışma tipi** | Ortak seçenek *(sadece iş ilanı)* |
+| 7 | **İş dili** | Ortak dil |
+| 8 | **Eğitim** | Kimler başvurabilir + seviye |
+| 9 | **Diğer şartlar** | Sürücü belgesi, seyahat, vardiya, askerlik |
+| 10 | **Dışlamalar** | Gizlenen şirketler, önceki aksiyonlar |
+
+### 3.3 Filtre 1 — Sistem kontrolleri
+
+| İlan | Aday |
+|---|---|
+| Durum = **yayında** | Profil **yayında** — zorunlu adımlar tamam **ve telefon doğrulanmış** |
+| | Arama durumu **"şu an bakmıyorum" değil** |
+
+> Aday numarasını değiştirip doğrulamazsa profil yayından çıkar → bu filtrede elenir.
+
+### 3.4 Filtre 2 — Konum
+
+**Karşılaştırılan:** Adayın **çalışmak istediği konumlar** (en fazla 10) ↔ **İlanın kendi konumu**
+
+> İlanın konumu = ilan oluşturulurken seçilen yer. Şirketin merkezi veya lokasyonları değil.
+
+**Kural — üst seviye seçilirse altı dahil:**
+
+| Aday seçimi | İlan konumu | Sonuç |
+|---|---|:---:|
+| Türkiye | Kadıköy, İstanbul | ✅ |
+| İstanbul | Kadıköy, İstanbul | ✅ |
+| İstanbul | Çankaya, Ankara | ❌ |
+| Almanya | München, Bayern | ✅ |
 
 ```sql
 i.konum_yolu LIKE ak.konum_yolu || '%'
+-- 'TR/İstanbul/Kadıköy' LIKE 'TR/İstanbul%'  → eşleşir
 ```
 
-| Aday seçimi | İlan konumu | Eşleşir |
+**Konum filtresi atlanan iki durum:**
+
+| Durum | Sonuç |
+|---|---|
+| Aday **"Her konumda çalışmaya hazırım"** işaretlemiş | Konum atlanır |
+| Adayın ve ilanın çalışma şeklinde **ortak "uzaktan"** var | Konum atlanır |
+
+| Aday | İlan | Ortak | Konum |
+|---|---|---|---|
+| Uzaktan | Uzaktan | Uzaktan | **Atlanır** — dünyanın her yerinden |
+| Uzaktan | Ofis | — | Zaten elenir (Filtre 5) |
+| Ofis, Uzaktan | Ofis | Ofis | **Uygulanır** — ofise gidecek |
+| Hibrit | Hibrit | Hibrit | **Uygulanır** — hibrit konum gerektirir |
+
+> **Global sonuç:** Uzaktan ilanlarda konum atlandığı için havuz tüm dünya oluyor — o durumda **meslek alanı ve iş dili** en güçlü filtreler.
+
+### 3.5 Filtre 3 — Meslek alanı
+
+```
+ilan.meslek_alani = aday.meslek_alani
+```
+
+**Tek eşitlik** — ikincil meslek alanı kaldırıldı.
+
+**Neden gerekli:** Embedding aynı kelimeleri kullanan farklı meslekleri karıştırabiliyor — *"proje yönetimi, ekip koordinasyonu, bütçe takibi"* yazan inşaat proje yöneticisi ile yazılım proje yöneticisi vektörde yakın çıkar.
+
+**Neden ikincil alan kaldırıldı:** Aday "Yazılım Geliştirici" olup ikincil "Tarım" seçerse tarım ilanlarına düşer ama profili yazılım anlatır — alakasız ilanlar görür. Kariyer değiştiren aday meslek alanını değiştirir, profilini ona göre günceller; filtre ve vektör aynı yönü gösterir.
+
+### 3.6 Filtre 4 — Ne arıyor
+
+| İlan | Aday | Sonuç |
 |---|---|:---:|
-| `TR` | `TR/İstanbul/Kadıköy` | ✅ |
-| `TR/İstanbul` | `TR/Ankara/Çankaya` | ❌ |
-| `US/California` | `US/California/San Francisco` | ✅ |
-| `DE` | `DE/Bayern/München` | ✅ |
+| İş | İş | ✅ |
+| İş | Staj | ❌ |
+| İş | İş + Staj | ✅ |
+| Staj | Staj | ✅ |
+| Staj | İş + Staj | ✅ |
 
-Üst seviye seçilirse altı dahil.
+### 3.7 Filtre 5 — Çalışma şekli
 
-> ⚠️ **Global ölçek için önemli sonuç:** Uzaktan ilanlarda ülke filtresi atlandığı için havuz **tüm dünya** oluyor. O durumda **meslek alanı ve iş dili** en değerli filtreler haline geliyor. Bu, "iş dili boş kalırsa hiç eşleşme olmaz" riskinin neden bu kadar kritik olduğunu gösteriyor.
+İki taraf çoklu (ofis / hibrit / uzaktan); **en az bir ortak.**
 
-### Dizi kesişimleri
+| Aday | İlan | Sonuç |
+|---|---|:---:|
+| Ofis, Hibrit | Hibrit | ✅ |
+| Ofis, Hibrit | Uzaktan | ❌ |
+| Uzaktan | Ofis, Uzaktan | ✅ *(konum atlanır)* |
 
-Çalışma şekli, iş dili, sürücü sınıfı — hepsi çoklu, Postgres dizi tipi ve `&&` (overlap) operatörü:
+### 3.8 Filtre 6 — Çalışma tipi *(sadece iş ilanı)*
 
-```sql
-a.calisma_sekli && i.calisma_sekli
-a.is_dilleri    && i.is_dilleri
+İki taraf çoklu (tam zamanlı / yarı zamanlı / proje bazlı / dönemsel); **en az bir ortak.**
+
+| Aday | İlan | Sonuç |
+|---|---|:---:|
+| Tam zamanlı | Tam, Yarı | ✅ |
+| Yarı zamanlı | Tam | ❌ |
+| Tam, Proje bazlı | Proje bazlı | ✅ |
+
+**Neden iki tarafta çoklu:** Kafe, mağaza, çağrı merkezi *"tam veya yarı zamanlı"* der — tek seçim olsa işveren adayların yarısını kaybederdi. Yarı zamanlı arayan öğrenciye tam zamanlı ilan, tam zamanlı arayana yarı zamanlı ilan düşmemeli.
+
+> **Staj ilanında yok** — onun yerine "çalışma düzeni" (tam / yarı zamanlı) var, **sadece gösterim** (öğrencinin müsaitliği dönemden döneme değişiyor).
+
+### 3.9 Filtre 7 — İş dili
+
+İki taraf çoklu, kapalı liste; **en az bir ortak dil.**
+
+| Aday | İlan | Sonuç |
+|---|---|:---:|
+| Türkçe, İngilizce | İngilizce | ✅ |
+| Türkçe | İngilizce | ❌ |
+
+**Neden kritik:** Embedding çok dilli — Türkçe profil İngilizce ilanla anlamsal eşleşebilir, ama aday o ilanı okuyamayabilir. Dil filtresi bunu önler.
+
+> Adayın "bildiğim diller + seviye" alanı filtreye **girmez** — sadece iş dilleri.
+
+### 3.10 Filtre 8 — Eğitim
+
+**İlan tarafı:**
+```
+Kimler başvurabilir *    ← tek seçim
+○ Sadece devam eden öğrenciler
+○ Sadece mezunlar
+○ İkisi de
+○ Eğitim şartı yok        ← sadece iş ilanında
+
+Hangi seviyede *          ← çoklu
+☐ İlkokul ☐ Ortaokul ☐ Lise ☐ Ön lisans ☐ Lisans ☐ Yüksek lisans ☐ Doktora
 ```
 
-> Ayrı tablo + `EXISTS` yazmaktan kat kat hızlı. **GIN indeksi zorunlu.**
+**Aday tarafı:** Her eğitim kaydında seviye + durum (devam ediyor / mezun).
 
-### Koşullu filtreler
+**Kural:**
 
-Yalnızca **ilan o şartı istemişse** devreye girer:
+| İlan seçimi | Aday geçer, eğer… |
+|---|---|
+| Sadece devam eden öğrenciler | Seçilen seviyelerden birinde **"Devam ediyor"** kaydı var |
+| Sadece mezunlar | Seçilen seviyelerden birinde **"Mezun"** kaydı var |
+| İkisi de | Yukarıdakilerden biri |
+| Eğitim şartı yok | Filtre çalışmaz |
+
+**Tüm kayıtlara bakılır, sadece en yükseğe değil:**
+```
+Aday:  Lisans — Mezun
+       Yüksek lisans — Devam ediyor
+
+"Sadece mezunlar · Lisans"            → ✅ (lisans mezun kaydı var)
+"Sadece öğrenciler · Yüksek lisans"   → ✅ (y.lisans devam kaydı var)
+```
+Sadece en yükseğe bakılsaydı bu aday "lisans mezunu" isteyen ilanlara düşmezdi.
 
 ```sql
-(i.min_egitim_isced IS NULL OR a.en_yuksek_isced >= i.min_egitim_isced)
-(NOT i.surucu_belgesi_gerekli OR a.surucu_siniflari && i.surucu_siniflari)
-(NOT i.vardiya_gerekli OR a.vardiya_uygun)
-(NOT i.seyahat_gerekli OR a.seyahat_uygun)
+i.egitim_sarti = 'yok'
+OR EXISTS (
+  SELECT 1 FROM aday_egitimleri e
+  WHERE e.aday_id = a.id
+    AND e.derece_isced = ANY(i.egitim_seviyeleri)
+    AND ( (i.egitim_sarti = 'ogrenci' AND e.durum = 'devam')
+       OR (i.egitim_sarti = 'mezun'   AND e.durum = 'mezun')
+       OR (i.egitim_sarti = 'ikisi') )
+)
 ```
 
-İlan dokunmadıysa filtre hiç çalışmaz. **Askerlik filtrede yok** — sadece bilgi.
+| Kural | |
+|---|---|
+| **ISCED ile karşılaştırma** | Ülkeler arası ortak ölçek — Almanya'daki "Bachelor" ile Türkiye'deki "Lisans" aynı seviye (6) |
+| **Üst seviyeler otomatik işaretlenir** | Lisans işaretlenince yüksek lisans ve doktora da — işveren kaldırabilir |
+| **İlkokul / ortaokul öğrencisi seçilemez** | Çocuk işçiliği — "ikisi de" seçilse bile bu seviyeler için sadece mezunlar geçer |
+| **Staj ilanında** | Lise → doktora; "eğitim şartı yok" seçeneği yok |
+| **Mezuniyet süresi sınırı** | Yok |
 
-### Dışlamalar
+> ⚠️ **Eğitim artık katı filtre** — adayın doğru girmesi kritik. Seviye kapalı listeden, durum zorunlu, ülkesinin derece adıyla ve açıklamayla gösteriliyor; *"Sadece devam ettiğiniz veya mezun olduğunuz eğitimleri ekleyin"* notu var.
 
-**Gizlenen şirketler — sadece işveren yönünde:**
+### 3.11 Filtre 9 — Diğer şartlar
+
+**İki tarafta zorunlu seçim** — varsayılan seçili gelmez:
+
+| Şart | İlan | Aday | Elenen |
+|---|---|---|---|
+| **Sürücü belgesi** | Gerekli değil / Gerekli + sınıf | Yok / Var + en az bir sınıf | Belgesi yok veya sınıf tutmuyor |
+| **Seyahat** | Gerekli değil / Engeli olmamalı | Engel yok / Var | "Var" |
+| **Vardiya** | Gerekli değil / Vardiyalı çalışabilmeli | Evet / Hayır | "Hayır" |
+| **Askerlik** *(sadece iş ilanı)* | Şart yok / Engeli olmamalı | Yapıldı / Muaf / Tecilli / Yükümlü değil | Sadece **tecilli** |
 
 ```sql
-NOT EXISTS (SELECT 1 FROM aday_gizlenen_sirketler
-            WHERE aday_id = a.id AND sirket_id = i.sirket_id)
+(NOT i.surucu_gerekli  OR a.surucu_siniflari && i.surucu_siniflari)
+(NOT i.seyahat_gerekli OR a.seyahat_engeli = false)
+(NOT i.vardiya_gerekli OR a.vardiya_uygun = true)
+(NOT i.askerlik_sarti  OR a.askerlik_durumu <> 'tecilli')
 ```
 
-Aday o şirketin ilanlarını görmeye devam eder.
+**Filtre sadece ilan şart koyduysa çalışır.** "Gerekli değil" seçildiyse o alana bakılmaz.
 
-**Önceki aksiyonlar — taraf bazlı:**
+**Neden iki tarafta zorunlu:** Eskiden aday bu alanları boş bırakabiliyor, şartlı ilanlardan **sessizce** eleniyordu. Artık boş durum yok — filtre tek satır, "doldurmadın" uyarısına gerek kalmadı.
 
-| Aksiyon | Aday Keşfet'i | İşveren Keşfet'i |
-|---|:---:|:---:|
-| Aday ilanı **geçti** | ❌ gizlenir | ✅ görünür |
-| İşveren adayı **geçti** | ✅ görünür | ❌ gizlenir |
-| Aday **başvurdu** | ❌ (Başvurularım'a taşındı) | — |
-| İşveren **davet etti** | — | ❌ (Davet Ettiklerim'e taşındı) |
-| Başvuru/davet **reddedildi** | ❌ | ❌ |
+**Askerlik — ayrımcılık önlemi:**
+- Şartın adı **"askerlik engeli olmamalı"** — sadece işe başlayıp askere gitmek zorunda kalacak durumdakileri (tecilli) eler
+- Kadın adaylar, askerliği olmayan ülkelerdeki adaylar **"Yükümlü değil"** seçer → geçer
+- **Staj ilanında yok** — öğrencilerin çoğu tecilli
+- İşverene profil detayında görünür ama **listede süzülemez**
 
-> **Geçme tek yönlü:** Aday bir ilanı geçtiyse, işveren o adayı hâlâ görür ve davet edebilir — aday fikrini değiştirebilir. Tersi de geçerli.
->
-> **Reddedilme iki tarafı bağlar:** Konu kapanmıştır, tekrar karşılaşılmaz.
->
-> **İlan bazlı:** İşveren bir adayı "Backend" ilanında geçti diye, aynı aday "Frontend" ilanında görünmeye devam eder. Aksiyon `(ilan_id, aday_id)` çiftine yazılır, şirkete değil.
+### 3.12 Filtre 10 — Dışlamalar
 
-### Tek fonksiyonda toplanır
+**A — Gizlenen şirketler** *(sadece işveren yönünde)*
+
+```sql
+NOT EXISTS (SELECT 1 FROM aday_gizlenen_sirketler g
+            WHERE g.aday_id = a.id AND g.sirket_id = i.sirket_id)
+```
+
+| | |
+|---|---|
+| Kaynak | Sadece **onaylı şirketler** — işveren başvurusunda admin'in onayladığı ad |
+| Şirket bazlı | Şirketin tüm kullanıcıları (sahip, yönetici, uzman) ve tüm ilanları için |
+| Tek yönlü | Aday o şirketin ilanlarını görmeye devam eder |
+
+**B — Önceki aksiyonlar** → Bölüm 6.3
+
+### 3.13 Tek fonksiyonda
 
 ```sql
 CREATE FUNCTION uygun_adaylar(p_ilan_id bigint) ...
 CREATE FUNCTION uygun_ilanlar(p_aday_id bigint) ...
 ```
 
-> **Neden:** Filtre kuralları değişecek (yeni alan, gevşetme kuralı). Sorgulara dağıtılırsa bir yerde unutulur ve sistem **sessizce** yanlış sonuç üretir.
+> **Neden:** Kurallar değişecek. Sorgulara dağıtılırsa bir yerde unutulur ve sistem **sessizce** yanlış sonuç üretir.
 
-### Gerekli indeksler
+### 3.14 İndeksler
 
 ```sql
--- Yayında olan ilanlar için kısmi indeks
-CREATE INDEX ON ilanlar (ulke_kodu, meslek_alani_id, ilan_tipi)
-  WHERE durum = 'yayinda';
-
+-- Sadece yayındaki ilanlar — kısmi indeks
+CREATE INDEX ON ilanlar (ulke_kodu, meslek_alani_id, ilan_tipi) WHERE durum = 'yayinda';
 CREATE INDEX ON ilanlar (konum_yolu text_pattern_ops);
 CREATE INDEX ON ilanlar USING gin (calisma_sekli);
+CREATE INDEX ON ilanlar USING gin (calisma_tipi);
 CREATE INDEX ON ilanlar USING gin (is_dilleri);
 
-CREATE INDEX ON aday_profilleri (ana_meslek_alani_id);
+CREATE INDEX ON aday_profilleri (meslek_alani_id) WHERE yayinda;
 CREATE INDEX ON aday_profilleri USING gin (calisma_sekli);
+CREATE INDEX ON aday_profilleri USING gin (calisma_tipi);
 CREATE INDEX ON aday_profilleri USING gin (is_dilleri);
 CREATE INDEX ON aday_konumlari (konum_yolu text_pattern_ops);
+CREATE INDEX ON aday_egitimleri (aday_id, derece_isced, durum);
 ```
 
-> **Kısmi indeks neden:** 500 bin ilanın 50 bini yayındaysa indeks 10 kat küçük ve hızlı. İlan durumunu bölümlendirme anahtarı yapmak yerine bu yöntem kullanılıyor.
+> Çoklu alanlar Postgres dizisi + `&&` (kesişim) operatörü ile — ayrı tablo + `EXISTS`'ten kat kat hızlı. **GIN indeksi zorunlu.**
 
 ---
 
-## 3. Vektör Karşılaştırması
+## 4. Vektör Aşaması
 
-### Hesap
+### 4.1 Hesap
 
 ```sql
-SELECT a.id, (ie.vektor <=> ae.vektor) AS mesafe
-FROM ... [katı filtre]
-ORDER BY mesafe
+SELECT a.id, 1 - (ie.vektor <=> ae.vektor) AS anlamsal
+FROM [katı filtre sonucu]
+ORDER BY ie.vektor <=> ae.vektor
 LIMIT 200;
 ```
 
-`<=>` pgvector'ün kosinüs mesafe operatörü.
+`<=>` = kosinüs mesafesi. **Anlamsal benzerlik = 1 − mesafe.**
 
-```
-anlamsal_benzerlik = 1 - mesafe
-```
-
-### Eşik değil, limit
+### 4.2 Eşik değil limit
 
 > ❌ "0.7 üstü olanlar gösterilsin"
-> ✅ "En iyi 200 kayıt alınsın"
+> ✅ "En iyi 200 alınsın"
 
-**Neden eşik kullanılmıyor:**
-- Kıtlık döneminde hiçbiri eşiği geçmezse **boş ekran**. Halbuki içlerinde makul olanlar vardır.
-- Eşik değeri modele bağlı ve sezgisel değil — bir modelde 0.7 iyi, diğerinde 0.85.
+- Kıtlık döneminde hiçbiri eşiği geçmezse **boş ekran** — halbuki içlerinde makul olanlar var
+- Eşik değeri modele bağlı ve sezgisel değil
 
-> 💡 **Yumuşak eşik (opsiyonel):** Eleme için değil, işaretleme için kullanılabilir. Çok düşük skorlu kartlar "düşük uyum" etiketiyle gösterilir veya listenin sonunda ayrı başlık altında durur.
+### 4.3 [Daha fazla getir] — tamamlama
 
-### Performans
+Sabit 200 yerine:
 
-Süreler **katı filtreden kalan havuz** üzerinde:
+```
+1. Liste açılır → en iyi 200
+2. Kullanıcı bazılarına aksiyon alır (davet, başvuru, bir daha gösterme)
+   → bunlar listeden çıkar
+3. Listenin sonunda: [Daha fazla getir]
+4. Yeniden hesap → aksiyon alınanlar zaten katı filtrede elendiği için
+   liste OTOMATİK olarak daha önce görülmemişlerle 200'e tamamlanır
+5. Yeni sonuç yoksa → "Tüm uygun ilanları/adayları gördün" (Bölüm 10.6)
+```
 
-| Havuz | Süre (HNSW indeksli) | Ne zaman görülür |
+Ek mantık gerekmiyor — Filtre 10'un doğal sonucu. Maliyet: tek bir eşleştirme hesabı.
+
+### 4.4 Vektör indeksi — HNSW
+
+Vektörleri bir ağ yapısında tutar; birbirine yakın vektörler komşu olarak bağlanır. Arama her adımda hedefe en yakın komşuya atlar — yarım milyon kaydı taramak yerine birkaç yüz adımda sonuca varır. "Yaklaşık" arama: %95+ doğruluk, kat kat hız.
+
+| Havuz (filtreden kalan) | Süre | Ne zaman |
 |---|---|---|
-| 500 | ~2-5 ms | Normal durum |
+| 500 | ~2-5 ms | Normal |
 | 2.000 | ~5-20 ms | Geniş filtre |
-| 50.000 | ~20-50 ms | Uzaktan ilan, geniş meslek alanı |
-| 500.000 | ~50-150 ms | Uzaktan, dünya geneli, çok geniş alan |
+| 50.000 | ~20-50 ms | Uzaktan ilan |
+| 500.000 | ~50-150 ms | Uzaktan, dünya geneli, geniş alan |
 
-Arka planda çalıştığı için kullanıcı fark etmez.
-
-### Vektör indeksi
-
-```sql
-CREATE INDEX ON embeddings USING hnsw (vektor vector_cosine_ops);
-```
-
-**Ne indeksleniyor:** `embeddings.vektor` kolonu.
-
-**İndeks olmadan:** Postgres havuzdaki her vektörü açıp mesafe hesaplar. 500 bin kayıt × 1024 sayı = saniyeler.
-
-**HNSW nasıl çalışır:** Vektörleri bir ağ yapısında tutar — birbirine yakın vektörler komşu olarak bağlanır. Arama rastgele bir noktadan başlar, her adımda hedefe en yakın komşuya atlar, ilerleyemeyince durur. Yarım milyon kaydı taramak yerine birkaç yüz adımda sonuca varır. "Yaklaşık" arama — %95+ doğrulukla ve kat kat hızlı.
-
-### ⚠️ Bilinen risk — filtre ile indeks çekişmesi
-
-Katı filtre çok seçiciyse (havuz 500'e iniyor) HNSW "en yakın 200"ü getirir ama onların çoğu filtreden geçmeyebilir. Postgres daha çok çeker, yine yetmez, sonunda sıralı taramaya düşer. Halbuki 500 kaydı doğrudan taramak 2 ms sürerdi.
-
-**Çözümler:**
-- `SET hnsw.ef_search = 200` (varsayılan 40) — aramayı genişletir
-- Küçük havuzlarda planlayıcıyı indeks kullanmaktan vazgeçirmek
-
-> 💬 **Ekip için:** Bu gerçek veriyle `EXPLAIN ANALYZE` ile ölçülmeden ayarlanamaz. İlk yük testinde mutlaka bakılmalı.
+> ⚠️ **Bilinen risk — filtre ile indeks çekişmesi:** Filtre çok seçiciyse HNSW'nin getirdiği yakın vektörlerin çoğu filtreden geçmeyebilir; Postgres sıralı taramaya düşebilir. Çözüm: `hnsw.ef_search` artırmak veya küçük havuzlarda indeks kullanmamak. **Gerçek veriyle `EXPLAIN ANALYZE` ile ölçülmeli.** 1M+ ölçekte filtre bilgisini vektörle birlikte saklayan vektör veritabanı bu sorunu kökten çözer (Bölüm 11).
 
 ---
 
-## 4. Skor Hesabı
+## 5. Skor
 
-### Neden embedding tek başına yetmiyor
+### 5.1 Skor nedir
 
-Embedding tüm metni **ortalayarak** bakıyor. ~200 kelimelik bir profilde "React" tek bir kelime; varlığı veya yokluğu skoru belki %2 oynatıyor. Ama işveren için "React zorunlu" kritik bir şart.
+Katı filtreden geçenlerin **hepsi uygun** — ama hepsi aynı derecede değil. Skor, onları **en uygundan en aza** sıralamak için 0-1 arası puan.
 
-```
-İlan: React zorunlu, Node.js zorunlu
+| | Katı filtre | Skor |
+|---|---|---|
+| Soru | Uygun mu? | Ne kadar uygun? |
+| Sonuç | Evet / hayır | 0-1 |
+| Etkisi | **Eler** | **Sıralar** — kimseyi elemez |
 
-Aday A: React 5 yıl, Node.js 4 yıl
-Aday B: Vue 5 yıl, Django 4 yıl
-
-Sadece embedding:   A = 0.87,  B = 0.84    ← neredeyse aynı!
-```
-
-İkisi de "web geliştirici" anlamı taşıyor. Embedding aradaki farkı 3 puan görüyor.
-
-**Diğer bileşenler devreye girince:**
+### 5.2 Formül
 
 ```
-A: 0.65 × 0.87 + 0.20 × 1.0 + ... = 0.766
-B: 0.65 × 0.84 + 0.20 × 0.0 + ... = 0.546
+skor = 0.65 × anlamsal
+     + 0.20 × nitelik uyumu
+     + 0.10 × tecrübe
+     + 0.05 × kalite
 ```
 
-Fark 3 puandan **22 puana** çıktı. A açıkça üstte.
+| Parça | Ağırlık | Ne ölçüyor | Nereden geliyor | İki yönde |
+|---|:---:|---|---|---|
+| **Anlamsal** | %65 | Profil ile ilan genel olarak ne kadar benziyor | Embedding (YOL 1) | Aynı |
+| **Nitelik uyumu** | %20 | İstenen yetenek, sertifika, bölüm adayda tek tek var mı | LLM etiketleri (YOL 2) ↔ adayın listeleri | Aynı |
+| **Tecrübe** | %10 | Toplam tecrübe istenen aralıkta mı | Deneyim tarihleri ↔ ilanın min–max | **Farklı** |
+| **Kalite** | %5 | Karşı tarafın profili / ilanı ne kadar dolu | Opsiyonel alanların doluluğu | **Farklı** |
 
-> **Bileşenlerin işi:** Embedding'in "aynı gibi" gördüğü iki adayı, işverenin gerçekten önemsediği kesin kriterlerle ayırmak. Embedding "genel olarak ne kadar benziyor" der; diğer bileşenler "şart koşulan şeyler var mı" der.
+### İki yön — iki skor
 
-### İki yön — neden iki skor
+Aynı aday–ilan çifti için **iki** puan hesaplanır:
 
-**Aynı çift, iki taraf için farklı değerde.** En net örnek:
-
-```
-İlan:  Junior Developer, 1-2 yıl tecrübe
-Aday:  8 yıl tecrübeli
-
-İşveren: "8 yıllık biri junior ilanıma uygun, harika"  → yüksek
-Aday:    "Junior pozisyon mu? Bu geriye adım"           → düşük
-```
-
-Tek skor kullanılırsa ya işverene iyi aday gösterilmez ya adaya istemediği ilan üstte gösterilir.
-
-**İki taraf da kendi Keşfet'ini açıyor ve kendi sıralamasını görüyor:**
-- İşveren: ilanı seçer → "bu ilana uyan adaylar" → `skor_isveren` ile sıralı
-- Aday: Keşfet'i açar → "bana uyan ilanlar" → `skor_aday` ile sıralı
-
-### Formül
+| | Kim kullanır | Soru |
+|---|---|---|
+| **İşveren skoru** | İşverenin "Adaylar" listesi | "Bu aday benim ilanıma ne kadar uygun?" |
+| **Aday skoru** | Adayın "Keşfet" listesi | "Bu ilan bana ne kadar uygun?" |
 
 ```
-skor_isveren = 0.65 × anlamsal          (ortak)
-             + 0.20 × yetenek           (ortak)
-             + 0.10 × tecrube_isveren   (farklı)
-             + 0.05 × aday_kalitesi     (farklı)
-
-skor_aday    = 0.65 × anlamsal          (aynı sayı)
-             + 0.20 × yetenek           (aynı sayı)
-             + 0.10 × tecrube_aday      (farklı)
-             + 0.05 × ilan_kalitesi     (farklı)
+skor_isveren = 0.65 × anlamsal + 0.20 × nitelik + 0.10 × tecrübe_isveren + 0.05 × aday_kalitesi
+skor_aday    = 0.65 × anlamsal + 0.20 × nitelik + 0.10 × tecrübe_aday    + 0.05 × ilan_kalitesi
 ```
 
-| Bileşen | Ağırlık | İki yönde | Embedding'de var mı |
-|---|:---:|---|:---:|
-| Anlamsal | %65 | Aynı | — |
-| Yetenek | %20 | Aynı | ✅ (eriyerek) |
-| Tecrübe | %10 | **Farklı** | ❌ |
-| Kalite | %5 | **Farklı** | ❌ |
+**Maliyet:** Pahalı kısım (vektör mesafesi) bir kez hesaplanır, iki skorda aynı sayı. Farklılaşan parçalar basit aritmetik.
 
-> **Konum skorda yok.** Katı filtrede kaldı. Gerekçe: filtreyi geçen tüm ilanlar adayın **kendi seçtiği** konumlarda. Aralarında sıralama yapmak adayın kararını ikinci kez yorumlamak olur. Konumun %10'u anlamsal ve yeteneğe dağıtıldı.
-
-> **Maliyet notu:** Pahalı kısım (vektör mesafesi) bir kez hesaplanıyor, iki skorda da aynı sayı kullanılıyor. Farklılaşan bileşenler basit aritmetik. İkinci skorun maliyeti sıfıra yakın.
-
----
-
-### 4.1 `anlamsal` — %65, iki yönde aynı
+### 5.3 Anlamsal — %65, iki yönde aynı
 
 ```
-anlamsal = 1 - (aday.vektor <=> ilan.vektor)
+anlamsal = 1 − (aday.vektor <=> ilan.vektor)
 ```
 
-Vektör mesafesi simetrik — "A'dan B'ye" ile "B'den A'ya" farkı yok. Tek hesap, iki skorda aynı değer.
+| Aday vektörü | İlan vektörü |
+|---|---|
+| Unvan | Unvan |
+| Kısa tanıtım | Olmazsa olmaz yetenekler (ham) |
+| Deneyim: pozisyon + ne yaptın | Tercih edilen yetenekler (ham) |
+| Bölüm adları | Tercih edilen bölümler (ham) |
+| Yetenek adları | Olmazsa olmaz sertifikalar (ham) |
+| Sertifika adları | Tercih edilen sertifikalar (ham) |
+| Proje adı + açıklama | İş / staj tanımı |
 
-**Bu tek sayının içinde:** Unvan, tanıtım, yetenek adları, deneyim açıklamaları, bölüm, sertifikalar, projeler — hepsi **anlam olarak** karşılaştırılmış. "Ödeme altyapısı" ile "ödeme sistemleri", "mikroservis" ile "dağıtık mimari" arasındaki yakınlıkları yakalıyor.
+**Neyi iyi yakalıyor:** *"Ödeme altyapısında mikroservis geliştirdim"* ↔ *"Ödeme sistemlerimizde dağıtık mimari"* — kelimeler farklı, anlam yakın.
 
-**Kritik nokta:** Bu sayı girdinin zenginliğine bağlı. Aday sadece "Backend Geliştirici / Bilgisayar Mühendisliği" yazmışsa vektör de o kadar bilgi taşıyor ve benzerlik kaba çıkıyor. Bu yüzden deneyim açıklamaları zorunlu tutuldu.
+**Neden en ağır:** "Bu kişi bu işi yapabilir mi" sorusunun en geniş cevabı bu. Diğer parçalar bunu kesin kriterlerle düzeltiyor.
 
----
+**Neden iki yönde aynı:** Vektör mesafesi simetrik — A'nın B'ye yakınlığı = B'nin A'ya yakınlığı.
 
-### 4.2 `yetenek` — %20, iki yönde aynı
+### 5.4 Nitelik uyumu — %20, iki yönde aynı
 
-**Soru:** "İlanın istediği yetenekler adayda var mı?"
+> Eski adı "yetenek skoru". Artık yetenek + sertifika + bölümü kapsadığı için **"nitelik uyumu."**
 
-**Yeteneklerin iki kez sayılması kasıtlı:** Embedding'de "eriyerek" var (%65'in içinde küçük bir pay), burada **kesin olarak** sayılıyor. Embedding kör noktasını kapatıyor:
+**Soru:** İlanın istediği yetenek, sertifika ve bölümler adayda **tek tek** var mı?
 
-| | Ne ölçüyor | Güçlü yanı | Kör noktası |
-|---|---|---|---|
-| Embedding | Bütünsel anlam | Farklı isimleri köprüler ("React" ↔ "frontend") | Kesin varlık/yokluk, sayılar |
-| Yetenek bileşeni | Etiket + yıl | Kesin, ölçülebilir | Eş anlamlıları kaçırır |
+#### İki küme
 
-#### Formül
+| Küme | İçinde | Ağırlık |
+|---|---|:---:|
+| **Olmazsa olmaz** | Olmazsa olmaz yetenekler + olmazsa olmaz sertifikalar | **0.75** |
+| **Tercih edilen** | Tercih edilen yetenekler + tercih edilen sertifikalar + bölüm *(tek öğe)* | **0.25** |
 
-**Adım 1 — Her zorunlu yeteneği puanla:**
+#### Her öğenin puanı
 
-```
-Adayda var, yıl ≥ istenen   → 1.0
-Adayda var, yıl < istenen   → 0.5 + 0.5 × (aday_yıl / istenen_yıl)
-Adayda yok                  → 0.0
-```
+| Öğe | Adaydaki durum | Puan |
+|---|---|:---:|
+| **Yetenek — olmazsa olmaz, yıl istenmiş** | Var, yıl ≥ istenen | 1.0 |
+| | Var, yıl < istenen | **0.5 + 0.5 × (aday yılı / istenen yıl)** |
+| | Yok | 0 |
+| **Yetenek — yıl istenmemiş / tercih edilen** | Var | 1 |
+| | Yok | 0 |
+| **Sertifika** | Var ve **geçerli** | 1 |
+| | Yok veya süresi geçmiş | 0 |
+| **Bölüm** | Adayın bölümlerinden **herhangi biri** listede | 1 |
+| | Hiçbiri yok | 0 |
 
-> **Neden `0.5 +` ile başlıyor:** Yeteneğin **var olması** tek başına değerli. 1 yıl React bilen, hiç bilmeyenden çok daha iyi. Sıfırdan başlatmak haksızlık olur.
-
-```
-İstenen 3 yıl, adayda 1 yıl → 0.5 + 0.5 × (1/3) = 0.67
-İstenen 3 yıl, adayda 2 yıl → 0.5 + 0.5 × (2/3) = 0.83
-İstenen 3 yıl, adayda 5 yıl → 1.0  (fazlası tam puan)
-```
-
-**Adım 2 — Zorunluların ortalaması:**
-
-```
-zorunlu_puan = ortalama(zorunlu yetenek puanları)
-```
-
-**Adım 3 — Tercihen yetenekler:**
-
-```
-Adayda var → 1.0     Yok → 0.0     (yıl kontrolü yok)
-
-tercihen_puan = ortalama(tercihen yetenek puanları)
-```
-
-**Adım 4 — Birleştir:**
+#### Hesap
 
 ```
-yetenek = 0.75 × zorunlu_puan + 0.25 × tercihen_puan
+olmazsa_olmaz = olmazsa olmaz kümenin ortalaması
+tercih_edilen = tercih edilen kümenin ortalaması
+
+nitelik uyumu = 0.75 × olmazsa_olmaz + 0.25 × tercih_edilen
 ```
 
-Zorunlular 3 kat ağır — işverenin gerçekten şart koştuğu şeyler.
+#### Neden böyle
+
+| Karar | Neden |
+|---|---|
+| **`0.5 +` tabanı** | Yeteneğin **var olması** tek başına değerli — 1 yıl React bilen, hiç bilmeyenden çok daha iyi |
+| **Yıl sadece olmazsa olmazda** | Tercih edilen "olursa iyi olur" — kaç yıl bildiğine bakmak gereksiz hassasiyet |
+| **Olmazsa olmaz 3 kat ağır** | İşverenin şart koştuğu şeyler |
+| **Bölüm tek öğe** | İşveren 5 bölüm yazdı diye 5 öğe olsa, bölüm yeteneklerden ağır basardı |
+| **Süresi geçmiş sertifika sayılmaz** | SRC, İSG, ilk yardım gibi belgeler yenilenmezse geçersiz |
 
 #### Tam örnek
 
 ```
-İLAN istiyor:                      ADAYDA var:
-  React    3 yıl  zorunlu            React       5 yıl
-  Node.js  2 yıl  zorunlu            Docker      1 yıl
-  Docker   —      tercihen            Kubernetes  2 yıl
-                                      Go          3 yıl
+İLAN
+  Olmazsa olmaz:  React · 5 yıl,  .NET,  SRC belgesi
+  Tercih edilen:  Docker,  İSG eğitimi,  Bölüm: [Bilgisayar Müh., Yazılım Müh.]
 
-Zorunlu:
-  React:   var, 5 ≥ 3      → 1.0
-  Node.js: yok             → 0.0
-  zorunlu_puan = (1.0 + 0.0) / 2 = 0.5
+ADAY
+  Yetenekler:   React 3 yıl, Docker 2 yıl
+  Sertifikalar: SRC Belgesi (süresiz), İSG Eğitimi (süresi geçmiş)
+  Bölüm:        Bilgisayar Mühendisliği
 
-Tercihen:
-  Docker:  var             → 1.0
-  tercihen_puan = 1.0
+Olmazsa olmaz küme:
+  React       var, 3 < 5     → 0.5 + 0.5 × 3/5 = 0.80
+  .NET        yok            → 0.00
+  SRC belgesi var, geçerli   → 1.00
+  olmazsa_olmaz = (0.80 + 0 + 1.00) / 3 = 0.60
 
-yetenek = 0.75 × 0.5 + 0.25 × 1.0
-        = 0.375 + 0.25
-        = 0.625
+Tercih edilen küme:
+  Docker      var            → 1
+  İSG eğitimi süresi geçmiş  → 0
+  Bölüm       eşleşti        → 1
+  tercih_edilen = 2 / 3 = 0.67
+
+nitelik uyumu = 0.75 × 0.60 + 0.25 × 0.67 = 0.45 + 0.17 = 0.62
 ```
 
 #### Özel durumlar
 
 | Durum | Sonuç |
 |---|---|
-| İlan hiç yetenek yazmamış | `0.5` (nötr) |
-| Sadece zorunlu var, tercihen yok | `zorunlu_puan` tek başına |
-| Sadece tercihen var | `tercihen_puan` tek başına |
+| İlanda hiç etiket yok | 0.5 (nötr) |
+| Sadece olmazsa olmaz küme | `olmazsa_olmaz` tek başına |
+| Sadece tercih edilen küme | `tercih_edilen` tek başına |
+| LLM ayrıştırması henüz yapılmadı | Geçici: adayın adları ilan metninde aranır (yılsız var/yok) |
 
-#### ⚠️ Yön farkı neden kaldırıldı
+#### Eşleşme nasıl yapılır
 
-İlk tasarımda aday yönü farklıydı: *"yeteneklerimin kaçı bu işte kullanılıyor"*
+- Adayın yetenek / sertifika / bölüm adları ilanın etiketleriyle **normalize edilmiş haliyle** karşılaştırılır (küçük harf, noktalama temizliği)
+- Yazım farkları (*"ReactJS"* / *"React.js"*) **metin benzerliği** (`pg_trgm`) ile yakalanır
 
-```
-yetenek_aday = (ilanda geçen yeteneklerim) / (toplam yeteneklerim)
-```
+#### Neden iki yönde aynı — eski fark neden kaldırıldı
 
-**Sorun:** Bu formül **çok yetenek yazmayı cezalandırıyordu.** 10 yetenek yazan aday, 2 yetenek isteyen ilanla eşleşince 2/10 = 0.2 alıyordu.
+İlk tasarımda aday yönü *"yeteneklerimin kaçı bu işte kullanılıyor"* (`ilandaki yeteneklerim / tüm yeteneklerim`) diye hesaplanıyordu. **Çok yetenek yazmayı cezalandırıyordu** — 10 yetenekli aday 2 yetenek isteyen ilanla 0.2 alıyordu. Aday bunu fark ederse yeteneklerini eksik yazar, hem etiket hem embedding zayıflardı. "Bu iş bana dar" bilgisi zaten **tecrübe** parçasından geliyor.
 
-**Ters teşvik:** Aday bunu fark ederse yeteneklerini eksik yazar → hem etiket kesişimi hem embedding zayıflar → kendi ölçtüğümüz şeyi bozmuş oluruz.
+### 5.5 Tecrübe — %10, iki yönde FARKLI
 
-**Karar:** Yetenek bileşeni iki yönde aynı. "Bu iş bana dar geliyor" bilgisi zaten **tecrübe bileşeninden** geliyor.
+#### Adayın tecrübesi — otomatik
 
----
-
-### 4.3 `tecrube` — %10, iki yönde FARKLI
-
-**Tecrübe yılı nereden geliyor:** Aday ayrıca girmiyor. Deneyim kayıtlarındaki tarihlerden otomatik:
+Aday ayrıca yazmaz; deneyim kayıtlarından hesaplanır:
 
 | Çalışma türü | Ağırlık |
 |---|:---:|
-| Tam zamanlı | × 1.0 |
-| Freelance | × 1.0 |
-| Yarı zamanlı | × 0.5 |
-| Staj | × 0.5 |
-| Dönemsel | × 0.5 |
-| Gönüllü | Hesaba girmez |
+| Tam zamanlı, freelance | × 1.0 |
+| Yarı zamanlı, staj, dönemsel | × 0.5 |
+| Gönüllü | Sayılmaz |
 
-**Örtüşen dönemler iki kez sayılmaz** — aynı anda iki işte çalışılmışsa tarih aralıkları birleştirilir.
+Örtüşen dönemler iki kez sayılmaz. Deneyimi olmayan aday = **0 yıl.**
 
-#### İşveren yönü — fazla tecrübe tam puan
+#### Neden iki yön farklı
 
 ```
-Aralıkta (min ≤ aday ≤ max)   → 1.0
-Aralığın ÜSTÜNDE              → 1.0     ← tam puan
-Aralığın ALTINDA              → aday_yıl / min_yıl
-Hiç tecrübesiz (0 yıl)        → 0.0
-İlan aralık yazmamış          → 0.5     (nötr)
+İlan:  Junior Developer, 1-2 yıl
+Aday:  8 yıl tecrübeli
+
+İşveren: "8 yıllık biri junior ilanıma uygun — harika"   → yüksek
+Aday:    "Junior pozisyon mu? Bu geriye adım"             → düşük
 ```
 
-> **Neden üstünde tam puan:** İşveren için fazla nitelikli aday bir fırsat. Maaşta anlaşamazlarsa sohbette çözülür; sistem baştan uzaklaştırmasın.
+Tek skor olsa ya işverene iyi aday gösterilmez ya adaya istemediği ilan üstte gösterilir.
 
-**Örnekler — ilan 3-6 yıl istiyor:**
+#### Puan tablosu
 
-```
-Aday  4 yıl  → 1.0         aralıkta
-Aday  6 yıl  → 1.0         aralıkta
-Aday  9 yıl  → 1.0         üstünde, tam puan
-Aday  2 yıl  → 2/3 = 0.67
-Aday  1 yıl  → 1/3 = 0.33
-Aday  0 yıl  → 0.0
-```
+| Aday durumu | İşveren skoru | Aday skoru |
+|---|:---:|:---:|
+| **Aralıkta** | 1.0 | 1.0 |
+| **Aralığın üstünde** | **1.0** — fazla nitelikli, fırsat | Kademeli düşüş ↓ |
+| **Aralığın altında** | aday yılı / min yıl | **0.7 + 0.3** × (aday yılı / min yıl) |
+| **Hiç tecrübesiz** | 0 | 0.7 |
+| **İlan aralık yazmamış** | 0.5 | 0.5 |
+| **Staj ilanı** | **0.5** | **0.5** |
 
-#### Aday yönü — iki uçta da tam puan alamaz
+**Üstünde — aday skoru kademeleri:**
 
-```
-Aralıkta                       → 1.0
+| Max'ı ne kadar aşıyor | Aday skoru |
+|---|:---:|
+| 3 yıla kadar | 0.7 |
+| 3-6 yıl | 0.4 |
+| 6+ yıl | 0.2 |
 
-Aralığın ALTINDA               → 0.7 + 0.3 × (aday_yıl / min_yıl)
+#### Neden böyle
 
-Aralığın ÜSTÜNDE:
-  max'ı 3 yıla kadar aşıyor    → 0.7
-  max'ı 3-6 yıl aşıyor         → 0.4
-  max'ı 6+ yıl aşıyor          → 0.2
-```
+| Karar | Neden |
+|---|---|
+| **İşveren — üstünde tam puan** | Fazla nitelikli aday işveren için fırsat; maaşta anlaşamazlarsa sohbette çözülür, sistem baştan uzaklaştırmasın |
+| **Aday — altında 0.7 tabanı** | Biraz zorlayıcı ilan adayın **gelişim fırsatı.** Taban olmasaydı (1/3 = 0.33) listenin dibine düşer, aday hiç yukarı bakamazdı |
+| **Aday — üstünde kademeli düşüş** | Bir kademe tolere edilir (belki sektör değiştiriyor); üç kademe açıkça yanlış eşleşme |
+| **Staj — 0.5 nötr** | Stajda toplam tecrübe sorulmuyor; formül iki ilan tipinde aynı kalsın diye ağırlık dağıtılmıyor, bileşen etkisiz bırakılıyor |
 
-> **"Ceza" değil, "destek".** Hiçbir yerde çıkarma işlemi yok. Her bileşen 0-1 arası puan üretir, ağırlıkla çarpılıp toplanır. Düşük puan sadece "tam puan alamıyor" demek.
+> **"Ceza" değil.** Hiçbir yerde çıkarma yok — her parça 0-1 puan üretir, ağırlıkla çarpılıp toplanır. Düşük puan sadece "tam puan alamıyor" demek.
 
-**`0.7` taban neden var:**
+#### Örnek — ilan 1-2 yıl (junior)
 
-Aralığın altındaki ilan, aday için **gelişim fırsatı** — biraz zorlayıcı ama ulaşılabilir. Aday bunu görmek ister.
-
-Taban olmasaydı:
-```
-İlan 3-6 yıl, aday 1 yıl → 1/3 = 0.33  → listenin dibine düşer
-```
-
-Aday sürekli kendi seviyesindeki ilanları görür, hiç yukarı bakamaz. Kariyer uygulamasında kötü bir davranış.
-
-Taban ile:
-```
-0.7  → taban (aralığın altında bile olsa listede kalır)
-0.3  → aralığa yaklaştıkça kazanılan ek puan
-
-Aday 1 yıl → 0.7 + 0.3 × (1/3) = 0.80
-Aday 2 yıl → 0.7 + 0.3 × (2/3) = 0.90
-Aday 3 yıl → 1.0  (aralığa girdi)
-```
-
-**Üstünde neden kademeli düşüş:** Geriye adım kimsenin istediği şey değil. Bir kademe (0.7) tolere edilebilir — belki sektör değiştiriyordur. Üç kademe (0.2) açıkça yanlış eşleşme.
-
-**Örnekler — ilan 3-6 yıl istiyor:**
-
-```
-Aday  4 yıl  → 1.0                       aralıkta
-Aday  2 yıl  → 0.7 + 0.3 × (2/3) = 0.90  biraz altında
-Aday  1 yıl  → 0.7 + 0.3 × (1/3) = 0.80  altında
-Aday  8 yıl  → 0.7                       max+2, bir kademe
-Aday 11 yıl  → 0.4                       max+5, iki kademe
-Aday 15 yıl  → 0.2                       max+9, üç kademe
-```
-
-#### İki yön yan yana — ilan 1-2 yıl (junior)
-
-| Aday | İşveren yönü | Aday yönü | Yorum |
+| Aday | İşveren | Aday | Yorum |
 |---|:---:|:---:|---|
 | 0 yıl | 0.0 | 0.70 | İşveren istemiyor; aday öğrenmek istiyor |
-| 1 yıl | 1.0 | 1.0 | İkisi de memnun |
-| 2 yıl | 1.0 | 1.0 | İkisi de memnun |
+| 1-2 yıl | 1.0 | 1.0 | İkisi de memnun |
 | 4 yıl | 1.0 | 0.7 | İşveren sevinir; aday kararsız |
-| 8 yıl | 1.0 | 0.2 | İşveren çok ister; aday hiç istemez |
+| 8 yıl | 1.0 | 0.2 | İşveren çok ister; aday istemez |
 
-**Son satır:** İşverenin listesinde 3. sırada, adayın listesinde 47. sırada. **İkisi de doğru.**
+**Son satır:** İşverenin listesinde üstte, adayın listesinde altta. **İkisi de doğru.**
 
-#### Toplam skora etkisi
+#### Örnek — ilan 3-6 yıl, aday skoru
 
 ```
-skor_aday = 0.65 × anlamsal  (0.87) → 0.566
-          + 0.20 × yetenek   (0.75) → 0.150
-          + 0.10 × tecrube   (0.90) → 0.090
-          + 0.05 × kalite    (0.80) → 0.040
-          = 0.846
-
-Tecrübe tam puan olsaydı: 0.856
-Fark: 0.01 → 1 puanlık eksik kazanç
+Aday  4 yıl  → 1.0                        aralıkta
+Aday  2 yıl  → 0.7 + 0.3 × 2/3 = 0.90     biraz altında
+Aday  1 yıl  → 0.7 + 0.3 × 1/3 = 0.80     altında
+Aday  8 yıl  → 0.7                        max+2
+Aday 11 yıl  → 0.4                        max+5
+Aday 15 yıl  → 0.2                        max+9
 ```
 
-#### Staj ilanlarında
+### 5.6 Kalite — %5, iki yönde TAMAMEN FARKLI
 
-Staj ilanında tecrübe sorulmuyor. Bu bileşen **0.5 (nötr)** alır veya ağırlığı diğer bileşenlere dağıtılır.
+#### İşveren skoru → adayın profili ne kadar dolu
 
----
-
-### 4.4 `kalite` — %5, iki yönde TAMAMEN FARKLI şeye bakıyor
-
-#### İşveren yönü = adayın profil doluluğu
+Zorunlu alanlar herkeste dolu — sadece **opsiyonel** alanlar:
 
 | Kriter | Puan |
 |---|:---:|
-| Deneyim kaydı var, "ne yaptın" dolu | 0.25 |
-| En az 5 yetenek | 0.20 |
-| Kısa tanıtım yazılmış | 0.15 |
-| Eğitim kaydı tam (bölüm dolu) | 0.15 |
-| Proje veya sertifika var | 0.10 |
-| Fotoğraf var | 0.10 |
-| CV yüklenmiş | 0.05 |
+| En az bir deneyim kaydı | 0.30 |
+| En az 5 yetenek | 0.25 |
+| Proje veya sertifika var | 0.15 |
+| Fotoğraf var | 0.15 |
+| En az bir belge (CV vb.) | 0.15 |
 | **Toplam** | **1.00** |
 
-#### Aday yönü = ilanın ve şirketin doluluğu
+#### Aday skoru → ilan ve şirket ne kadar dolu
 
 | Kriter | Puan |
 |---|:---:|
-| İş tanımının 4 sorusu dolu | 0.30 |
-| Maaş aralığı belirtilmiş | 0.20 |
-| Şirket doğrulanmış (rozetli) | 0.15 |
-| Şirket profili tam | 0.15 |
-| Yan haklar girilmiş | 0.10 |
-| Şirket fotoğrafı var | 0.10 |
+| **Maaş / ücret belirtilmiş** | **0.50** |
+| İmkanlar alanı dolu *(şirket profili)* | 0.20 |
+| Gerçek logo *(varsayılan avatar değil)* | 0.15 |
+| Web sitesi veya sosyal medya | 0.15 |
 | **Toplam** | **1.00** |
 
-#### Örnek — dolu profil vs eşiği zor geçen profil
+#### Kaldırılan eski kriterler
 
-**Aday A:**
+| Kriter | Neden |
+|---|---|
+| Kısa tanıtım yazılmış, eğitim kaydı tam | Artık zorunlu — herkeste dolu |
+| İş tanımının 4 sorusu | Tek alan oldu, zorunlu |
+| Şirket doğrulanmış | Sistemde onaysız şirket yok |
+| Şirket fotoğrafı | Fotoğraf özelliği kaldırıldı |
 
-| Kriter | Durum | Puan |
-|---|---|:---:|
-| Deneyim | ✅ 3 kayıt | 0.25 |
-| 5+ yetenek | ✅ 12 yetenek | 0.20 |
-| Tanıtım | ✅ | 0.15 |
-| Eğitim | ✅ | 0.15 |
-| Proje/sertifika | ✅ 2 proje | 0.10 |
-| Fotoğraf | ✅ | 0.10 |
-| CV | ❌ | 0.00 |
-| | **Toplam** | **0.95** |
+#### Neden sadece %5
 
-**Aday B:**
+Daha yüksek olsa, profili çok dolu ama işe uymayan aday, uygun ama eksik profilli adayın önüne geçerdi. %5 sadece **eşitliği bozar** — iki aday benzer uygunluktaysa dolu olan üste çıkar.
 
-| Kriter | Durum | Puan |
-|---|---|:---:|
-| Deneyim | ❌ | 0.00 |
-| 5+ yetenek | ❌ 2 yetenek | 0.00 |
-| Tanıtım | ❌ | 0.00 |
-| Eğitim | ✅ | 0.15 |
-| Proje/sertifika | ❌ | 0.00 |
-| Fotoğraf | ✅ | 0.10 |
-| CV | ❌ | 0.00 |
-| | **Toplam** | **0.25** |
+**Asıl işi teşvik:** Adaya *"profilini doldur"*, işverene *"maaş yaz"* demek — zorlamadan. Maaş en ağır kriter çünkü adayın en çok önemsediği bilgi.
+
+### 5.7 Tam örnek — iki adayın sıralaması
 
 ```
-A: 0.05 × 0.95 = 0.0475
-B: 0.05 × 0.25 = 0.0125
-Fark: 3.5 puan (100 üzerinden)
+İlan: Senior Backend Developer — React 5 yıl ve .NET olmazsa olmaz, 3-6 yıl
+
+                  Aday A           Aday B
+Anlamsal          0.86             0.84
+Nitelik uyumu     0.85             0.33   (sadece React)
+Tecrübe (işv.)    1.00 (4 yıl)     1.00 (5 yıl)
+Kalite (işv.)     0.80             0.60
+
+İşveren skoru:
+A = 0.65×0.86 + 0.20×0.85 + 0.10×1.00 + 0.05×0.80 = 0.559 + 0.170 + 0.100 + 0.040 = 0.869
+B = 0.65×0.84 + 0.20×0.33 + 0.10×1.00 + 0.05×0.60 = 0.546 + 0.066 + 0.100 + 0.030 = 0.742
 ```
 
-#### Ağırlık neden sadece %5
+İşverenin listesinde **A üstte.**
 
-Daha yüksek olsaydı (%20 gibi), profili çok dolu ama işe hiç uygun olmayan aday, profili eksik ama mükemmel uyan adayın önüne geçerdi. Asıl iş **uygunluğu** ölçmek.
+### 5.8 Uyum seviyesi — kullanıcıya gösterilen
 
-%5 sadece **eşitliği bozan** faktör: iki aday benzer uygunluktaysa, profili dolu olan üstte çıkar.
+Toplam skor kullanıcıya sayı olarak değil, **seviye** olarak gösterilir:
 
-#### Asıl işlevi teşvik
+| Seviye | Skor *(başlangıç değeri)* |
+|---|---|
+| 🟢 **Yüksek uyum** | ≥ 0.75 |
+| 🟡 **Orta uyum** | 0.55 – 0.75 |
+| ⚪ **Düşük uyum** | < 0.55 |
 
-Bu bileşenin gerçek amacı sıralama değil, **davranış değiştirmek**:
-- Adaya: *"Profilini doldurursan daha çok görünürsün"* — ve bu doğru oluyor
-- İşverene: *"Maaş yazar, iş tanımını doldurursan ilanın üstte çıkar"*
+> Eşikler veritabanında — gerçek skor dağılımına bakılarak ayarlanır.
 
-Aday profilindeki "Eşleşme gücü" göstergesi bunu görsel olarak yansıtır.
+### 5.9 Skor ayarları — veritabanında
 
----
-
-### 4.5 Parametre tablosu — kod değişmeden ayar
-
-**Tüm ağırlıklar ve formül içindeki sabitler veritabanında.** Gerçek veriyle mutlaka oynanacak; her değişiklik için sürüm çıkarmak istemezsiniz.
+**Tüm ağırlıklar ve formül sabitleri** (0.65, 0.75, 0.5 tabanı, 0.7 tabanı, 3-6 yıl kademeleri, kalite puanları, staj nötr değeri, uyum seviyesi eşikleri) veritabanında.
 
 ```sql
 CREATE TABLE skor_parametreleri (
   yon        text NOT NULL,   -- 'isveren' | 'aday'
-  bilesen    text NOT NULL,   -- 'anlamsal' | 'yetenek' | 'tecrube' | 'kalite'
+  bilesen    text NOT NULL,   -- 'anlamsal' | 'nitelik' | 'tecrube' | 'kalite'
   agirlik    real NOT NULL,
-  ayarlar    jsonb,
+  ayarlar    jsonb,           -- formül içindeki sabitler
   guncelleme timestamptz DEFAULT now(),
   PRIMARY KEY (yon, bilesen)
 );
 ```
 
-**Başlangıç değerleri:**
-
-```sql
-INSERT INTO skor_parametreleri VALUES
--- İŞVEREN YÖNÜ
-('isveren','anlamsal', 0.65, NULL),
-('isveren','yetenek',  0.20, '{"zorunlu_agirlik":0.75, "kismi_taban":0.5,
-                               "yetenek_yok_notr":0.5}'),
-('isveren','tecrube',  0.10, '{"ustunde_tam_puan":true,
-                               "aralik_yok_notr":0.5}'),
-('isveren','kalite',   0.05, '{"deneyim":0.25, "yetenek_5":0.20,
-                               "tanitim":0.15, "egitim":0.15,
-                               "proje_sertifika":0.10, "foto":0.10,
-                               "cv":0.05}'),
-
--- ADAY YÖNÜ
-('aday','anlamsal', 0.65, NULL),
-('aday','yetenek',  0.20, '{"zorunlu_agirlik":0.75, "kismi_taban":0.5,
-                            "yetenek_yok_notr":0.5}'),
-('aday','tecrube',  0.10, '{"altinda_taban":0.7,
-                            "kademe1_sinir":3, "kademe1_puan":0.7,
-                            "kademe2_sinir":6, "kademe2_puan":0.4,
-                            "kademe3_puan":0.2}'),
-('aday','kalite',   0.05, '{"is_tanimi":0.30, "maas":0.20,
-                            "dogrulama":0.15, "sirket_profili":0.15,
-                            "yan_haklar":0.10, "foto":0.10}');
-```
-
-> "0.7 tabanı" veya "3 yıl kademe sınırı" gibi değerleri değiştirmek için **tek satır `UPDATE`** yeterli.
-
-**Üç güvenlik önlemi:**
-
 | Önlem | Neden |
 |---|---|
-| **Toplam 1.0 kontrolü** | Yanlışlıkla toplam ≠ 1.0 olursa skorlar bozulur. `CHECK` kısıtı veya hesapta normalizasyon |
-| **Değişiklik günlüğü** | `skor_parametreleri_log` — kim, ne zaman, neyi değiştirdi. Sonuçlar bozulursa geri dönülebilsin |
-| **Değişiklik sonrası yeniden hesaplama** | Mevcut satırlar eski ağırlıklarla hesaplanmış durumda. Periyodik tazeleme yavaş yavaş düzeltir; büyük değişiklikte toplu tetikleme |
+| **Kod değişmeden ayar** | Gerçek veriyle mutlaka oynanacak — her değişiklik için sürüm çıkarılmasın |
+| **Toplam 1.0 kontrolü** | Ağırlıklar yanlışlıkla bozulmasın |
+| **Değişiklik günlüğü** | Kim, ne zaman, neyi değiştirdi — sonuçlar bozulursa geri dönülür |
+| **Değişiklik sonrası yeniden hesap** | Mevcut skorlar eski ağırlıklarla — büyük değişiklikte toplu yeniden hesap tetiklenir |
 
-### 4.6 `alt_skorlar` — saklanması zorunlu
-
-Her satırda her bileşenin ayrı değeri saklanır:
+### 5.10 Alt skorlar — her eşleşmede saklanır
 
 ```json
 {
-  "isveren": {"anlamsal": 0.87, "yetenek": 0.625, "tecrube": 1.0, "kalite": 0.75},
-  "aday":    {"anlamsal": 0.87, "yetenek": 0.625, "tecrube": 0.2, "kalite": 0.60}
+  "isveren": {"anlamsal": 0.86, "nitelik": 0.85, "tecrube": 1.0, "kalite": 0.80},
+  "aday":    {"anlamsal": 0.86, "nitelik": 0.85, "tecrube": 0.2, "kalite": 0.65}
 }
 ```
 
-**İki sebep:**
-
-1. **Ayarlama:** Hangi bileşen yanlış çalışıyor? Alt skorlar olmadan göremezsiniz.
-2. **Düzenleyici uyum:** Otomatik karar verme düzenlemelerinde (KVKK, GDPR md. 22, AB Yapay Zeka Yasası — işe alım "yüksek riskli" sınıfta, NYC Local Law 144) **"neden bu sıralama"** sorusuna cevap verebilmek gerekiyor.
-
-> 💡 **Ürün fırsatı:** Alt skorlar kartta gösterilebilir — *"Yetenek uyumu yüksek, tecrübe aralığın biraz altında."* LLM olmadan açıklanabilir eşleşme.
+| Neden | |
+|---|---|
+| **Ayarlama** | Hangi parça yanlış çalışıyor, görülebilsin |
+| **Yasal uyum** | "Bu adayı neden üstte gösterdiniz?" sorusuna cevap — KVKK, GDPR md. 22, AB Yapay Zeka Yasası (işe alım yüksek riskli), NYC Local Law 144 |
+| **"Neden önerildi?"** | Kullanıcıya açıklama bu puanlardan, LLM'siz üretilir (Bölüm 10.5) |
 
 ---
 
-## 5. Sonuç Tablosu
+## 6. Sonuç Tablosu ve Aksiyonlar
 
-Hesaplanan skorlar buraya yazılır. Kullanıcı Keşfet'i açtığında **hesap yapılmaz**, buradan okunur.
+### 6.1 Sonuç tablosu — tek tablo, iki yön
 
-### İki tablo — biri geçici, biri kalıcı
-
-#### `ilan_aday_eslestirme` — büyük, geçici, önbellek
+Skorlar önceden hesaplanıp burada saklanır. Keşfet açılınca **hesap yapılmaz, okunur** — liste anında gelir.
 
 ```sql
 CREATE TABLE ilan_aday_eslestirme (
   ilan_id            bigint NOT NULL,
   aday_id            bigint NOT NULL,
-  skor_isveren       real NOT NULL,
-  skor_aday          real NOT NULL,
+  skor_isveren       real   NOT NULL,
+  skor_aday          real   NOT NULL,
   alt_skorlar        jsonb,
   model_adi          text,
   hesaplanma_tarihi  timestamptz NOT NULL DEFAULT now(),
-  gosterildi_isveren boolean NOT NULL DEFAULT false,
-  gosterildi_aday    boolean NOT NULL DEFAULT false,
   PRIMARY KEY (ilan_id, aday_id)
 );
-```
 
-#### `ilan_aday_aksiyon` — küçük, kalıcı
-
-```sql
-CREATE TABLE ilan_aday_aksiyon (
-  ilan_id bigint NOT NULL,
-  aday_id bigint NOT NULL,
-  aksiyon text NOT NULL,   -- gecildi | basvuruldu | reddedildi |
-                           -- davet_edildi | eslesti
-  taraf   text NOT NULL,   -- aday | isveren
-  tarih   timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (ilan_id, aday_id, aksiyon, taraf)
-);
-```
-
-> **Neden ayrı:** Eşleştirme tablosu sık temizleniyor. Aksiyon tablosu dokunulmuyor — "daha önce geçilmiş kart" bilgisi kaybolmamalı. Ayrıca bu ayrım sonradan yapılması zor bir iş; **baştan ayrı kurulmalı.**
-
-### Tek tablo, iki yön
-
-```sql
--- İşveren Keşfet
-WHERE ilan_id = :x ORDER BY skor_isveren DESC LIMIT 50
-
--- Aday Keşfet
-WHERE aday_id = :y ORDER BY skor_aday DESC LIMIT 50
-```
-
-**Tek tablonun en büyük faydası:**
-
-```
-Pazartesi:  İlan #5 yayınlandı → o anki adaylar için hesaplandı
-
-Salı:       Yeni Aday #999 kaydoldu
-            → Aday #999 için hesap çalıştı
-            → İlan #5 uygun çıktı → (5, 999) satırı yazıldı
-                                     ↑ aynı tabloya, İKİ skorla
-
-Salı akşamı: İşveren İlan #5'in Keşfet'ini açtı
-            → WHERE ilan_id = 5
-            → Aday #999 da listede ✅
-```
-
-İşverenin ilanı hiç güncellenmedi, hiçbir şey yapmadı. Satır iki yönden okunabildiği için yeni aday onun listesinde de görünüyor.
-
-> ⚠️ **İki ayrı tablo olsaydı** (`ilan_bazli`, `aday_bazli`): Yeni aday sadece kendi tablosuna yazılır, işverenin tablosunda görünmezdi. Sürekli tazeleme gerekirdi. Tek tablo bu sorunu **tasarımdan** çözüyor.
-
-### Yazma — UPSERT
-
-```sql
-INSERT INTO ilan_aday_eslestirme (...)
-VALUES (...)
-ON CONFLICT (ilan_id, aday_id) DO UPDATE SET
-  skor_isveren      = EXCLUDED.skor_isveren,
-  skor_aday         = EXCLUDED.skor_aday,
-  alt_skorlar       = EXCLUDED.alt_skorlar,
-  model_adi         = EXCLUDED.model_adi,
-  hesaplanma_tarihi = now();
-```
-
-`gosterildi_*` kolonları **korunur** — yeniden hesaplama "daha önce gösterildi" bilgisini silmemeli.
-
-> **İki gösterildi kolonu neden ayrı:** Aynı çift işverene gösterilmiş ama adaya henüz gösterilmemiş olabilir.
-
-### İndeksler
-
-```sql
 CREATE INDEX ON ilan_aday_eslestirme (ilan_id, skor_isveren DESC);
 CREATE INDEX ON ilan_aday_eslestirme (aday_id, skor_aday DESC);
 CREATE INDEX ON ilan_aday_eslestirme (hesaplanma_tarihi);
+```
 
+| İlan | Aday | İşveren skoru | Aday skoru | Hesaplanma |
+|---|---|:---:|:---:|---|
+| Backend Dev | Ayşe | 0.87 | 0.84 | 2 saat önce |
+| Backend Dev | Mehmet | 0.74 | 0.61 | 2 saat önce |
+
+**Okuma:**
+```sql
+-- İşveren "Adaylar"
+WHERE ilan_id = :ilan ORDER BY skor_isveren DESC LIMIT 200
+-- Aday "Keşfet"
+WHERE aday_id = :aday ORDER BY skor_aday DESC LIMIT 200
+```
+
+#### Tek tablonun en büyük faydası
+
+```
+Pazartesi:  İlan #5 yayınlandı → o anki adaylar için hesaplandı
+Salı:       Yeni Aday #999 kaydoldu → onun için hesap
+            → İlan #5 uygun → (5, 999) satırı yazıldı — İKİ skorla
+Salı akşamı: İşveren İlan #5'i açtı → Aday #999 listede ✅
+```
+
+İşveren hiçbir şey yapmadı. Satır iki yönden okunabildiği için yeni aday onun listesine **kendiliğinden** girdi.
+
+> İki ayrı tablo olsaydı (ilan bazlı / aday bazlı) yeni aday sadece kendi tablosuna yazılır, işveren görmezdi. Tek tablo bu sorunu **tasarımdan** çözüyor.
+
+#### Yazma
+
+```sql
+INSERT INTO ilan_aday_eslestirme (...) VALUES (...)
+ON CONFLICT (ilan_id, aday_id) DO UPDATE SET
+  skor_isveren = EXCLUDED.skor_isveren,
+  skor_aday    = EXCLUDED.skor_aday,
+  alt_skorlar  = EXCLUDED.alt_skorlar,
+  model_adi    = EXCLUDED.model_adi,
+  hesaplanma_tarihi = now();
+```
+
+"Üstüne yaz" mantığı — aynı iş iki kez çalışsa da sonuç bozulmaz (Bölüm 8.5).
+
+### 6.2 Aksiyon tablosu — ayrı, kalıcı
+
+```sql
+CREATE TABLE ilan_aday_aksiyon (
+  ilan_id  bigint NOT NULL,
+  aday_id  bigint NOT NULL,
+  aksiyon  text   NOT NULL,   -- gizlendi | basvuruldu | davet_edildi |
+                              -- reddedildi | suresi_doldu | eslesti
+  taraf    text   NOT NULL,   -- aday | isveren
+  tarih    timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (ilan_id, aday_id, aksiyon, taraf)
+);
 CREATE INDEX ON ilan_aday_aksiyon (aday_id, taraf);
 CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 ```
 
-### Silme kuralları
+| | Sonuç tablosu | Aksiyon tablosu |
+|---|---|---|
+| Ne tutar | Skorlar | Gizleme, başvuru, davet, red, süre dolması, eşleşme |
+| Ömrü | **Geçici** — temizlenir, yeniden hesaplanır | **Kalıcı** |
+| Neden ayrı | Skor tablosu temizlenince "bu adayı gizlemiştim" bilgisi **kaybolmasın** | |
 
-| Olay | Eşleştirme satırları | Aksiyon satırları | Sohbetler |
+> Bu ayrım sonradan yapılması zor bir iş — **baştan ayrı kurulmalı.**
+
+### 6.3 Aksiyonlar ve Keşfet'e etkisi
+
+| Ne oldu | Aday Keşfet'i | İşveren Adaylar'ı | Nereye taşınır |
+|---|:---:|:---:|---|
+| Aday **"Bu ilanı bir daha gösterme"** | ❌ | ✅ | Aday → Gizlediklerim |
+| İşveren **"Bu adayı bir daha gösterme"** | ✅ | ❌ | İlan → Gizlenenler |
+| Aday **başvurdu** | ❌ | ❌ | Aday → Başvurularım · İşveren → Başvuranlar |
+| İşveren **davet etti** | ❌ | ❌ | İşveren → Davet Edilenler · Aday → Davetler |
+| İki taraf **onayladı** | ❌ | ❌ | **Süreçteki İlanlar / Süreçteki Adaylar** |
+| **Reddedildi** | ❌ | ❌ | Kapandı — listelerde "Reddedilen" filtresi |
+| **Süresi doldu** | ❌ | ❌ | Kapandı — listelerde "Süresi dolan" filtresi |
+
+**Kurallar:**
+
+| Kural | Neden |
+|---|---|
+| **"Bir daha gösterme" onay ister, geri alınabilir** | Onay diyaloğu → kart animasyonla kaybolur; **Gizlediklerim / Gizlenenler**'den [Geri al] |
+| **Gizleme tek yönlü** | Aday ilanı gizlediyse işveren hâlâ görüp davet edebilir — aday fikrini değiştirebilir |
+| **Başvuru ve davet iki tarafın Keşfet'inden kaldırır** | Süreç başladı — kart artık ilgili sekmede |
+| **Red ve süre dolması iki tarafı bağlar** | Konu kapandı, tekrar karşılaşılmaz |
+| **İlan bazlı** | "Backend" ilanında gizlenen aday, aynı şirketin "Frontend" ilanında görünür |
+| **Taşınır, kopyalanmaz** | Kabul edilen kişi Başvuranlar'dan çıkıp Süreçteki Adaylar'a geçer |
+
+### 6.4 Cevapsız başvuru ve davet
+
+| | Süre | Süre dolunca |
+|---|:---:|---|
+| **Başvuru** — işverenin cevabı | **30 gün** | "Süresi doldu" — iki tarafın Keşfet'ine bir daha düşmez |
+| **Davet** — adayın cevabı | **10 gün** | "Süresi doldu" — iki tarafın Keşfet'ine bir daha düşmez |
+
+> **Neden tekrar Keşfet'e dönmüyor:** Cevap vermeyen tarafa tekrar tekrar davet / başvuru gitmesi spam'e dönüşür. Süre kontrolü bakım işlerinde (`bakim-isleri.md`).
+
+### 6.5 Silme kuralları
+
+| Olay | Sonuç satırları | Aksiyonlar | Sohbetler |
 |---|:---:|:---:|:---:|
-| İlan kapandı / doldu / süresi doldu | **Silinir** | Kalır | Devam eder |
-| Aday "bakmıyorum" dedi | **Silinir** | Kalır | Devam eder |
-| 14 günden eski hesap | **Silinir** | Kalır | — |
-| Aday hesabını sildi | Silinir | **Silinir** (KVKK/GDPR) | Anonimleşir |
+| İlan kapandı / doldu / süresi doldu | Silinir | Kalır | **Devam eder** |
+| Aday "şu an bakmıyorum" | Silinir | Kalır | **Devam eder** |
+| 14 günden eski hesap | Silinir | Kalır | — |
+| Aday telefonu değiştirdi, doğrulamadı | **Silinmez** — profil yayından çıktığı için görünmez | Kalır | Devam eder |
+| Aday hesabını sildi | Silinir | Silinir (KVKK/GDPR) | Anonimleşir |
 
-> **Sohbetler neden devam eder:** Aday ile işveren konuşurken ilan kapanırsa konuşma yarıda kalmasın. Belki başka pozisyon için konuşuyorlar.
+> **Sohbetler neden devam eder:** Konuşma ilan kapandı diye yarıda kalmasın.
 
-### İlan yeniden yayınlandığında
+### 6.6 Bölümleme — şimdi değil
 
-```
-durum: suresi_doldu → yayinda
-ilan_id AYNI kalır
-```
+**Karar:** Gerektiğinde `PARTITION BY HASH (ilan_id)`, 16 bölüm (büyüdükçe 64).
 
-| Konu | Davranış |
+| Alternatif | Neden olmadı |
 |---|---|
-| Embedding | **Yeniden üretilmez** — metin aynıysa hash aynı |
-| Eşleştirme satırları | Kapanınca silinmişti → **yeniden hesaplanır** |
-| Aksiyon geçmişi | **Korunur** — geçilen, reddedilen bir daha görünmez |
-| Önceki bekleyen başvurular | İşverene sorulur: *"12 bekleyen başvurunuz vardı. Geri getirilsin mi?"* |
+| Ülke bazlı | **Uzaktan çalışma bozuyor** — ABD'deki aday Türkiye'deki uzaktan ilanla eşleşiyor; satır hangi bölüme? |
+| İlan durumu | Durum değişince satır fiziksel taşınır — ağır iş |
+| Tarih | Yazma tek bölüme yığılır |
 
-> **Neden aynı `ilan_id`:** Yeni kayıt açılsaydı geçmiş kaybolurdu — aynı aday aynı ilanı tekrar görür, reddedilen tekrar başvurur.
-
-> **Meslek alanı değişirse:** "Yeni ilan olarak aç" yönlendirmesi. Yoksa eski geçmiş farklı bir pozisyona yanlış uygulanır.
-
-### Bölümlendirme
-
-**Karar:** `PARTITION BY HASH (ilan_id)`, **16 bölüm**
-
-```sql
-CREATE TABLE ilan_aday_eslestirme (...) PARTITION BY HASH (ilan_id);
-
-CREATE TABLE ilan_aday_eslestirme_p00 PARTITION OF ilan_aday_eslestirme
-  FOR VALUES WITH (MODULUS 16, REMAINDER 0);
--- ... p15'e kadar
-```
-
-**Bölüm sayısı sabit.** Yeni ilan yeni bölüm yaratmaz — `hash(ilan_id) % 16` ile mevcut 16 bölümden birine düşer. Bakım gerektirmez.
-
-**Değerlendirilen ve reddedilen alternatifler:**
-
-| Seçenek | Neden olmadı |
-|---|---|
-| **Ülke bazlı (LIST)** | **Uzaktan çalışma bozuyor.** ABD'deki aday, Türkiye'deki uzaktan ilanla eşleşiyor — satır hangi bölüme gidecek? Ülke bölümüne konursa diğer taraf göremez. |
-| **İlan durumu** | **Durum değişince satır fiziksel olarak taşınır** — ağır iş. Üstelik o satırlar zaten silinecekti. Ayrıca durum eşleştirme tablosunda değil, kopyalanması gerekir → tutarlılık riski. |
-| **Tarih (RANGE)** | Temizlik için ideal (`DROP PARTITION`) ama yazma tek bölüme yığılıyor. |
-| **İki tablo, veriyi çoğaltma** | Çok yüksek ölçekte profesyonel çözüm (her yön kendi okuma desenine optimize). Ama tutarlılık riski var; şimdilik gereksiz. |
-
-> **Genel kural:** Bölüm anahtarı **değişmeyen** bir şey olmalı. `ilan_id` hiç değişmez. Durum gibi değişken alanlar **indeksle** yönetilir.
-
-**Okuma davranışı:**
-- İşveren sorgusu (`ilan_id = ?`) → **tek bölüme** gider
-- Aday sorgusu (`aday_id = ?`) → 16 bölümü tarar; indeksli olduğu için hızlı
-
-> 🚫 **Şimdi yapılmayacak.** Profesyonel sıralama: önce indeksler → sonra tablo ayırma (yapıldı) → sonra veri ömrü kısaltma (yapıldı) → **en son bölümlendirme**. Genelde ~100 milyon satırda gerekli hale gelir.
->
-> **Şimdi yapılacak olan:** Şemayı uygun kurmak — `PRIMARY KEY (ilan_id, aday_id)` (bölüm anahtarı PK'nın parçası olmalı) ve aksiyon tablosu ayrı.
-
-**Bölümlendirmenin gizli maliyetleri** *(ekip bilmeli):*
-- Her sorgu daha yavaş planlanıyor
-- Bölüm anahtarı PK'nın parçası olmak zorunda
-- Yabancı anahtar referansları sınırlı
-- Bölüm sayısını değiştirmek = veri taşıma
+> 🚫 **Şimdi yapılmayacak.** Önce indeksler → tablo ayrımı (yapıldı) → veri ömrü (yapıldı) → **en son bölümleme**, ~100 milyon satırda. Bugün sadece şemayı uygun kur: `PRIMARY KEY (ilan_id, aday_id)`.
 
 ---
 
-## 6. Tetikleyiciler ve Periyodik İşler
+## 7. Hesaplama — Ne Zaman, Nasıl
 
-### Karma hesaplama modeli
+### 7.1 Karma hesaplama
 
-> **Sorun:** İş bulan, aylarca girmeyen binlerce kullanıcı için her yeni ilanda hesap yapıp tablo dolduruyorduk. Kimse bakmıyordu — saf israf.
->
-> **Ama tamamen "açınca hesapla" da olmaz:** "Yeni ilan gelince haber ver" özelliği, kullanıcı uygulamayı açmadan eşleşme olduğunu bilmeyi gerektiriyor.
-
-**Çözüm — aktif önceden, pasif açınca:**
+> **Sorun:** İş bulmuş, aylarca girmeyecek kullanıcılar için her yeni ilanda hesap yapmak saf israf.
+> **Ama tamamen "açınca hesapla" da olmaz:** Aktif kullanıcıya anında liste ve "yeni ilan geldi" bildirimi için önceden hesap gerekiyor.
 
 ```
-Vektör                      → her zaman hazır (metin değişince güncellenir)
+Son 14 günde giriş yapmış  → ÖNCEDEN hesaplanır
+                             Keşfet açılınca liste anında hazır
 
-Eşleşme tablosu:
-  Son 14 günde giriş yapmış → ÖNCEDEN hesaplanır (liste anında hazır)
-  14 günden uzun girmemiş   → hesaplanmaz
-                              Keşfet açınca ANLIK hesaplanır (~200 ms)
+14 günden uzun girmemiş    → HİÇ hesaplanmaz
+                             Keşfet'i açarsa O AN hesaplanır (~200 ms, "hazırlanıyor")
+
+"Şu an bakmıyorum"         → Hiç — profil kimseye görünmüyor
 ```
 
-**Neden 14 gün:** Aktif iş arayan birkaç günde bir giriyor. Onlara anında dolu liste sunmak deneyimin kalbi. Pasifler için 200 ms beklemek sorun değil — zaten haftalardır gelmemişler.
-
-**Yük farkı:**
-
-```
-Eski: 500.000 aday × her yeni ilan       → hepsi hesaplanıyor
-Yeni: ~75.000 aktif aday × her yeni ilan → %85 azalma
-      + pasifler sadece girdiklerinde
-```
-
-### Anlık tetikleyiciler — asenkron
-
-**Kullanıcı hiç bekletilmez.** İş kuyruğa girer, arka planda çalışır.
-
-| Olay | Ne hesaplanır |
+| | Hesap |
 |---|---|
-| İlan yayınlandı / güncellendi / yeniden yayınlandı | O ilan × **aktif** uygun adaylar |
-| Aday profili kaydedildi / güncellendi | O aday × uygun ilanlar |
-| Pasif kullanıcı Keşfet'i açtı | Anlık hesap |
-| Önbellek 24 saatten eski + Keşfet açıldı | Yeniden hesap |
+| Aktif aday / işveren | Önceden |
+| 14-90 gün girmemiş | Sadece açarsa |
+| 90+ gün → otomatik "şu an bakmıyorum" | Hiç |
 
-**Her tetiklemede iki skor birden yazılır.** Hangi taraf tetiklerse diğerinin listesine de girer.
+```
+Hepsini önceden:   500.000 aday × her yeni ilan
+Karma:             ~75.000 aktif aday × her yeni ilan  → ~%85 daha az hesap
+```
 
-### Durum kolonları
+**Aynı kural işverende:** 14 gündür girmeyen işverenin ilanları için önceden hesap yapılmaz; ilanı açınca hesaplanır.
+
+**Önbellek tazeliği:** Liste 24 saatten eskiyse Keşfet açılınca yeniden hesaplanır.
+
+### 7.2 Durum kolonları
 
 ```sql
-ilanlar.eslestirme_durumu          -- beklemede | hesaplaniyor | hazir | hata
-ilanlar.son_eslestirme_tarihi
-
-aday_profilleri.eslestirme_durumu
-aday_profilleri.son_eslestirme_tarihi
+ilanlar.eslestirme_durumu, ilanlar.son_eslestirme_tarihi
+aday_profilleri.eslestirme_durumu, aday_profilleri.son_eslestirme_tarihi
+-- beklemede | hesaplaniyor | hazir | hata
 ```
-
-**Keşfet açıldığında:**
 
 | Durum | Ekran |
 |---|---|
-| `hazir` + 24 saatten taze | Tablodan oku, kartları göster |
-| `hesaplaniyor` | *"Hazırlanıyor..."* — bitince otomatik dolar |
-| Eski veya hiç yok | Hesapla, sonra göster |
-| `hata` | Tekrar dene |
+| `hazir` + 24 saatten taze | Tablodan oku |
+| `hesaplaniyor` | *"Hazırlanıyor..."* — bitince dolar |
+| Eski veya yok | Hesapla, sonra göster |
+| `hata` | Tekrar denenir |
 
-> **Neden bu kolonlar zorunlu:** Olmazsa "sonuç yok" ile "henüz hesaplanmadı" ayırt edilemez. Aday boş ekran görür ve neden olduğunu kimse bilmez.
+> **Neden zorunlu:** Olmazsa "sonuç yok" ile "henüz hesaplanmadı" ayırt edilemez — kullanıcı boş ekran görür, nedenini kimse bilmez.
 
-**Süre beklentisi:** Embedding API çağrısı 1-2 saniye, eşleştirme hesabı milisaniyeler. Kullanıcı "hazırlanıyor" ekranını çoğu zaman hiç görmez.
+### 7.3 Aday profili yayınlanınca
 
-### Periyodik bakım işleri — `pg_cron`
+```
+1. ANINDA (kullanıcı bekler — milisaniyeler)
+   ├─ Profil alanları kaydedilir
+   ├─ Kontrol: zorunlu adımlar tamam mı? telefon doğrulanmış mı?
+   ├─ Profil → "yayında"
+   ├─ 7 metnin hash'i değişti mi?
+   └─ Değiştiyse: kuyruğa "aday #42 → embedding"   (aynı işlemde)
+        ↓
+   Kullanıcı: "Profilin yayında. Sana uygun ilanlar hazırlanıyor..."
 
-> **Önemli:** Bunlar eşleştirme için değil. Eşleştirme anlık, tetikleyicilerle. Periyodik işler sadece **bakım ve güvenlik ağı**.
+2. EMBEDDING İŞÇİSİ (1-2 sn)
+   ├─ 7 metni birleştirir → embedding API → embeddings tablosu
+   └─ Kuyruğa: "aday #42 → eşleştir"
 
-| İş | Sıklık | Ne yapıyor |
+3. EŞLEŞTİRME İŞÇİSİ (milisaniyeler)
+   ├─ Katı filtre → vektör (200) → skor (iki yön)
+   ├─ ilan_aday_eslestirme tablosuna yazar
+   ├─ Profil eşleştirme durumu → "hazır"
+   └─ İlk 50'ye giren yeni ilanlar → bildirim notu
+```
+
+### 7.4 İlan kaydedilip yayınlanınca
+
+```
+1. İşveren [Kaydet]
+   ├─ İlan alanları kaydedilir (taslak)
+   └─ 5 kutunun hash'i değişti mi?
+        Evet → LLM ayrıştırır (1-3 sn) → etiketler kaydedilir
+               "Algılanan" satırı görünür — onay yok
+        Hata → ilan yine kaydedilir, kuyruğa "ilan #5 → ayrıştır"
+
+2. İşveren [Yayınla]
+   ├─ Kontrol: şirket tanıtımı dolu mu? yayınlayanın telefonu doğrulanmış mı?
+   ├─ İlan → "yayında"
+   └─ Kuyruğa: "ilan #5 → embedding"
+        ↓
+   İşveren: "İlanınız yayında. Uygun adaylar hazırlanıyor..."
+
+3. EMBEDDING İŞÇİSİ → EŞLEŞTİRME İŞÇİSİ
+   İlan #5 × aktif uygun adaylar
+```
+
+**Eşleştirme işçisi `varlik_tipi`ne göre iki yönde çalışır:**
+
+| Kuyruktaki iş | Hesaplanan |
+|---|---|
+| `aday, 42` | Aday 42 × uygun ilanlar |
+| `ilan, 5` | İlan 5 × uygun **aktif** adaylar |
+
+İki durumda da satırlar **aynı tabloya, iki skorla** yazılır.
+
+### 7.5 Ne değişince ne tetiklenir
+
+| Ne değişti | Örnek | Embedding | Eşleştirme |
+|---|---|:---:|:---:|
+| **Metin** | Tanıtım, deneyim, iş tanımı, yetenek / bölüm / sertifika kutuları | ✅ | ✅ *(embedding bitince)* |
+| **Sadece katı filtre alanı** | Konum, çalışma şekli/tipi, iş dili, eğitim şartı, diğer şartlar | ❌ Atlanır | ✅ Doğrudan |
+| **Sadece skor alanı** | Tecrübe aralığı, maaş | ❌ Atlanır | ✅ Doğrudan |
+| **Sadece gösterim alanı** | Başlama zamanı, serbest şartlar, fotoğraf | ❌ | ❌ |
+
+> İlan kutuları değişince ayrıca **LLM yeniden ayrıştırır** — işverenin `isveren_duzeltti` etiketleri korunur.
+
+### 7.6 Yayındaki ilan düzenlenirse
+
+| Alan | Taslakken | Yayından sonra |
+|---|:---:|:---:|
+| **Meslek alanı** | ✅ | 🔒 **Değişmez** |
+| **Unvan** | ✅ | 🔒 **Değişmez** |
+| Diğer alanlar | ✅ | ✅ — Bölüm 7.5'e göre tetikler |
+
+> *"Meslek alanı ve unvan yayından sonra değiştirilemez. Farklı bir pozisyon için yeni ilan açın."*
+
+**Neden kilitli:** İkisi pozisyonun kimliği. Muhasebe ilanını yazılım ilanına, "Backend Developer"ı "Satış Temsilcisi"ne çevirmek; eski başvuranların, gizlenenlerin, davetlerin geçmişini alakasız bir pozisyona taşır. Yan faydası: embedding'in ilk satırı sabit kalır.
+
+**Önceden olanlar korunur:** Yeni şartlara artık uymayan bir aday zaten başvurmuşsa başvurusu geçerli kalır — sadece Keşfet'teki yeni adaylar değişir.
+
+### 7.7 Aday telefonu değişirse
+
+```
+Numara değişti → doğrulama kalkar → profil yayından çıkar
+        ↓
+Hemen doğrularsa                    Doğrulamazsa
+→ profil yayına döner               → işverenlerin listesinde görünmez (Filtre 1)
+→ skorlar hazır, anında geri gelir  → skorlar SİLİNMEZ, bekler
+                                    → 14 gün sonra normal temizlikle silinir
+```
+
+Her durumda başvurular, davetler, süreçteki ilanlar ve sohbetler **devam eder.**
+
+---
+
+## 8. Kuyruk ve İşçiler
+
+### 8.1 Kuyruk nedir
+
+**Bankadaki sıra numarası.** 100 kişi aynı anda gelse gişe hepsine aynı anda bakamaz — herkes numara alır, sırayla çağrılır. Kimse kapıda bekletilmez, kimse unutulmaz, görevli boğulmaz.
+
+```
+Bir şey olur          →   Kuyruğa iş yazılır       →   İşçi sırayla alır, yapar
+(ilan yayınlandı)         ("ilan #5'i eşleştir")       (hesaplar, sonucu yazar)
+```
+
+| Fayda | |
+|---|---|
+| **Kullanıcı beklemez** | Ağır iş arka planda; ekran anında cevap verir |
+| **Ani yük emilir** | 10.000 iş aynı anda gelse sıraya girer — sistem çökmez, biraz gecikir |
+| **Hiçbir iş kaybolmaz** | İşçi çökerse veya dış servis cevap vermezse iş kuyrukta kalır, tekrar denenir |
+| **Kolay büyür** | Yük artınca aynı kuyruktan çeken işçi sayısı artırılır |
+
+### 8.2 Supabase ile
+
+| Parça | İş |
+|---|---|
+| **Supabase Queues** (`pgmq`) | Kuyruğun kendisi — veritabanı içinde |
+| **Veritabanı tetikleyicisi** | Olay olunca kuyruğa iş yazar |
+| **Edge Function** | İşçi — kuyruktan alır, yapar |
+| **`pg_cron` + `pg_net`** | İşçileri düzenli aralıklarla uyandırır |
+
+### 8.3 Kuyruklar ve işçiler
+
+| # | İşçi | Kuyruk | Tetikleyen | Ne yapar |
+|:---:|---|---|---|---|
+| 1 | **Embedding** | `embedding` | Metin değişti | Metni vektöre çevirir → `embeddings` |
+| 2 | **Eşleştirme** | `eslestirme` | Embedding bitti · filtre/skor alanı değişti · [Daha fazla getir] · pasif kullanıcı Keşfet'i açtı | Filtre + vektör + skor → `ilan_aday_eslestirme` |
+| 3 | **Ayrıştırma** | `ayristirma` | LLM ilan kaydında hata verdi | LLM'i tekrar dener, etiketleri sessizce uygular |
+| 4 | **Bildirim** | `bildirim` | Olay oldu · günlük özet zamanı | Push (FCM) + e-posta |
+| 5 | **Raporlama ve denetim** | `pg_cron` | Zaman | Adalet denetimi, şirket adı eşleme, LLM kalite izleme, admin metrikleri |
+
+> **Bakım işleri** (süreler, temizlik, otomatik düşme, sayaçlar, silmeler) → `bakim-isleri.md`
+
+**"İki işçi" değil, "işçi türleri":** Her türden birden fazla kopya aynı kuyruktan iş çekebilir — kuyruk aynı işin iki işçiye gitmesini engeller.
+
+```
+Düşük trafik:   1 embedding  +  1 eşleştirme
+Yüksek trafik:  5 embedding  +  10 eşleştirme
+```
+
+**Neden ayrı türler:**
+
+| Durum | Ayrı oldukları için |
+|---|---|
+| Embedding servisi yavaşladı | Metni değişmeyen ilanların eşleştirmesi devam eder |
+| Binlerce profil aynı anda güncellendi | Sadece embedding işçisi artırılır |
+| Popüler ilan binlerce adayla eşleşiyor | Sadece eşleştirme işçisi artırılır |
+| Bildirim gönderimi takıldı | Eşleştirme etkilenmez |
+
+### 8.4 İşçi değil, anında yapılanlar
+
+| İş | Nasıl |
+|---|---|
+| LLM ayrıştırma (normal durum) | İlan kaydında, Edge Function |
+| SMS doğrulama | Twilio Verify, anında |
+| Sohbet | Supabase Realtime |
+| Dosya kontrolü + virüs taraması | Yüklemede Edge Function → ClamAV *(Altyapı dokümanı)* |
+| Toplu yeniden embedding (model değişimi) | Embedding kuyruğuna **düşük öncelikli** iş |
+
+### 8.5 Yüksek trafik için altı kural
+
+| # | Kural | Ne demek | Neden |
+|:---:|---|---|---|
+| 1 | **Veri ve iş aynı anda yazılır** | Profil kaydı ile "embedding üret" işi aynı veritabanı işleminde | "Profil yayında ama hiç eşleşmedi" durumu oluşamaz |
+| 2 | **Aynı iş bir kez yapılır** | İşin kimliği = *varlık + metin hash'i* | Aday 3 kez art arda kaydederse sadece son hali işlenir |
+| 3 | **Toplu embedding** | İşçi 50-100 metni tek API çağrısıyla gönderir | Çağrı sayısı ve maliyet düşer, sağlayıcı sınırına takılma azalır |
+| 4 | **Tekrar çalışsa sorun çıkmaz** | Sonuç "üstüne yaz" mantığıyla yazılır | İşçi tam bitirirken çökerse iş tekrar işlenir, sonuç bozulmaz |
+| 5 | **Öncelik sırası** | Yeni yayın > güncelleme > toplu yenileme | Yoğun anda yeni kullanıcı beklemez |
+| 6 | **Durum her zaman görünür** | `beklemede → hesaplanıyor → hazır / hata` | Kullanıcı boş ekran değil "hazırlanıyor" görür; hata izlenir |
+
+### 8.6 Kod yapısı — ağır iş SQL'de, işçi ince
+
+| Parça | Nerede | Dil |
 |---|---|---|
-| **Hata tekrarı** | 15 dakika | `eslestirme_durumu = 'hata'` olanları tekrar dener |
-| **Süre kontrolleri** | Saatlik | Süresi dolan ilanları kapatır; cevapsız davetleri ve başvuruları düşürür |
-| **Temizlik + sırayla tazeleme** | Günlük | 14 günden eski satırları siler; en bayat aktif ilanları tazeler |
-| **Hareketsiz profiller** | Haftalık | 30-45 gün girmemiş "aktif arıyorum" → "fırsatlara açığım" |
+| Kuyruğa iş yazma | Veritabanı tetikleyicisi | SQL |
+| Filtre + vektör + skor | Veritabanı fonksiyonları (`eslestir`) | SQL |
+| İşçiler | Edge Function | TypeScript |
+| Zamanlama | `pg_cron` | SQL |
+
+```typescript
+// Eşleştirme işçisi — mantık bu kadar
+const isler = await db.rpc('pgmq_read', { kuyruk: 'eslestirme', adet: 20 })
+for (const is of isler) {
+  await db.rpc('eslestir', { tip: is.varlik_tipi, id: is.varlik_id })
+}
+await db.rpc('pgmq_delete', { kuyruk: 'eslestirme', isler })
+```
+
+| Neden ağır iş veritabanında | |
+|---|---|
+| **Veri orada** | Binlerce satır okunuyor — dışarı taşımak yavaş |
+| **Tek yer** | Kural değişince tek SQL fonksiyonu değişir; Flutter, Next.js, işçiler etkilenmez |
+| **Taşınabilir** | 1M+ ölçekte işçi ayrı sunucuya taşındığında aynı SQL fonksiyonlarını çağırmaya devam eder |
+
+> Edge Function'ların çalışma süresi sınırlı: büyük işler parçalanır — "50.000 adayı eşleştir" tek iş değil, 500'lük parçalar. Supabase'in güncel süre ve eşzamanlılık sınırları kurulumdan önce kontrol edilmeli.
+
+---
+
+## 9. Bildirim
+
+### 9.1 Firebase — sadece postacı
+
+| İş | Servis |
+|---|---|
+| Giriş, veritabanı, dosyalar, kuyruk, işçiler | **Supabase** |
+| Push bildirimi | **Sadece Firebase Cloud Messaging (FCM)** |
+
+FCM; Android, iOS (Apple'ın APNs'i üzerinden) ve web'i (Next.js) tek servisle kapsıyor, gönderim başına ücret yok. Firebase'de kullanıcı hesabı **yok** — Firebase kullanıcıyı değil, **cihazı** tanır.
+
+### 9.2 Kullanıcı ↔ cihaz eşleşmesi
+
+```
+1. Kullanıcı Supabase ile giriş yapar
+2. Uygulama FCM'den cihaz adresini (token) alır
+3. Adres Supabase'e kaydedilir → "Ayşe'nin telefonu = abc123"
+```
 
 ```sql
-SELECT cron.schedule('hata-tekrar',   '*/15 * * * *', $$ ... $$);
-SELECT cron.schedule('sure-kontrol',  '0 * * * *',    $$ ... $$);
-SELECT cron.schedule('gunluk-bakim',  '0 3 * * *',    $$ ... $$);
-SELECT cron.schedule('hareketsiz',    '0 4 * * 1',    $$ ... $$);
-```
-
-**Sırayla tazeleme neden gerekli:** Hesapta limit 200'dü. 201. aday hiç yazılmadı. Havuz değiştikçe o aday artık ilk 200'e girebilir.
-
-```sql
--- Her gün en bayat N aktif ilanı tazele
-SELECT id FROM ilanlar
-WHERE durum = 'yayinda'
-ORDER BY son_eslestirme_tarihi ASC NULLS FIRST
-LIMIT 10000;
-```
-
-> ⚠️ **Global ölçekte "gece" yok.** Dünyanın bir yerinde her zaman gündüz. Ağır işler UTC'de en düşük trafik saatinde ve **parça parça** çalışmalı — tek seferde bitmek zorunda değil.
-
-### Kartlar tükendiğinde
-
-**Aday tarafı:**
-
-```
-Şu an sana uygun tüm ilanları gördün.
-
-[Yeni ilan gelince haber ver]  ← varsayılan açık
-
-Profilini güçlendirirsen daha çok ilanla eşleşirsin:
-+ Yetenek ekle
-+ Deneyim ekle
-```
-
-**İşveren tarafı (simetrik):**
-
-```
-Bu ilana uygun tüm adayları gördün.
-
-[Yeni aday gelince haber ver]  ← varsayılan açık
-
-İlanını güçlendirirsen daha çok adayla eşleşirsin:
-+ Maaş aralığı ekle
-+ İş tanımını detaylandır
-```
-
-**Neden bu tasarım:**
-- **Hiç ek sorgu gerektirmiyor** — elinizdeki profil tamamlanma verisini gösteriyor
-- **Doğru şeye yönlendiriyor** — filtre gevşetmek yerine profili iyileştirmek
-
-> **Kart tükenmesi bir hata değil, doğal bir son.** Aday tüm uygun ilanları gördü demek. Sorun kartların bitmesi değil, havuzun küçük olması — çözümü arayüzde değil, daha çok işveren toplamakta.
-
-**Değerlendirilen ve ertelenen:**
-
-> ❌ **Filtre gevşetme önerisi** *("uzaktan da açarsan 12 ilan daha var")*
->
-> **Neden ertelendi:** Her filtreyi tek tek kaldırıp sorguyu yeniden çalıştırmak gerekir — 6 filtre = 6 ek sorgu, her boş ekranda. Ayrıca gevşetince gelen ilanların kalitesi düşük olabilir; aday heveslenip gevşetir, alakasız kartlar görür, güveni gider.
->
-> **İleride yapılırsa:** Sadece **konum** için, tek sorgu: *"Başka şehirleri de açarsan 34 ilan daha var."* Diğer filtreler için uğraşılmaz.
-
-### Bildirim kuyruğu
-
-**Neden doğrudan göndermiyoruz:**
-1. Gün içinde 6 yeni ilan hesaplanırsa 6 bildirim gider → kullanıcı bildirimleri kapatır
-2. FCM çağrısı başarısız olursa bildirim kaybolur
-
-```sql
-CREATE TABLE bildirim_kuyrugu (
-  id            bigserial PRIMARY KEY,
-  kullanici_id  bigint NOT NULL,
-  tip           text NOT NULL,   -- yeni_ilan | yeni_aday | davet |
-                                 -- basvuru | eslesme | mesaj
-  veri          jsonb,
-  durum         text DEFAULT 'bekliyor',  -- bekliyor | gonderildi | hata
-  olusturma     timestamptz DEFAULT now(),
-  gonderim      timestamptz,
-  deneme_sayisi int DEFAULT 0
+CREATE TABLE cihaz_tokenlari (
+  kullanici_id uuid NOT NULL,
+  token        text NOT NULL,
+  platform     text NOT NULL,   -- android | ios | web
+  dil          text,
+  son_gorulme  timestamptz,
+  PRIMARY KEY (kullanici_id, token)
 );
-
-CREATE INDEX ON bildirim_kuyrugu (durum, tip, kullanici_id);
 ```
 
-**İki gönderim politikası:**
+| An | Ne yapılır |
+|---|---|
+| Giriş | Adres kaydedilir / güncellenir |
+| Adres yenilenir | Uygulama dinler, kaydı günceller |
+| **Çıkış** | Adres **silinir** — telefonu başkası kullanırsa eski kullanıcının bildirimleri gelmesin |
+| Uygulama silindi | FCM hata döner → kayıt silinir |
 
-| Tip | Politika | Neden |
+Kullanıcı sadece kendi adresini kaydedebilir (RLS). FCM anahtarı sadece Edge Function'da.
+
+### 9.3 Akış
+
+```
+Olay (başvuru geldi)
+  → tetikleyici iki şey yazar:
+     ├─ bildirimler tablosu  ← uygulama içi 🔔 (herkes için)
+     └─ bildirim kuyruğu     ← push işi (kurala uyanlar için)
+  → bildirim işçisi: kime? cihazları? dili? → FCM → telefon
+```
+
+### 9.4 Push ve uygulama içi
+
+| | Push 📱 | Uygulama içi 🔔 |
 |---|---|---|
-| Eşleşme, davet, başvuru, mesaj | **Anlık** (her dakika işlenir) | Kritik — gecikmemeli |
-| Yeni uygun ilan / aday | **Günlük özet** | Bildirim yorgunluğunu önler |
+| Ne zaman görünür | Uygulama kapalıyken | Uygulama açıkken |
+| Kayıt | Gönderilir, saklanmaz | Saklanır, okundu / okunmadı |
+| Kim alır | İzin veren + kuralına göre | Herkes — sayaç |
 
-**Günlük özet:**
+### 9.5 Kim neyi alır
 
-```sql
-SELECT kullanici_id, count(*)
-FROM bildirim_kuyrugu
-WHERE durum = 'bekliyor' AND tip = 'yeni_ilan'
-GROUP BY kullanici_id;
--- → "Sana uygun 4 yeni ilan var"
-```
+| Olay | Aday | İlanın sorumlusu | Sahip / yönetici |
+|---|---|---|---|
+| Başvuru geldi | — | 📱 🔔 | 🔔 |
+| Davet geldi | 📱 🔔 | — | — |
+| Başvuru / davet kabul · red | 📱 🔔 | 📱 🔔 | 🔔 |
+| Yeni mesaj | 📱 🔔 | 📱 🔔 | 🔔 |
+| İletişim bilgisi isteği | 📱 🔔 | — | — |
+| Günlük özet | 📱 | 📱 | — |
 
-**Kullanıcının saat dilimine göre sabah** gönderilir. Özet işi saatlik çalışır ve "şu an saat diliminde sabah 9 olan kullanıcılar" için gönderir.
+> **İşverende push sadece ilanın sorumlusuna:** Büyük şirkette yönetici günde yüzlerce bildirim alır, kapatır, önemliyi kaçırır. Sayaç ile haberdar, ama rahatsız edilmiyor.
 
-**Sadece "haber ver" açık ve aktif kullanıcılar için hesaplanır.** Bu grup tüm adayların küçük bir kısmı — karma modelle uyumlu.
+### 9.6 Yeni ilan / aday — günlük özet
 
----
+| | Aday | İşveren |
+|---|---|---|
+| Mesaj | *"Sana uygun 4 yeni ilan var"* | *"Backend Developer ilanına uygun 6 yeni aday var"* |
+| "Uygun" ne demek | Yeni ilan adayın listesinde **ilk 50'ye** girdi | Yeni aday ilanın listesinde **ilk 50'ye** girdi |
+| Kime | "Haber ver" açık + **aktif** aday | İlanın **sorumlusu** |
+| Sıklık | **Günde en fazla bir**, kullanıcının saat diliminde sabah | Aynı |
+| Varsayılan | Açık, kapatılabilir | Açık, kapatılabilir |
 
-## 7. İlan Durumu
+**Neden ilk 50:** Filtreden geçen her yeni ilan sayılsa geniş profilli adaya *"87 yeni ilan"* gider — anlamsız. **Pasif kullanıcılar** önceden hesaplanmadığı için özet almaz — 14 gündür girmeyene her gün bildirim, uygulamayı silmeye iter.
 
-```sql
-ilanlar.durum  -- taslak | yayinda | duraklatildi |
-               -- dolduruldu | kapatildi | suresi_doldu
-```
+**Maliyet:** Neredeyse sıfır — eşleştirme zaten yapılıyor, sadece "ilk 50'ye girdi mi" kontrolü ve günlük toplama.
 
-| Durum | Anlamı | Eşleştirmede |
-|---|---|:---:|
-| `taslak` | Henüz yayınlanmamış | ❌ |
-| `yayinda` | Aktif | ✅ |
-| `duraklatildi` | İşveren geçici durdurdu | ❌ |
-| `dolduruldu` | Pozisyon doldu | ❌ |
-| `kapatildi` | İşveren vazgeçti | ❌ |
-| `suresi_doldu` | Yayın süresi bitti | ❌ |
+### 9.7 Anlık güncelleme — sadece sohbette
 
-> **"Dolduruldu" ile "kapatıldı" neden ayrı:** Dolduruldu **başarı göstergesi** — kuzey yıldızı metriğiniz (işe alım oranı) buradan besleniyor. Vazgeçme farklı bir sinyal: ilan kalitesi veya aday havuzu sorunu olabilir.
+| Ekran | Yöntem | Neden |
+|---|---|---|
+| **Açık sohbet** | **Supabase Realtime** | Mesaj saniyesinde gelmeli |
+| Sayaçlar, bildirim kutusu, ilan kartı sayıları | **60 sn'de bir yenileme** + aşağı çekip yenile; arka plandayken durur; tek istekte tüm sayılar | Bir dakika gecikme sorun değil |
+| Keşfet | Açılınca yükle | Anlık değişim gerekmiyor |
 
-> 💡 **Duraklat özelliği:** *"Çok başvuru geldi, biraz durdur."* Kapatmaktan farkı: tekrar açıldığında ilan sıfırdan kurulmaz. Kotayı ve aday akışını yönetmek için değerli.
-
-**Ek kolonlar:**
-
-```sql
-ilanlar (
-  ...
-  kapanma_tarihi    timestamptz,
-  kapanma_sebebi    text,
-  ilk_yayin_tarihi  timestamptz,
-  yayin_bitis       timestamptz,
-  yayin_sayisi      int DEFAULT 1
-)
-```
-
-`ilk_yayin_tarihi` adaya gösterilebilir — *"Bu ilan 4 aydır açık"* bilgisi aday için değerli bir sinyal.
-
-**Arayüz:**
-
-```
-Senior Backend Developer          ⏱ Süresi doldu
-12 başvuru · 3 eşleşme
-[Yeniden yayınla]  [Düzenle ve yayınla]  [Kapat]
-```
-
-Süre dolmadan 1 gün önceki hatırlatmada doğrudan **[Uzat]** butonu — uzatma, süre dolup yeniden yayınlamaktan daha temiz: hiçbir şey silinmez, kesinti olmaz.
+> Realtime bağlantı sayısı "o an ekranı açık olan" kadar. Sadece sohbette açık tutmak bağlantıları onda birine indiriyor.
 
 ---
 
-## 8. Ölçek Yol Haritası
+## 10. Keşfet ve Kartlar
+
+### 10.1 Liste görünümü
+
+Keşfet **liste** — kaydırıp geçme yok. Kart, kullanıcı aksiyon alana kadar listede kalır.
+
+```
+Aday:     [ Keşfet ] [ Başvurularım ] [ Davetler ] [ Süreçteki İlanlar ]
+İşveren:  (her ilanın içinde)
+          [ Adaylar ] [ Başvuranlar ] [ Davet Edilenler ] [ Süreçteki Adaylar ] [ Gizlenenler ]
+```
+
+Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dolan.**
+
+### 10.2 Aday Keşfet kartı
+
+```
+┌──────────────────────────────────────────────┐
+│ [İŞ İLANI]                     🟢 Yüksek uyum │
+│ Bilişim ve Yazılım                           │
+│ Senior Backend Developer                     │
+│ ABC Teknoloji  ✓ Doğrulanmış şirket          │
+│ 📍 Kadıköy, İstanbul                          │
+│ Hibrit · Tam zamanlı                         │
+│ 💰 80.000 – 110.000 TRY (net)                 │
+└──────────────────────────────────────────────┘
+```
+
+| Kartta | |
+|---|---|
+| İlan tipi | **İŞ İLANI** / **STAJ İLANI** — farklı renk rozet |
+| Meslek alanı, unvan | |
+| Şirket adı | + ✓ Doğrulanmış şirket |
+| Konum | İlanın konumu |
+| Çalışma şekli · tipi | Stajda tip yerine çalışma düzeni |
+| Maaş / ücret | **Sadece belirtilmişse** |
+| Uyum seviyesi | 🟢 / 🟡 / ⚪ |
+
+**Aksiyonlar:** [Başvur] · [Bir daha gösterme]
+
+### 10.3 İşveren "Adaylar" kartı
+
+```
+┌──────────────────────────────────────────────┐
+│ [Foto]  Ayşe Kaya          🟢 Yüksek uyum     │
+│         Bilişim ve Yazılım                   │
+│         Backend Geliştirici                  │
+│         🟢 Aktif arıyorum                     │
+│                                              │
+│ 📍 Kadıköy, İstanbul                          │
+│ 💼 4 yıl tecrübe                              │
+│ 🎓 Lisans · Bilgisayar Mühendisliği · Mezun   │
+│ ⏱ 1 ay içinde başlayabilir                    │
+│                                              │
+│ [Davet et]   [Bir daha gösterme]             │
+└──────────────────────────────────────────────┘
+```
+
+| Kartta | |
+|---|---|
+| Fotoğraf, ad soyad | |
+| Meslek alanı, unvan | |
+| Uyum seviyesi | 🟢 / 🟡 / ⚪ |
+| Arama durumu | 🟢 Aktif arıyorum / 🟡 Fırsatlara açığım |
+| Konum | Yaşadığı konum |
+| Toplam tecrübe | Otomatik hesaplanan yıl |
+| En yüksek eğitim | Seviye · bölüm · mezun / devam ediyor |
+| Başlama zamanı | |
+
+**Kartta bilerek olmayanlar:** Cinsiyet ve askerlik (**sadece detayda** — kartta hızlı eleme sebebi olmasın), doğum tarihi, telefon, e-posta, belgeler.
+
+**Karta tıklayınca:** Adayın tüm profili + "Neden önerildi?" — telefon, e-posta, doğum tarihi ve belgeler kendi kurallarına göre gizli.
+
+### 10.4 İşveren ilan kartı
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Bilişim ve Yazılım                                🟢 Yayında     │
+│ Senior Backend Developer                                         │
+│ 👤 Mehmet Kaya · 📍 Kadıköy, İstanbul · ⏱ 12 gün kaldı             │
+│ 👁 340 görüntülenme                                               │
+│                                                                  │
+│   124        8           10                7              3      │
+│ [Adaylar] [Başvuranlar] [Davet Edilenler] [Süreçteki Adaylar] [Gizlenenler] │
+│                                                                  │
+│ [Uzat]  [Duraklat]  [Kapat]                                      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Kartta | |
+|---|---|
+| Meslek alanı, unvan | |
+| Durum | 🟢 Yayında · ⏸ Duraklatıldı · ⏱ Süresi doldu · ✓ Kapatıldı |
+| Açan kişi | Sahip / yönetici / uzman |
+| Konum, kalan gün | |
+| Görüntülenme | Tekil aday sayısı |
+| Sekme sayıları | Uygun · bekleyen başvuru · cevap bekleyen davet · süreçte · gizlenen *(kabul/red dökümü yok)* |
+
+| Buton | |
+|---|---|
+| **[Uzat]** | 15 / 30 / 60 gün — kesintisiz en fazla 180 |
+| **[Duraklat]** → **[Devam ettir]** | Geçici gizleme, yeni başvuru gelmez |
+| **[Kapat]** | *Pozisyon doldu* / *Alımdan vazgeçtik* |
+| **[Tekrar yayınla]** | Süresi dolmuş / kapatılmış ilan — aynı ilan, geçmiş korunur |
+
+**Kapatınca:** Bekleyen başvuru ve davetler kapanır (adaya bildirim), süreçteki adaylarla sohbet **devam eder.**
+
+> Sayaçların nasıl tutulduğu → `isveren-paneli-v2.md`
+
+### 10.5 "Neden önerildi?" — detayda
+
+Kartta **sadece uyum seviyesi.** Karta tıklayınca:
+
+```
+Neden önerildi?
+✅ Profilin bu ilanla çok uyumlu
+✅ React ✓  PostgreSQL ✓
+⚠️ .NET sende yok
+⚠️ Tecrübe istenenin biraz altında (3 yıl, istenen 5)
+✅ Maaş belirtilmiş
+```
+
+| | |
+|---|---|
+| Kaynak | Saklanan **alt skorlar** + etiket karşılaştırması |
+| Üretim | Hazır şablonlar, her dile çevrilmiş — **LLM yok** |
+| Maliyet | Neredeyse sıfır — sadece açılan kart için, milisaniyeler |
+
+**Neden kartta değil detayda:** Kart sade kalır; "eksik / altında" uyarıları ilk bakışta caydırmasın — aday iyi bir ilana hiç tıklamamazlık etmesin.
+
+### 10.6 Gizlediklerim / Gizlenenler
+
+| | Aday — Gizlediklerim | İşveren — Gizlenenler |
+|---|---|---|
+| Nerede | Profilde liste | **Her ilanın kendi sekmesi** |
+| İçerik | Sadece **hâlâ yayında** olan ilanlar | O ilanda gizlenen adaylar |
+| [Geri al] | İlan tekrar Keşfet'e düşer *(filtreye uyuyorsa)* | Aday tekrar Adaylar'a düşer |
+| İlan kapanırsa | Listeden düşer; tekrar yayınlanırsa gizli olarak geri gelir | Gizleme kaydı korunur |
+
+### 10.7 Kartlar tükendiğinde
+
+[Daha fazla getir] yeni sonuç döndürmediyse:
+
+```
+Aday:                                       İşveren (ilan bazlı):
+Şu an sana uygun tüm ilanları gördün.       Bu ilana uygun tüm adayları gördün.
+🔔 Yeni ilan gelince haber ver [Açık]       🔔 Yeni aday gelince haber ver [Açık]
+[Profilini güçlendir]                       [İlanını güçlendir]
+```
+
+> **Kart tükenmesi hata değil** — kullanıcı tüm uygun ilanları/adayları gördü demek. Çözümü arayüzde değil, havuzu büyütmekte.
+
+**Değerlendirilip ertelenen:** *"Uzaktan da açarsan 12 ilan daha var"* gibi filtre gevşetme önerisi — her filtre için ayrı sorgu gerektirir ve gevşetince gelen sonuçlar düşük kaliteli olup güveni zedeleyebilir. İleride sadece konum için düşünülebilir.
+
+---
+
+## 11. Ölçek Planı
+
+### 11.1 Yol haritası
 
 | Kullanıcı | Yapılacak | Neden |
 |---|---|---|
-| **0 – 100K** | Tek tablo, bölümsüz. İyi indeksler. `pg_cron` | Gereksiz karmaşıklık yok |
-| **100K – 1M** | Hash bölümlendirme (16). `EXPLAIN ANALYZE` ile ayar | Satır sayısı 100M'a yaklaşıyor |
-| **1M+** | `pgmq` veya harici kuyruk. İşçi havuzu. Kendi embedding servisi | `pg_cron` ölçeklenmez; API maliyeti yüksek |
-| **Çok yüksek** | İki yön ayrı tablo (veri çoğaltma). Bölgesel veritabanları | Okuma desenine göre optimizasyon; veri yerleşimi yasaları |
+| **0 – 100K** | Tek veritabanı, Supabase Queues + Edge Function işçileri, iyi indeksler | Gereksiz karmaşıklık yok |
+| **100K – 1M** | Sonuç tablosu bölümleme (hash 16), okuma kopyaları, işçi sayısını artırma | Satır sayısı 100M'a yaklaşıyor; okuma–yazma yarışı |
+| **1M+** | İşçiler ayrı sunuculara, ayrı vektör veritabanı, kendi embedding servisi, önbellek | Edge Function sınırları; API maliyeti |
+| **Çok yüksek / çok ülke** | Bölgesel veritabanları | Veri yerleşimi yasaları |
 
-> **Profesyonel ilke:** Tahmin üzerine mimari kurmayın. Her aşamada gerçek veriyle darboğazı görüp o zaman çözün. Tek kişilik bir projede en pahalı hata, hiç kullanıcıya ulaşmadan ölçek altyapısı kurmaktır.
+### 11.2 1M+ hedef mimari
 
-**Ama şemayı baştan doğru kurun** — bunlar sonradan pahalı:
+```
+ Flutter / Next.js
+        │
+        ▼
+ ┌────────────────────────────┐
+ │ API (Supabase)             │  Auth · RLS · Edge Functions
+ └─────────────┬──────────────┘
+               │ olay yazar
+               ▼
+ ┌────────────────────────────┐
+ │ KUYRUK                     │
+ └──┬──────────┬──────────┬───┘
+    ▼          ▼          ▼
+ Embedding  Eşleştirme  Bildirim     ← ayrı sunucularda, yük kadar kopya
+    │          │          │
+    ▼          ▼          ▼
+ Vektör DB  Ana Postgres  FCM
+               │
+               ▼
+ Okuma kopyaları + önbellek  ← Keşfet buradan okur
+```
 
-| Şimdi yapılacak | Neden |
+| Parça | Bugün | 1M+ |
+|---|---|---|
+| Kuyruk | Supabase Queues | Supabase Queues veya harici kuyruk |
+| İşçiler | Edge Function | Ayrı sunucular |
+| Vektör arama | `pgvector`, aynı veritabanı | **Ayrı vektör veritabanı** — filtre bilgisi vektörle birlikte; arama ve filtre tek adımda (Bölüm 4.4'teki çekişme kalkar) |
+| Sonuç tablosu | Tek tablo | Bölümlenmiş (16 → 64) |
+| Keşfet okuması | Ana veritabanı | Okuma kopyaları + önbellek |
+| Embedding | Harici API | Kendi modelimiz (GPU, toplu) |
+| Sohbet | Supabase Realtime | Ayrı gerçek zamanlı servis |
+
+### 11.3 Bölgeler ve uzaktan ilanlar
+
+Yasalar veriyi bölge içinde tutmayı isteyebilir (AB, Türkiye…). Sorun: **uzaktan ilanlar bölge sınırını aşıyor.**
+
+| Veri | Nerede |
 |---|---|
-| `PRIMARY KEY (ilan_id, aday_id)` | Bölümlendirmeye hazır |
-| Aksiyon tablosu ayrı | Sonradan ayırmak zor |
-| `model_adi`, `boyut` kolonları | Model değişimi |
-| `ulke_kodu` kolonları | Filtre ve istatistik |
-| Parametre tablosu | Ayarlama |
-| `alt_skorlar` | Düzenleyici uyum |
+| **Aday verisi** (kişisel) | Kendi bölgesinde kalır |
+| **İlan verisi** (kişisel veri yok) | **Tüm bölgelere kopyalanır** — her bölge global ilan havuzuna kendi içinden bakar |
+| Eşleşme olunca | Sadece gereken bilgi karşı tarafa açılır |
+
+İlan sayısı aday sayısından çok az — kopyalamak ucuz.
+
+### 11.4 Bugünden hazırlanması gerekenler
+
+Bunlar şimdi yapılırsa 1M+ geçişi **yeniden yazmak değil, büyütmek** olur:
+
+| Hazırlık | Neden |
+|---|---|
+| **Her arka plan işi "olay" olarak kuyruğa** | Bugün Edge Function okur, yarın ayrı sunucu — kod değişmez |
+| **`embed()`, `ayristir()`, `eslestir()` tek fonksiyon arkasında** | Sağlayıcı / yer değişince tek yerde |
+| **Tüm kayıtlarda `ulke_kodu`** | Bölgelere ayırırken verinin nereye gideceği belli |
+| **Kişisel veri ile ilan verisi ayrı tablolarda** | Bölgesel ayrımda ilanları kopyalamak kolay |
+| **Sonuç tablosu anahtarı `(ilan_id, aday_id)`** | Bölümleme tablo taşımadan yapılır |
+| **İş kimliği + "üstüne yaz"** | Kuyrukta tekrar denemeler güvenli |
+| **Ölçüm baştan** — hesap süresi, kuyruk uzunluğu, hata oranı | Darboğaz tahminle değil veriyle görülür |
+
+> **Profesyonel ilke:** Kullanıcı gelmeden büyük ölçek altyapısı kurmak en pahalı hata. **Şemayı baştan doğru kur, altyapıyı ölçerek büyüt.**
 
 ---
 
-## 9. Açık Sorular — Ekip Tartışması İçin
+## 12. İlk Sürümden Önce — Doğrulama Testi
 
-| # | Soru | Öneri |
-|:---:|---|---|
-| 1 | Embedding sağlayıcısı: OpenAI mı Cohere mı? | 20-30 gerçek profille test edip karar verin |
-| 2 | Skor ağırlıkları doğru mu? | İlk tahmin. 20-30 gerçek eşleşmeye gözle bakıp ayarlayın |
-| 3 | Aktif/pasif eşiği 14 gün doğru mu? | Kullanıcı davranışı verisiyle ayarlanacak |
-| 4 | Önbellek tazeliği 24 saat yeterli mi? | Yoğun pazarlarda 12 saate inebilir |
-| 5 | Limit 200 doğru mu? | Kullanıcılar ortalama kaç kart kaydırıyor? 100'e inebilir |
-| 6 | Staj ilanında tecrübe bileşeni nasıl? | 0.5 nötr mü, ağırlık dağıtımı mı? |
-| 7 | Alt skorlar kartta gösterilsin mi? | Ürün kararı — açıklanabilirlik vs kart sadeliği |
-| 8 | Geri alma butonu ("son geçtiğimi geri getir")? | Tek adımlık geri alma önerilir |
-| 9 | Geçme kalıcı mı? | Önerilen: kalıcı; ilan ciddi güncellenirse yeniden gösterilebilir |
-| 10 | Yumuşak eşik ("düşük uyum" etiketi) kullanılsın mı? | İlk sürümde hayır, veriye bakıp karar |
-
----
-
-## 10. İlk Sürümden Önce Mutlaka Yapılacak Doğrulama
-
-> ⚠️ **Bu adım atlanırsa sonraki 3 ay boşa gidebilir.**
+> ⚠️ **Bu adım atlanırsa sonraki aylar boşa gidebilir.**
 
 **Arayüz yazmadan önce:**
 
-1. 20-30 gerçek aday profili ve 5-10 gerçek ilan **elle** Supabase'e girin
+1. 20-30 gerçek aday profili ve 5-10 gerçek ilan **elle** veritabanına girin
 2. Eşleştirme fonksiyonunu çalıştırın
-3. Sonuçları gerçek kişilere gösterin — ekran görüntüsüyle:
+3. Sonuçları gerçek kişilere gösterin:
    - Adaya: *"Bu ilanlar senin için uygun mu?"*
    - İşverene: *"Bu adaylar ilanına uygun mu?"*
-4. Cevap zayıfsa: ağırlıkları, formülleri, embedding modelini değiştirin
+4. Aynı test setiyle **embedding sağlayıcılarını** ve **LLM ayrıştırma doğruluğunu** karşılaştırın
+5. Cevap zayıfsa: ağırlıkları, formülleri, modeli değiştirin
 
-**Neden bu kadar önemli:** Eşleştirme kalitesi ürünün tamamını belirliyor. Arayüzü yazdıktan sonra "eşleştirme kötü çalışıyor" anlaşılırsa, üstüne kurulan her şey sorgulanır. Bu test yarım günlük iş, kazandırdığı süre aylar.
+**Neden:** Eşleştirme kalitesi ürünün tamamını belirliyor. Arayüz yazıldıktan sonra "eşleştirme kötü" anlaşılırsa üstüne kurulan her şey sorgulanır. Bu test birkaç günlük iş, kazandırdığı süre aylar.
 
 ---
 
-## 11. Sırada
+## 13. Açık Kalanlar — Veriyle Ayarlanacaklar
 
-| Bölüm | Durum |
-|---|---|
-| Giriş / kayıt | ✅ |
-| Şirket doğrulama | ✅ |
-| Şirket profili | ✅ |
-| İlan oluşturma | ✅ |
-| Aday profili | ✅ |
-| **Eşleştirme motoru** | ✅ |
-| **Keşfet, başvuru, davet, eşleşme, sohbet** | ⏭️ Sırada |
-| Bildirimler (detay) | Bekliyor |
-| Admin paneli | Bekliyor |
-| Veri koruma (KVKK / GDPR / diğer) | Bekliyor |
+Tasarım kararlarının hepsi verildi. Kalanlar **ilk gerçek veriyle** ayarlanacak sayılar:
 
-**Keşfet bölümünde konuşulacaklar:** 4 sekme yapısı (iki taraf simetrik), kart içerikleri, başvuru onay diyaloğu, davet akışı, eşleşme anı, sohbet, geri alma.
+| # | Konu | Başlangıç | Nasıl karar verilecek |
+|:---:|---|---|---|
+| 1 | Embedding sağlayıcısı | OpenAI veya Cohere | Doğrulama testinde yan yana |
+| 2 | Skor ağırlıkları | 0.65 / 0.20 / 0.10 / 0.05 | Gerçek eşleşmelere gözle bakılarak |
+| 3 | Uyum seviyesi eşikleri | 0.75 / 0.55 | Skor dağılımına göre |
+| 4 | Aktif kullanıcı eşiği | 14 gün | Kullanıcı davranışı |
+| 5 | Liste boyutu | 200 | Kullanıcıların kaç kart incelediği |
+| 6 | Günlük özet eşiği | İlk 50 | Bildirim açılma ve kapatılma oranı |
+
+Hepsi veritabanında — kod değişmeden ayarlanır.
