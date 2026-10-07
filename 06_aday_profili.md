@@ -2,8 +2,8 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm 3** — ekip toplantısı sonrası nihai karar
-> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-v2.md`
+> **Sürüm: final** — ekip toplantısı ve eşleştirme motoru kararları sonrası
+> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-final-v2.md`
 
 ---
 
@@ -19,6 +19,7 @@
 | **Yaşadığı konum** | Konum ağacı | Aynı — **açık adres alınmaz** |
 | **Çalışmak istediği konumlar** | Sınırsız | **En fazla 10** |
 | **Kısa tanıtım** | Opsiyonel | **Zorunlu**, min 50 / max 500, basit yer tutucu |
+| **Çalışma tipi tercihi** | Yoktu — ilandaki çalışma tipi filtresi karşılıksız kalıyordu | **Yeni alan:** tam / yarı zamanlı / proje bazlı / dönemsel — **çoklu, zorunlu**, katı filtre |
 | **İkincil meslek alanı** | Opsiyonel | **Kaldırıldı** — tek meslek alanı |
 | **Eğitim** | Üniversite kapalı liste, not ortalaması, başlangıç yılı, "devam ediyorum" kutusu | Üniversite **öneri + serbest**; not ortalaması ve başlangıç yılı **kalktı**; **Durum: Devam ediyor / Mezun** |
 | **Eğitim filtresi** | En yüksek ISCED ≥ ilan | **Tüm kayıtlar** — seviye + durum (ilandaki "kimler başvurabilir") |
@@ -33,6 +34,10 @@
 | **Başlama zamanı** | Opsiyonel | **Zorunlu** |
 | **Gizlenecek şirketler** | Şirketler | **Sadece onaylı şirketler**, otomatik öneri yok |
 | **Otomatik düşme** | 30-45 gün → fırsatlara açığım | **İki kademe:** 30 gün → fırsatlara açığım, 90 gün → şu an bakmıyorum |
+| **Skor adı** | "Yetenek bileşeni" | **"Nitelik uyumu"** — yetenek + sertifika + bölüm |
+| **Başvuru belge listesi** | Örnek sabit belgeler | **Profilden otomatik** — "Belgeler" (adayın verdiği adlarla) + "Sertifikalar" |
+| **Gizlediklerim** | — | Profilim altında — sadece yayındaki ilanlar, **[Geri al]** |
+| **Aday ekranları** | — | Alt menü, Başvurularım / Davetlerim (Bekleyen / Sonuçlanan), geri çekme, "Neden önerildi? ▾" — Bölüm 16 |
 
 ---
 
@@ -63,7 +68,7 @@ Unvan, okul adı, bölüm, şirket adı, pozisyon, yetenek, sertifika — yazmay
 - `normalize_ad` + metin benzerliği (`pg_trgm`) ile yazım farkları yakalanır
 - Embedding çok dilli — "Buchhaltung" ile "muhasebe" yakın çıkar
 
-**Kapalı liste sadece katı filtre alanlarında:** meslek alanı, konum, diller, eğitim seviyesi, çalışma şekli, diğer bilgiler.
+**Kapalı liste sadece katı filtre alanlarında:** meslek alanı, konum, diller, eğitim seviyesi, çalışma şekli, çalışma tipi, diğer bilgiler.
 
 ### 1.4 "+ Ekle" deseni
 
@@ -97,23 +102,24 @@ Bazı bilgiler işverene **görünür** ama işveren onlara göre **listeyi süz
 | Çalışmak istediği konumlar | 1 | ✅¹ | Konum ağacı, çoklu, max 10 | ❌ | ✅ | ❌ | ✅ |
 | Her konumda çalışmaya hazırım | 1 | ❌ | Kutu | ❌ | Konumu atlatır | ❌ | ✅ |
 | Çalışma şekli | 1 | ✅ | Ofis / hibrit / uzaktan — çoklu | ❌ | ✅ | ❌ | ✅ |
+| **Çalışma tipi tercihi** | 1 | ✅ | Tam / yarı zamanlı / proje bazlı / dönemsel — çoklu | ❌ | ✅ *iş ilanında* | ❌ | ✅ |
 | **Kısa tanıtım** | 1 | ✅ | Serbest, min 50 / max 500 | ✅ | ❌ | ❌ | ✅ |
 | **Meslek alanı** | 2 | ✅ | Kapalı liste, **tek** | ❌ | ✅ | ❌ | ✅ |
 | Unvan | 2 | ✅ | Serbest + öneri | ✅ *ilk satır* | ❌ | ❌ | ✅ |
 | Ne arıyor | 2 | ✅ | İş / staj — çoklu | ❌ | ✅ | ❌ | ❌ |
 | **Eğitim — seviye + durum** | 3 | ✅ *en az 1 kayıt* | Kapalı liste | ❌ | ✅ | ❌ | ✅ |
 | Eğitim — okul adı | 3 | ✅² | Öneri + serbest / serbest | ❌ | ❌ | ❌ | ✅ |
-| **Eğitim — bölüm** | 3 | ✅² | Öneri + serbest / serbest | ✅ | ❌ | ✅ | ✅ |
+| **Eğitim — bölüm** | 3 | ✅² | Öneri + serbest / serbest | ✅ | ❌ | ✅ *nitelik* | ✅ |
 | Eğitim — yıl | 3 | ✅² | Yıl | ❌ | ❌ | ❌ | ✅ |
 | Deneyim — şirket adı | 4 | ✅³ | 3 kaynaklı öneri | ❌ | ❌ | ❌ | ✅ *gizlenmediyse* |
 | Deneyim — pozisyon | 4 | ✅³ | Serbest + unvan önerisi | ✅ | ❌ | ❌ | ✅ |
 | Deneyim — çalışma türü | 4 | ✅³ | Kapalı liste | ❌ | ❌ | ✅ *tecrübe* | ✅ |
 | Deneyim — tarihler | 4 | ✅³ | Ay + yıl | ❌ | ❌ | ✅ *tecrübe* | ✅ |
 | **Deneyim — ne yaptın** | 4 | ✅³ | Serbest, min 50 / max 500 | ✅ **en önemli** | ❌ | ❌ | ✅ |
-| Yetenekler | 5 | ❌ | Ad (öneri + serbest) + yıl | ✅ *sadece ad* | ❌ | ✅ | ✅ |
+| Yetenekler | 5 | ❌ | Ad (öneri + serbest) + yıl | ✅ *sadece ad* | ❌ | ✅ *nitelik* | ✅ |
 | Bildiğim diller + seviye | 6 | ❌ | Kapalı liste | ❌ | ❌ | ❌ | ✅ |
 | **İş dilleri** | 6 | ✅ | Kapalı liste, çoklu | ❌ | ✅ | ❌ | ✅ |
-| Sertifika adı | 7 | ✅⁴ | Öneri + serbest | ✅ | ❌ | ✅ | ✅ |
+| Sertifika adı | 7 | ✅⁴ | Öneri + serbest | ✅ | ❌ | ✅ *nitelik* | ✅ |
 | Sertifika — kurum | 7 | ❌ | Serbest | ❌ | ❌ | ❌ | ✅ |
 | Sertifika — alınma tarihi | 7 | ✅⁴ | Ay + yıl | ❌ | ❌ | ❌ | ✅ |
 | Sertifika — geçerlilik | 7 | ❌ | Tarih / süresiz | ❌ | ❌ | ✅ *geçersizse sayılmaz* | ✅ |
@@ -151,7 +157,7 @@ Proje adı + açıklama                   (link, tarih HARİÇ)
 **Katı filtreler:**
 ```
 Çalışmak istediği konumlar (uzaktan / her konumda istisnası)
-Çalışma şekli · Meslek alanı · Ne arıyor · İş dilleri
+Çalışma şekli · Çalışma tipi (iş ilanında) · Meslek alanı · Ne arıyor · İş dilleri
 Eğitim (seviye + durum — ilan istediyse)
 Sürücü belgesi · Seyahat · Vardiya · Askerlik (ilan istediyse)
 Gizlenecek şirketler (işveren yönünde)
@@ -160,7 +166,7 @@ Arama durumu ("şu an bakmıyorum" görünmez)
 
 **Sadece skor:**
 ```
-Yetenekler (ad + yıl) · Sertifikalar (geçerli olanlar) · Bölüm   → yetenek bileşeni
+Yetenekler (ad + yıl) · Sertifikalar (geçerli olanlar) · Bölüm   → nitelik uyumu
 Deneyim tarihleri + çalışma türü                                 → tecrübe bileşeni
 Profil doluluğu                                                  → kalite bileşeni
 ```
@@ -338,6 +344,28 @@ Yaşadığın konum *:  [Kadıköy, İstanbul, Türkiye    ]   ← konum ağacı
 | Ofis, Uzaktan | Ofis | ✅ Konum **uygulanır** |
 | Ofis, Uzaktan | Ofis, Uzaktan | ✅ Konum **atlanır** |
 | Hibrit | Hibrit | ✅ Konum **uygulanır** |
+
+### Çalışma tipi tercihi — yeni alan
+
+```
+Çalışma tipi *
+☑ Tam zamanlı   ☑ Yarı zamanlı   ☐ Proje bazlı   ☐ Dönemsel
+```
+
+| | |
+|---|---|
+| Zorunlu | ✅ En az bir — **yayın eşiğine girer** |
+| Giriş | Çoklu |
+| Eşleştirme | **Katı filtre** — ilanın çalışma tipiyle (o da çoklu) **en az bir ortak** |
+| Staj ilanında | **Çalışmaz** — stajda "çalışma tipi" yok, "çalışma düzeni" var (sadece gösterim) |
+
+| Aday | İlan | Sonuç |
+|---|---|:---:|
+| Tam zamanlı | Tam, Yarı | ✅ |
+| Yarı zamanlı | Tam | ❌ |
+| Tam, Proje bazlı | Proje bazlı | ✅ |
+
+> **Neden eklendi:** İlanda çalışma tipi katı filtre olarak vardı ama aday profilinde karşılığı yoktu — filtre çalışamıyordu. Yarı zamanlı iş arayan öğrenciye tam zamanlı ilan, tam zamanlı arayana yarı zamanlı ilan düşmesin.
 
 ### Kısa tanıtım
 
@@ -743,7 +771,7 @@ Yeteneklerim                                      2 / 30
 | Seviye / yıldız | ❌ **Yok** — sadece yıl |
 | Unvana göre öneri | ❌ **Yok** — kişi kendisi ekler |
 | **Embedding** | ✅ **Sadece ad** (yıl girmez) |
-| **Skor** | ✅ Yetenek bileşeni (ad + yıl) |
+| **Skor** | ✅ **Nitelik uyumu** (ad + yıl) |
 | Katı filtre | ❌ |
 
 > **Neden yıl:** İlan "React 5 yıl" isterse, 3 yıl bilen aday 1 yıl bilenin önüne geçer:
@@ -758,10 +786,10 @@ Yeteneklerim                                      2 / 30
 
 > **Neden katı filtre değil:** "React zorunlu" diyen ilana React yazmamış ama yıllarca frontend yapmış aday da düşer — sadece skoru düşük olur.
 
-> **Bilerek kabul edilen:** Yetenek girmeyen aday, yetenek isteyen ilanlarda bu bileşenden düşük alır (eşleşmenin %20'si). Elenmez, sıralamada geride kalır. **Eşleşme gücü** göstergesi bunu söyler.
+> **Bilerek kabul edilen:** Yetenek girmeyen aday, yetenek isteyen ilanlarda nitelik uyumundan düşük alır (eşleşmenin %20'si). Elenmez, sıralamada geride kalır. **Eşleşme gücü** göstergesi bunu söyler.
 
 **İki koldan eşleşme:**
-1. **Skor:** ilanın onaylı etiketleriyle karşılaştırma (yazım farkları benzerlik kontrolüyle)
+1. **Skor:** ilanın etiketleriyle karşılaştırma — işverenin cümlesinden LLM ayrıştırır, işveren isterse düzeltir; yazım farkları benzerlik kontrolüyle yakalanır
 2. **Embedding:** etiket tutmasa bile "React" ↔ "frontend geliştirme" yakınlığı
 
 ---
@@ -841,7 +869,7 @@ Belge *:             [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
 
 ### Skorda
 
-İlanın **olmazsa olmaz** ve **tercih edilen** sertifika kutularıyla eşleşir — yetenek bileşeni içinde.
+İlanın **olmazsa olmaz** ve **tercih edilen** sertifika kutularıyla eşleşir — **nitelik uyumu** içinde.
 
 ```
 İlan:   Olmazsa olmaz: [SRC belgesi]    Tercih edilen: [İSG eğitimi]
@@ -856,7 +884,7 @@ SRC  → olmazsa olmaz kümede → 1.0
 | | |
 |---|---|
 | İşverene — Keşfet | ❌ Sadece sertifika adı |
-| İşverene — Başvuranlar / Eşleşmeler | ✅ Görüntüle + indir — **aday paylaşmayı seçtiyse** (Bölüm 15) |
+| İşverene — Başvuranlar / Süreçteki Adaylar | ✅ Görüntüle + indir — **aday paylaşmayı seçtiyse** (Bölüm 15) |
 | Şirkette kim görür | İlanın sorumlusu + sahip + yönetici |
 
 > ⚠️ **Dosya yüklenmesi doğrulama değildir.** Platform belgeyi kontrol etmiyor. Kartta **"doğrulanmış" gibi bir ibare olmaz** — yanlış güven verir. İşveren dosyayı görüp kendisi değerlendirir.
@@ -908,8 +936,8 @@ Dosya *:      [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
 [Yükle]
 
 📄 Özgeçmiş                     PDF   [Önizle] [İndir] [Sil]
-📄 Lisans Diploması              JPG   [Önizle] [İndir] [Sil]
-📄 Referans Mektubu              PDF   [Önizle] [İndir] [Sil]
+📄 Portfolyo                    PDF   [Önizle] [İndir] [Sil]
+📄 Referans Mektubu              JPG   [Önizle] [İndir] [Sil]
 
 [+ Belge ekle]
 ```
@@ -930,7 +958,8 @@ Dosya *:      [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
 | Keşfet | ❌ |
 | Davet gönderildi, cevap bekleniyor | ❌ |
 | **Başvuranlar** | ✅ Görüntüle + **indir** — **sadece adayın o başvuruda seçtikleri** |
-| **Eşleşmeler** | ✅ Görüntüle + **indir** — **sadece seçilenler** |
+| **Süreçteki Adaylar** | ✅ Görüntüle + **indir** — **sadece seçilenler** |
+| **Başvuru sonuçlanınca** (ret, süre dolması, ilan kapanması, geri çekme) | ❌ **Erişim anında kapanır** |
 
 - Şirkette: **ilanın sorumlusu + sahip + yönetici** — diğer uzmanlar görmez
 - **İndirme açık** — aydınlatma metninde açıkça belirtilir (aday hesabını silse bile indirilmiş kopyalar işverende kalabilir)
@@ -1087,11 +1116,14 @@ Net minimum maaş beklentiniz (opsiyonel):  [______] [TRY ▾]
 Not (opsiyonel):                            [______________]
 
 Bu başvuruyla paylaşılacak belgeler:
+
+Belgeler
 ☑ Özgeçmiş
-☑ Lisans Diploması
-☑ Referans Mektubu
-☑ SRC Belgesi          ← sertifika dosyası
-☑ Forklift Ehliyeti    ← sertifika dosyası
+☑ Portfolyo
+
+Sertifikalar
+☑ SRC Belgesi
+☑ İSG Eğitimi
 
 [Başvur]
 ```
@@ -1115,17 +1147,28 @@ Bu başvuruyla paylaşılacak belgeler:
 
 | | |
 |---|---|
-| Liste | Adayın yüklediği **tüm belgeler + sertifika dosyaları** |
+| Liste | **Otomatik** — profilde yüklenen belgeler (**adayın verdiği adlarla**) ve sertifika dosyaları (**sertifika adıyla**), iki grup halinde |
+| Sabit belge türü | **Yok** — sistem hiçbir belge adı eklemez |
 | Varsayılan | **Hepsi işaretli** — aday dokunmadan "Başvur" diyebilir |
 | Aday seçebilir | İstediğinin tikini kaldırır |
 | Hiç belgesi yoksa | Bu bölüm görünmez |
 | Kayıt | **Başvuru bazlı** — işveren sadece o başvuruda paylaşılanları görür |
+| Profilden silinen belge | Sonraki başvurularda çıkmaz; önceki başvuruda paylaşılan, o başvuru sonuçlanana kadar işverende kalır |
+| Süresi geçmiş sertifika | Listede çıkar — aday paylaşmak isteyebilir; işveren dosyada tarihi görür |
 
 > **Neden:** Mevcut işvereninden çekinen aday referans mektubunu her şirketle paylaşmak istemeyebilir; farklı pozisyonlar için farklı özgeçmiş yükleyen aday doğrusunu seçer.
+
+### Gizlediği şirkete başvururken
+
+> *"Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"*
 
 ### Davet kabulü
 
 Aday daveti kabul ederken **aynı ekran** — maaş beklentisi + belge seçimi.
+
+### Başvuru kaydına giren
+
+Maaş beklentisi, para birimi, not, paylaşılan belgeler, başvuru tarihi ve **başvuru anındaki skor anlık görüntüsü** (uyum skoru, alt skorlar, eksik olmazsa olmazlar) — Başvurularım kartındaki "Neden önerildi? ▾" bu görüntüden gösterilir, sonuç tablosu temizlense bile doğru kalır.
 
 ### Telefon kontrolü
 
@@ -1137,7 +1180,55 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 
 ---
 
-## 16. Adım 12 — Önizleme, Arama Durumu, Yayınla
+## 16. Aday Ekranları — Özet
+
+> Ayrıntılar, kart taslakları ve kurallar → `eslestirme-motoru-final-v2.md` Bölüm 6 ve 10. Burada sadece adayın göreceği yapı özetleniyor — aynı detay iki yerde tutulmasın.
+
+### Alt menü
+
+```
+🔍 Keşfet · 📨 Başvurularım · ✉️ Davetlerim · 🤝 Süreçteki İlanlar · 👤 Profilim
+```
+
+| Sekme | İçerik |
+|---|---|
+| **Keşfet** | Uygun ilanlar — uyum seviyesine göre; kartta **[Bir daha gösterme] [İncele →]**, detayda **[Başvur]** |
+| **Başvurularım** | **Bekleyen / Sonuçlanan** — her kartta o anki durum |
+| **Davetlerim** | **Bekleyen / Sonuçlanan** — detayda **[Kabul et] [Kabul etme]** |
+| **Süreçteki İlanlar** | Eşleşilen ilanlar — sohbet, iletişim bilgisi paylaşımı |
+| **Profilim** | Profil adımları, **Gizlediklerim**, arama durumu, ayarlar |
+
+### "Neden önerildi? ▾"
+
+Tüm ilan kartlarında ve detaylarda açılır-kapanır bölüm — kapalı başlar. Başvuru ve davet kartlarında **başvuru / davet anındaki** skor gösterilir.
+
+### Başvuru durumları
+
+| Durum | Adaya görünen |
+|---|---|
+| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa notu)* |
+| Kabul edildi | → Süreçteki İlanlar |
+| Reddedildi | ✕ Başka adaylarla ilerlendi |
+| Süresi doldu (30 gün) | ⌛ Yanıtlanmadan sona erdi |
+| İlan kapandı | 🔒 İlan kapandı |
+| Geri çekildi | ↩ Başvurunu geri çektin |
+
+- **[Başvurumu geri çek]** — Bekleyen kartında, onaylı; aynı ilana **tekrar başvurulamaz**
+- Adaya **kalan gün gösterilmez** — sadece kaç gün önce başvurduğu
+- Sonuçlananlar listede **90 gün** görünür
+
+### Gizlediklerim
+
+| | |
+|---|---|
+| Nerede | Profilim altında |
+| İçerik | "Bir daha gösterme" denilen ilanlardan **sadece hâlâ yayında olanlar** |
+| [Geri al] | İlan tekrar Keşfet'e düşer *(filtreye hâlâ uyuyorsa)* |
+| İlan kapanırsa | Listeden düşer; tekrar yayınlanırsa gizli olarak geri gelir |
+
+---
+
+## 17. Adım 12 — Önizleme, Arama Durumu, Yayınla
 
 ### 1 — Profil önizlemesi
 
@@ -1151,7 +1242,8 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 │ Backend Geliştirici · Bilişim                 │
 │ 📍 Kadıköy, İstanbul                           │
 │ Çalışmak istediği: İstanbul, Almanya          │
-│ Ofis · Hibrit · Başlayabilir: 1 ay içinde     │
+│ Ofis · Hibrit · Tam / Yarı zamanlı            │
+│ Başlayabilir: 1 ay içinde                     │
 │                                               │
 │ Kadın                                         │
 │ "5 yıldır e-ticaret alanında backend..."      │
@@ -1263,13 +1355,13 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 
 ---
 
-## 17. Yayın Eşiği
+## 18. Yayın Eşiği
 
 **Adımlar taslak olarak kaydedilir** — aday yarıda bırakıp dönebilir. Ama aşağıdakiler tamamlanmadan **profil yayınlanamaz:**
 
 | Adım | Zorunlu | Neden |
 |---|:---:|---|
-| **1 — Temel bilgiler** | ✅ | Konum, çalışma şekli (filtre), tanıtım (embedding), cinsiyet |
+| **1 — Temel bilgiler** | ✅ | Konum, çalışma şekli ve **çalışma tipi** (filtre), tanıtım (embedding), cinsiyet |
 | **Telefon doğrulaması** | ✅ | Sahte profilleri azaltır; başvuru ve davet için güvence |
 | **2 — Meslek alanı, unvan, ne arıyor** | ✅ | Kaba filtre + embedding |
 | **3 — Eğitim** *(en az bir kayıt)* | ✅ | Eğitim filtresi |
@@ -1293,11 +1385,11 @@ Bölüm: Bilgisayar Mühendisliği
 
 ---
 
-## 18. Eşleştirmeye Etkisi — Skor
+## 19. Eşleştirmeye Etkisi — Skor
 
 ```
 skor = 0.65 × anlamsal       ← aday vektörü ↔ ilan vektörü
-     + 0.20 × yetenek        ← yetenek (ad + yıl) + sertifika (geçerli) + bölüm
+     + 0.20 × nitelik uyumu  ← yetenek (ad + yıl) + sertifika (geçerli) + bölüm
      + 0.10 × tecrübe        ← deneyim tarihleri + çalışma türü (stajda nötr)
      + 0.05 × kalite         ← işveren yönünde: aday profil doluluğu
 ```
@@ -1317,11 +1409,11 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 > **Kaldırılan kriterler:** "Kısa tanıtım yazılmış" ve "eğitim kaydı tam" — artık zorunlu, her profilde dolu.
 
-> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-v2.md`
+> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-final-v2.md`
 
 ---
 
-## 19. Yayına Çıkmadan Hazırlanması Gerekenler
+## 20. Yayına Çıkmadan Hazırlanması Gerekenler
 
 | Veri | Miktar | Kaynak |
 |---|---|---|
@@ -1341,11 +1433,13 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 ---
 
-## 20. Diğer Dokümanlara Etkisi
+## 21. Diğer Dokümanlara Etkisi
 
 | Doküman | Değişecek |
 |---|---|
-| **Eşleştirme Motoru** | İkincil meslek alanı kalktı (filtre tek eşitlik); eğitim filtresi tüm kayıtlarda seviye + durum; diğer bilgiler zorunlu (boş durum yok); işveren yönü kalite kriterleri yeni; telefon doğrulaması yayın eşiğinde; otomatik düşme iki kademe; numara değişince profil yayından çıkar |
+| **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru-final-v2.md` |
+| **İş ilanı** | Çalışma tipi **tek seçim → çoklu** (aday tarafıyla en az bir ortak); LLM onay ekranı yerine **"Algılanan" satırı + [Düzenle]**; meslek alanı ve unvan **yayından sonra kilitli** |
+| **Staj ilanı** | Aynı onay ekranı değişikliği; çalışma tipi filtresi stajda yok |
 | **İşveren Paneli / Keşfet** | İletişim isteği akışı; belgeler başvuru bazlı; cinsiyet ve askerlik detayda görünür, süzülemez |
 | **Auth** | Aday telefon doğrulaması artık yayın eşiğinde (sadece başvuruda değil) |
 | **Veri koruma** *(yazılacak)* | Cinsiyet zorunlu ve işverene görünür; belge indirme açık; iletişim bilgisi erişim kaydı; aydınlatma metninde açık bilgilendirme |
