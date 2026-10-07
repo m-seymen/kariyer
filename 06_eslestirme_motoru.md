@@ -2,7 +2,7 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final** — ekip toplantısı sonrası
+> **Sürüm: final v2** — ekip toplantısı sonrası; ilk günden 1M+ mimari
 > İlgili dokümanlar: `aday-profili-v3.md`, `is-ilani-v3.md`, `staj-ilani.md`, `isveren-paneli-v2.md`, `auth-kararlari.md`
 > Kapsam dışı: **Bakım işleri** (süreler, temizlik, otomatik düşme, sayaç düzeltme, silmeler) → `bakim-isleri.md`
 
@@ -43,10 +43,12 @@ Eşleştirme motoru **ürünün kalbi.** Aday profili, ilan formu, şirket doğr
 | **Koşullu şartlar iki tarafta zorunlu seçim** | Sürücü belgesi, seyahat, vardiya, askerlik — "aday boş bıraktı, sessizce elendi" durumu yok |
 | **Görmek ≠ süzmek** | Cinsiyet ve askerlik işverene görünür ama **hiçbir filtrede kullanılamaz** |
 | **Eşik değil limit** | Kıtlıkta boş ekran olmasın — her zaman en iyi 200 |
-| **İki yön, iki skor** | İşveren ve adayın çıkarı farklı (fazla nitelikli aday örneği — Bölüm 5.4) |
+| **İki yön, iki skor** | İşveren ve adayın çıkarı farklı (fazla nitelikli aday örneği — Bölüm 5.5) |
 | **Tek sonuç tablosu** | Hangi taraf tetiklerse diğerinin listesi de otomatik güncellenir |
 | **Karma hesaplama** | Aktif kullanıcı önceden, pasif kullanıcı açınca — gereksiz hesap ~%85 azalır |
 | **Her şey kuyrukla, asenkron** | Kullanıcı beklemez; ani yük emilir; hiçbir iş kaybolmaz |
+| **İlk günden 1M+ mimari** | Bölümleme, okuma kopyası, önbellek, ayrı işçiler ilk günden — büyüme anında taşıma ve kesinti olmasın |
+| **Kartta ayıkla, detayda karar ver** | Başvuru ve davet karşı tarafın tamamı görüldükten sonra — uyumsuz başvuru yığılmasın |
 | **Tüm ağırlıklar veritabanında** | Kod değişmeden gerçek veriyle ayarlanır |
 
 ### Bu sürümde değişenler
@@ -68,7 +70,13 @@ Eşleştirme motoru **ürünün kalbi.** Aday profili, ilan formu, şirket doğr
 | Cevapsız başvuru / davet | Belirsiz | **30 gün / 10 gün** → süresi doldu |
 | Liste | Sabit 200 | 200 + **[Daha fazla getir]** |
 | Arka plan | `pg_cron` | **Kuyruk + işçiler** (Supabase Queues + Edge Functions) |
-| Bildirim | Herkese | Push **FCM**, işverende **sadece ilanın sorumlusuna** |
+| Bildirim | Herkese | Push **FCM**, işverende **sadece ilanın sorumlusuna** · 24 maddelik katalog |
+| Bölümleme | "Şimdi değil" | **İlk günden** — sonuç 32, aksiyon 16, mesajlar 16 (hash); zaman bölümleri |
+| İşçiler | `pg_cron` işleri | **Her biri ayrı Edge Function**, gerekirse container'a taşınabilir |
+| Kartlar | Butonlar kartta | **Kartta ayıklama + incele, detayda başvur / davet et**; her yerde **"Neden önerildi? ▾"** |
+| Listeler | — | İki tarafta **Bekleyen / Sonuçlanan**; her kartta o anki durum |
+| Geri çekme | Yok | Aday başvuruyu, işveren daveti geri çekebilir; tekrar yok |
+| Başvuru kaydı | — | Tarihler + **skor anlık görüntüsü**; belge erişimi sonuçlanınca kapanır |
 
 ---
 
@@ -650,7 +658,7 @@ Sabit 200 yerine:
 3. Listenin sonunda: [Daha fazla getir]
 4. Yeniden hesap → aksiyon alınanlar zaten katı filtrede elendiği için
    liste OTOMATİK olarak daha önce görülmemişlerle 200'e tamamlanır
-5. Yeni sonuç yoksa → "Tüm uygun ilanları/adayları gördün" (Bölüm 10.6)
+5. Yeni sonuç yoksa → "Tüm uygun ilanları/adayları gördün" (Bölüm 10.10)
 ```
 
 Ek mantık gerekmiyor — Filtre 10'un doğal sonucu. Maliyet: tek bir eşleştirme hesabı.
@@ -666,7 +674,7 @@ Vektörleri bir ağ yapısında tutar; birbirine yakın vektörler komşu olarak
 | 50.000 | ~20-50 ms | Uzaktan ilan |
 | 500.000 | ~50-150 ms | Uzaktan, dünya geneli, geniş alan |
 
-> ⚠️ **Bilinen risk — filtre ile indeks çekişmesi:** Filtre çok seçiciyse HNSW'nin getirdiği yakın vektörlerin çoğu filtreden geçmeyebilir; Postgres sıralı taramaya düşebilir. Çözüm: `hnsw.ef_search` artırmak veya küçük havuzlarda indeks kullanmamak. **Gerçek veriyle `EXPLAIN ANALYZE` ile ölçülmeli.** 1M+ ölçekte filtre bilgisini vektörle birlikte saklayan vektör veritabanı bu sorunu kökten çözer (Bölüm 11).
+> ⚠️ **Bilinen risk — filtre ile indeks çekişmesi:** Filtre çok seçiciyse HNSW'nin getirdiği yakın vektörlerin çoğu filtreden geçmeyebilir; Postgres sıralı taramaya düşebilir. Çözüm: `hnsw.ef_search` artırmak veya küçük havuzlarda indeks kullanmamak. **Gerçek veriyle `EXPLAIN ANALYZE` ile ölçülmeli.** İndeks ayarıyla çözülemezse filtre bilgisini vektörle birlikte saklayan ayrı vektör veritabanına geçilir — `vektor_ara()` soyutlaması sayesinde tek fonksiyon değişikliği (Bölüm 11.3).
 
 ---
 
@@ -1010,11 +1018,11 @@ CREATE TABLE skor_parametreleri (
 |---|---|
 | **Ayarlama** | Hangi parça yanlış çalışıyor, görülebilsin |
 | **Yasal uyum** | "Bu adayı neden üstte gösterdiniz?" sorusuna cevap — KVKK, GDPR md. 22, AB Yapay Zeka Yasası (işe alım yüksek riskli), NYC Local Law 144 |
-| **"Neden önerildi?"** | Kullanıcıya açıklama bu puanlardan, LLM'siz üretilir (Bölüm 10.5) |
+| **"Neden önerildi?"** | Kullanıcıya açıklama bu puanlardan, LLM'siz üretilir (Bölüm 10.3) |
 
 ---
 
-## 6. Sonuç Tablosu ve Aksiyonlar
+## 6. Sonuç Tablosu, Aksiyonlar, Başvuru ve Davet
 
 ### 6.1 Sonuç tablosu — tek tablo, iki yön
 
@@ -1030,7 +1038,7 @@ CREATE TABLE ilan_aday_eslestirme (
   model_adi          text,
   hesaplanma_tarihi  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (ilan_id, aday_id)
-);
+) PARTITION BY HASH (ilan_id);          -- 32 bölüm, ilk günden (Bölüm 6.9)
 
 CREATE INDEX ON ilan_aday_eslestirme (ilan_id, skor_isveren DESC);
 CREATE INDEX ON ilan_aday_eslestirme (aday_id, skor_aday DESC);
@@ -1044,9 +1052,9 @@ CREATE INDEX ON ilan_aday_eslestirme (hesaplanma_tarihi);
 
 **Okuma:**
 ```sql
--- İşveren "Adaylar"
+-- İşveren "Adaylar"  → tek bölüme gider
 WHERE ilan_id = :ilan ORDER BY skor_isveren DESC LIMIT 200
--- Aday "Keşfet"
+-- Aday "Keşfet"      → 32 bölüme bakar (indeksli, okuma kopyasından, ilk sayfa önbellekte)
 WHERE aday_id = :aday ORDER BY skor_aday DESC LIMIT 200
 ```
 
@@ -1059,11 +1067,9 @@ Salı:       Yeni Aday #999 kaydoldu → onun için hesap
 Salı akşamı: İşveren İlan #5'i açtı → Aday #999 listede ✅
 ```
 
-İşveren hiçbir şey yapmadı. Satır iki yönden okunabildiği için yeni aday onun listesine **kendiliğinden** girdi.
+İşveren hiçbir şey yapmadı. Satır iki yönden okunabildiği için yeni aday onun listesine **kendiliğinden** girdi. İki ayrı tablo olsaydı (ilan bazlı / aday bazlı) yeni aday sadece kendi tablosuna yazılır, işveren görmezdi.
 
-> İki ayrı tablo olsaydı (ilan bazlı / aday bazlı) yeni aday sadece kendi tablosuna yazılır, işveren görmezdi. Tek tablo bu sorunu **tasarımdan** çözüyor.
-
-#### Yazma
+#### Yazma — "üstüne yaz"
 
 ```sql
 INSERT INTO ilan_aday_eslestirme (...) VALUES (...)
@@ -1075,7 +1081,7 @@ ON CONFLICT (ilan_id, aday_id) DO UPDATE SET
   hesaplanma_tarihi = now();
 ```
 
-"Üstüne yaz" mantığı — aynı iş iki kez çalışsa da sonuç bozulmaz (Bölüm 8.5).
+Aynı iş iki kez çalışsa da sonuç bozulmaz (Bölüm 8.5).
 
 ### 6.2 Aksiyon tablosu — ayrı, kalıcı
 
@@ -1083,57 +1089,218 @@ ON CONFLICT (ilan_id, aday_id) DO UPDATE SET
 CREATE TABLE ilan_aday_aksiyon (
   ilan_id  bigint NOT NULL,
   aday_id  bigint NOT NULL,
-  aksiyon  text   NOT NULL,   -- gizlendi | basvuruldu | davet_edildi |
-                              -- reddedildi | suresi_doldu | eslesti
-  taraf    text   NOT NULL,   -- aday | isveren
+  aksiyon  text   NOT NULL,
+  taraf    text   NOT NULL,   -- aday | isveren | sistem
   tarih    timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (ilan_id, aday_id, aksiyon, taraf)
-);
+) PARTITION BY HASH (ilan_id);          -- 16 bölüm, ilk günden
+
 CREATE INDEX ON ilan_aday_aksiyon (aday_id, taraf);
 CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 ```
 
+| `aksiyon` | Anlamı |
+|---|---|
+| `gizlendi` | "Bir daha gösterme" |
+| `basvuruldu` | Aday başvurdu |
+| `davet_edildi` | İşveren davet etti |
+| `eslesti` | İki taraf onayladı — süreçte |
+| `reddedildi` | İşveren başvuruyu / aday daveti kabul etmedi |
+| `suresi_doldu` | Başvuru 30 gün / davet 10 gün cevapsız |
+| `ilan_kapandi` | Karar verilmeden ilan kapandı |
+| `geri_cekildi` | Aday başvurusunu / işveren davetini geri çekti |
+
 | | Sonuç tablosu | Aksiyon tablosu |
 |---|---|---|
-| Ne tutar | Skorlar | Gizleme, başvuru, davet, red, süre dolması, eşleşme |
-| Ömrü | **Geçici** — temizlenir, yeniden hesaplanır | **Kalıcı** |
-| Neden ayrı | Skor tablosu temizlenince "bu adayı gizlemiştim" bilgisi **kaybolmasın** | |
+| Ne tutar | Skorlar | Yukarıdaki aksiyonlar |
+| Ömrü | **Geçici** — temizlenir, yeniden hesaplanır | **Kalıcı** — hesap silinene kadar |
+| Neden ayrı | Skor tablosu temizlenince "bu adayı gizlemiştim / reddetmiştim" bilgisi **kaybolmasın** | |
 
-> Bu ayrım sonradan yapılması zor bir iş — **baştan ayrı kurulmalı.**
+> Bu ayrım sonradan yapılması zor — **baştan ayrı kurulmalı.**
 
 ### 6.3 Aksiyonlar ve Keşfet'e etkisi
 
 | Ne oldu | Aday Keşfet'i | İşveren Adaylar'ı | Nereye taşınır |
 |---|:---:|:---:|---|
-| Aday **"Bu ilanı bir daha gösterme"** | ❌ | ✅ | Aday → Gizlediklerim |
+| Aday **"Bu ilanı bir daha gösterme"** | ❌ | ✅ | Aday → Profilim → Gizlediklerim |
 | İşveren **"Bu adayı bir daha gösterme"** | ✅ | ❌ | İlan → Gizlenenler |
 | Aday **başvurdu** | ❌ | ❌ | Aday → Başvurularım · İşveren → Başvuranlar |
-| İşveren **davet etti** | ❌ | ❌ | İşveren → Davet Edilenler · Aday → Davetler |
+| İşveren **davet etti** | ❌ | ❌ | İşveren → Davet Edilenler · Aday → Davetlerim |
 | İki taraf **onayladı** | ❌ | ❌ | **Süreçteki İlanlar / Süreçteki Adaylar** |
-| **Reddedildi** | ❌ | ❌ | Kapandı — listelerde "Reddedilen" filtresi |
-| **Süresi doldu** | ❌ | ❌ | Kapandı — listelerde "Süresi dolan" filtresi |
-
-**Kurallar:**
+| Reddedildi · süresi doldu · ilan kapandı · geri çekildi | ❌ | ❌ | İlgili listede **Sonuçlanan** |
 
 | Kural | Neden |
 |---|---|
-| **"Bir daha gösterme" onay ister, geri alınabilir** | Onay diyaloğu → kart animasyonla kaybolur; **Gizlediklerim / Gizlenenler**'den [Geri al] |
+| **"Bir daha gösterme" onay ister** | Onay diyaloğu → kart hafif animasyonla kaybolur; Gizlediklerim / Gizlenenler'den **[Geri al]** |
 | **Gizleme tek yönlü** | Aday ilanı gizlediyse işveren hâlâ görüp davet edebilir — aday fikrini değiştirebilir |
-| **Başvuru ve davet iki tarafın Keşfet'inden kaldırır** | Süreç başladı — kart artık ilgili sekmede |
-| **Red ve süre dolması iki tarafı bağlar** | Konu kapandı, tekrar karşılaşılmaz |
+| **Başvuru ve davet iki tarafın Keşfet'inden kaldırır** | Süreç başladı — kart ilgili sekmede |
+| **Sonuçlanan her şey iki tarafı bağlar** | Konu kapandı; aynı ilan–aday çifti tekrar karşılaşmaz |
 | **İlan bazlı** | "Backend" ilanında gizlenen aday, aynı şirketin "Frontend" ilanında görünür |
 | **Taşınır, kopyalanmaz** | Kabul edilen kişi Başvuranlar'dan çıkıp Süreçteki Adaylar'a geçer |
 
-### 6.4 Cevapsız başvuru ve davet
+### 6.4 Başvuru ve davet — onay ekranı
+
+Aday başvururken veya daveti kabul ederken **profilde olmayan, başvuruya özel** bilgiler sorulur:
+
+```
+Başvuruyu onayla
+
+Senior Backend Developer · ABC Teknoloji
+
+Net minimum maaş beklentiniz (opsiyonel)
+[______]  [TRY ▾]
+
+Not (opsiyonel)
+[_____________________________________]
+
+Bu başvuruyla paylaşılacak belgeler:
+
+Belgeler
+☑ Özgeçmiş
+☑ Portfolyo
+
+Sertifikalar
+☑ SRC Belgesi
+☑ İSG Eğitimi
+
+[Başvur]
+```
+
+| Alan | Kural |
+|---|---|
+| **Maaş beklentisi** | Opsiyonel · **net minimum, tek rakam** · para birimi varsayılan ilanınki · **filtreye girmez** · işveren Başvuranlar'da görür |
+| **Not** | Opsiyonel — *"Esnek olabilirim"*, *"Yan haklara göre değişir"* |
+| **Belgeler** | **Otomatik** — adayın profilde yüklediği belgeler (**kendi verdiği adlarla**) + sertifika dosyaları (sertifika adıyla) |
+| | **Varsayılan hepsi işaretli**; aday istediğinin tikini kaldırır; hiç yoksa bölüm görünmez |
+
+**Aynı ekrandaki kontroller:**
+
+| Durum | Ne olur |
+|---|---|
+| Telefon doğrulanmamış *(numara değişmiş)* | Önce SMS → bitince başvuru **kaldığı yerden** tamamlanır |
+| **Gizlediği şirkete** başvuruyor | *"Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"* |
+
+**Davet kabulünde aynı ekran** — maaş beklentisi + belge seçimi.
+
+> **Neden maaş profilde değil:** Maaş beklentisi pozisyona özel; profilde tek rakam adayı en alt sınırını yazmaya zorlar.
+> **Neden belge seçimi:** Mevcut işvereninden çekinen aday her belgesini her şirketle paylaşmak istemeyebilir; farklı pozisyonlar için farklı özgeçmiş yükleyen aday doğrusunu seçer.
+
+### 6.5 Başvuru / davet kaydı — tarihler ve skor anlık görüntüsü
+
+```sql
+CREATE TABLE basvurular (
+  id                bigint PRIMARY KEY,
+  ilan_id           bigint NOT NULL,
+  aday_id           bigint NOT NULL,
+  durum             text   NOT NULL,   -- bekliyor | eslesti | reddedildi |
+                                       -- suresi_doldu | ilan_kapandi | geri_cekildi
+  basvuru_tarihi    timestamptz NOT NULL,
+  sonuc_tarihi      timestamptz,
+  geri_cekme_tarihi timestamptz,
+  maas_beklentisi   numeric,
+  para_birimi       text,
+  not_metni         text,
+  paylasilan_belgeler jsonb,           -- hangi belge / sertifika dosyaları
+  uyum_skoru        real,              -- BAŞVURU ANINDAKİ işveren skoru
+  alt_skorlar       jsonb,             -- başvuru anındaki anlamsal, nitelik, tecrübe, kalite
+  eksik_nitelikler  jsonb              -- başvuru anında eksik olan olmazsa olmazlar
+);
+-- davetler: aynı yapı (davet_tarihi, cevap_tarihi, geri_cekme_tarihi, davet_eden_id ...)
+```
+
+**Neden skor anlık görüntüsü:** Skorlar sonuç tablosunda **geçici** — ilan kapanınca veya 14 günde siliniyor. Ama başvuru kartı 90 gün görünüyor ve "Neden önerildi?" bölümü var. Başvuru / davet **anındaki** skor kayda kopyalanır:
+
+| Fayda | |
+|---|---|
+| Kart her zaman doğru | Sonuç tablosu temizlense bile |
+| Karar anındaki uyum | Aday sonradan profilini değiştirse bile işveren başvurduğu andaki uyumu görür |
+| Yasal uyum | "Bu başvuru neden üstteydi?" sorusunun cevabı kalıcı |
+| Sıralama | **Başvuranlar** listesi bu skora göre sıralı — işveren en uyumludan başlar |
+
+### 6.6 Bekleyen / Sonuçlanan
+
+İki tarafta, her listede iki alt sekme:
+
+```
+┌──────────────┬──────────────┐
+│  Bekleyen 4  │ Sonuçlanan 7 │
+└──────────────┴──────────────┘
+```
+
+**Her kart o anki durumu gösterir:**
+
+| Durum | Aday — Başvurularım | İşveren — Başvuranlar |
+|---|---|---|
+| Bekliyor | ⏳ Değerlendiriliyor | ⏳ Karar bekliyor · *25 gün kaldı* |
+| Bekliyor + ilan duraklatıldı | ⏳ Değerlendiriliyor · İlan şu an duraklatıldı | ⏸ İlan duraklatıldı |
+| Kabul edildi | → Süreçteki İlanlar | → Süreçteki Adaylar |
+| Reddedildi | ✕ **Başka adaylarla ilerlendi** | ✕ Reddedildi |
+| Süresi doldu | ⌛ Yanıtlanmadan sona erdi | ⌛ Yanıtlanmadan sona erdi |
+| İlan kapandı | 🔒 İlan kapandı | 🔒 İlan kapandı |
+| Geri çekildi | ↩ Başvurunu geri çektin | ↩ Aday başvurusunu geri çekti |
+
+| Durum | Aday — Davetlerim | İşveren — Davet Edilenler |
+|---|---|---|
+| Bekliyor | ⏳ Cevabın bekleniyor | ⏳ Cevap bekleniyor · *7 gün kaldı* |
+| Kabul etti | → Süreçteki İlanlar | → Süreçteki Adaylar |
+| Kabul etmedi | ✕ Daveti kabul etmedin | ✕ Kabul etmedi |
+| Süresi doldu | ⌛ Yanıtlanmadan sona erdi | ⌛ Yanıtlanmadan sona erdi |
+| İlan kapandı | 🔒 İlan kapandı | 🔒 İlan kapandı |
+| Geri çekildi | ↩ Davet geri çekildi | ↩ Davet geri çekildi |
+
+> **"Başka adaylarla ilerlendi" = reddedildi.** Aday tarafında kibar ifade — çoğu zaman gerçek sebep de bu.
+> **Adaya kalan gün gösterilmez** — baskı yaratır; işverene gösterilir, süresi dolmak üzere olanı görsün.
+
+**"İlan kapandı"nın altına girenler** — aday için hepsi aynı sonuç:
+
+| Arka planda | Adaya görünen |
+|---|---|
+| Pozisyon doldu · alımdan vazgeçildi · 60 / 180 gün doldu · şirket hesabı kapatıldı | 🔒 İlan kapandı |
+
+> "Pozisyon doldu" ayrıca söylenmez — adaya "başkası alındı" demek gereksiz yere kırıcı.
+
+**Sonuçlandırmayan durumlar:** İlan duraklatıldı *(başvuru bekler, 30 gün işlemeye devam eder)*, ilan başka uzmana devredildi *(aday görmez)*, aday "şu an bakmıyorum" yaptı *(başvurusu devam eder)*.
+
+**İlan tekrar yayınlanırsa:** İşverene *"12 bekleyen başvurunuz vardı. Geri getirilsin mi?"* — **Evet** → başvurular Bekliyor'a döner, adaya 🔔, 30 gün yeniden başlar. **Hayır** → İlan kapandı olarak kalır.
+
+### 6.7 Cevapsız kalma, geri çekme, belge erişimi
+
+#### Cevapsız kalma
 
 | | Süre | Süre dolunca |
 |---|:---:|---|
-| **Başvuru** — işverenin cevabı | **30 gün** | "Süresi doldu" — iki tarafın Keşfet'ine bir daha düşmez |
-| **Davet** — adayın cevabı | **10 gün** | "Süresi doldu" — iki tarafın Keşfet'ine bir daha düşmez |
+| **Başvuru** — işverenin cevabı | **30 gün** | Süresi doldu — iki tarafın Keşfet'ine bir daha düşmez |
+| **Davet** — adayın cevabı | **10 gün** | Süresi doldu — iki tarafın Keşfet'ine bir daha düşmez |
 
-> **Neden tekrar Keşfet'e dönmüyor:** Cevap vermeyen tarafa tekrar tekrar davet / başvuru gitmesi spam'e dönüşür. Süre kontrolü bakım işlerinde (`bakim-isleri.md`).
+> **Neden geri dönmüyor:** Cevap vermeyen tarafa tekrar tekrar davet / başvuru gitmesi spam'e dönüşür.
 
-### 6.5 Silme kuralları
+#### Geri çekme — iki tarafta, kartta
+
+| | Aday başvuruyu geri çeker | İşveren daveti geri çeker |
+|---|---|---|
+| Nerede | Başvurularım → Bekleyen kartı **[Başvurumu geri çek]** | Davet Edilenler → Bekleyen kartı **[Daveti geri çek]** |
+| Onay | *"Başvurunuzu geri çekmek istediğinize emin misiniz?"* | *"Daveti geri çekmek istediğinize emin misiniz?"* |
+| Karşı tarafta | Başvuranlar → Sonuçlanan: *Aday başvurusunu geri çekti* | Davetlerim → Sonuçlanan: *Davet geri çekildi* |
+| Bildirim | İlanın sorumlusuna 🔔 | Adaya 🔔 |
+| Tekrar | Bu ilana **tekrar başvuramaz** | Bu ilandan bu adaya **tekrar davet gönderilemez** |
+
+> **Neden tekrar yok:** "Başvur – geri çek – tekrar başvur" ile listenin başına çıkma, ya da aynı adayı tekrar tekrar davetle rahatsız etme olmasın.
+
+#### Belge erişimi — sonuçlanınca kapanır
+
+Başvuru **sonuçlandığı anda** (ret, süre dolması, ilan kapanması, geri çekme) işverenin o başvuruda paylaşılan belgelere erişimi **kapanır.** İşveren kaydı görür ama CV'yi açamaz. **Süreçteki adaylarda** erişim devam eder.
+
+#### Listede kalma ve saklama
+
+| | Süre |
+|---|---|
+| **Sonuçlanan** sekmesinde görünme | **Son 90 gün** — aday / işveren isterse daha erken **[Listeden kaldır]** |
+| **Aksiyon kaydı** (kısa satır) | **Kalıcı** — reddedilen aday aynı ilana tekrar düşmesin |
+| **Başvuru ayrıntıları** (maaş, not, paylaşılan belgeler) | Sonuçlandıktan **1 yıl** sonra silinir (KVKK / GDPR) |
+
+> Temizlik işleri → `bakim-isleri.md`
+
+### 6.8 Silme kuralları — sonuç tablosu
 
 | Olay | Sonuç satırları | Aksiyonlar | Sohbetler |
 |---|:---:|:---:|:---:|
@@ -1141,23 +1308,47 @@ CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 | Aday "şu an bakmıyorum" | Silinir | Kalır | **Devam eder** |
 | 14 günden eski hesap | Silinir | Kalır | — |
 | Aday telefonu değiştirdi, doğrulamadı | **Silinmez** — profil yayından çıktığı için görünmez | Kalır | Devam eder |
-| Aday hesabını sildi | Silinir | Silinir (KVKK/GDPR) | Anonimleşir |
+| Aday hesabını sildi | Silinir | Silinir (KVKK/GDPR) | Anonimleşir — işverende *"Aday hesabını kapattı"* |
 
-> **Sohbetler neden devam eder:** Konuşma ilan kapandı diye yarıda kalmasın.
+### 6.9 Bölümleme — ilk günden
 
-### 6.6 Bölümleme — şimdi değil
+Bölümlemenin en kolay olduğu an tablo **boşken.** Dolu tabloyu sonradan bölmek riskli ve yavaş — bu yüzden **ilk günden** kuruluyor.
 
-**Karar:** Gerektiğinde `PARTITION BY HASH (ilan_id)`, 16 bölüm (büyüdükçe 64).
+| Tablo | Anahtar | Bölüm | Neden |
+|---|---|:---:|---|
+| **`ilan_aday_eslestirme`** (sonuç) | **Hash — `ilan_id`** | **32** | En büyük, en sık yazılan tablo |
+| **`ilan_aday_aksiyon`** | **Hash — `ilan_id`** | **16** | Sonuçtan küçük ama kalıcı büyüyor |
+| **`mesajlar`** | **Hash — `sohbet_id`** | **16** | Okumalar hep tek sohbete |
+| `ilan_goruntulemeleri` | Zaman | Aylık | Sayaca toplandıktan sonra eski aylar tek komutla silinir |
+| `bildirimler` | Zaman | Aylık | Eski bildirimler ay ay silinir |
+| Kuyruk / iş kayıtları | Zaman | Haftalık | Hızlı dolar, hızlı temizlenir |
 
-| Alternatif | Neden olmadı |
+> Zaman bölümleri **`pg_partman`** ile otomatik — yeni ay açılır, eski silinir; elle bakım yok.
+
+#### Neden `ilan_id`
+
+| | |
 |---|---|
-| Ülke bazlı | **Uzaktan çalışma bozuyor** — ABD'deki aday Türkiye'deki uzaktan ilanla eşleşiyor; satır hangi bölüme? |
-| İlan durumu | Durum değişince satır fiziksel taşınır — ağır iş |
-| Tarih | Yazma tek bölüme yığılır |
+| **Hiç değişmez** | Satır bölümler arasında taşınmaz |
+| İşveren sorgusu (`ilan_id = ?`) | **Tek bölüme** gider |
+| İlan kapanınca silme | Tek bölümde |
 
-> 🚫 **Şimdi yapılmayacak.** Önce indeksler → tablo ayrımı (yapıldı) → veri ömrü (yapıldı) → **en son bölümleme**, ~100 milyon satırda. Bugün sadece şemayı uygun kur: `PRIMARY KEY (ilan_id, aday_id)`.
+| Reddedilen anahtar | Neden |
+|---|---|
+| Ülke | **Uzaktan ilanlar ülke sınırını aşıyor** — satır hangi bölüme gidecek belirsiz |
+| Durum | Durum değişince satır fiziksel taşınır |
+| Tarih | Tüm yazma son bölüme yığılır |
 
----
+#### Bölüm sayısı
+
+```
+5 milyon aktif aday × ~200 eşleşme ≈ 1 milyar satır
+32 bölüm → bölüm başına ~31 milyon satır   (rahat; zorlanma ~100 milyonda başlar)
+```
+
+- **Sayı sabit** — `hash(ilan_id) % 32`; yeni ilan yeni bölüm yaratmaz
+- **Sonradan değiştirmek** = tüm veriyi taşımak; bu yüzden baştan cömert
+- **Aday sorguları** tüm bölümlere bakar — her bölümde `aday_id` indeksi, okuma kopyası ve önbellek yükü alıyor. Çok yüksek ölçekte gerekirse aday yönü için ikinci bir tablo eklenir, mevcut yapı bozulmadan
 
 ## 7. Hesaplama — Ne Zaman, Nasıl
 
@@ -1317,7 +1508,7 @@ Bir şey olur          →   Kuyruğa iş yazılır       →   İşçi sırayla
 | **Kullanıcı beklemez** | Ağır iş arka planda; ekran anında cevap verir |
 | **Ani yük emilir** | 10.000 iş aynı anda gelse sıraya girer — sistem çökmez, biraz gecikir |
 | **Hiçbir iş kaybolmaz** | İşçi çökerse veya dış servis cevap vermezse iş kuyrukta kalır, tekrar denenir |
-| **Kolay büyür** | Yük artınca aynı kuyruktan çeken işçi sayısı artırılır |
+| **Kolay büyür** | Yük artınca aynı kuyruktan çeken işçi sayısı artar |
 
 ### 8.2 Supabase ile
 
@@ -1326,9 +1517,9 @@ Bir şey olur          →   Kuyruğa iş yazılır       →   İşçi sırayla
 | **Supabase Queues** (`pgmq`) | Kuyruğun kendisi — veritabanı içinde |
 | **Veritabanı tetikleyicisi** | Olay olunca kuyruğa iş yazar |
 | **Edge Function** | İşçi — kuyruktan alır, yapar |
-| **`pg_cron` + `pg_net`** | İşçileri düzenli aralıklarla uyandırır |
+| **`pg_cron` + `pg_net`** | İşçileri kısa aralıklarla uyandırır |
 
-### 8.3 Kuyruklar ve işçiler
+### 8.3 İşçiler — her biri ayrı Edge Function
 
 | # | İşçi | Kuyruk | Tetikleyen | Ne yapar |
 |:---:|---|---|---|---|
@@ -1340,21 +1531,15 @@ Bir şey olur          →   Kuyruğa iş yazılır       →   İşçi sırayla
 
 > **Bakım işleri** (süreler, temizlik, otomatik düşme, sayaçlar, silmeler) → `bakim-isleri.md`
 
-**"İki işçi" değil, "işçi türleri":** Her türden birden fazla kopya aynı kuyruktan iş çekebilir — kuyruk aynı işin iki işçiye gitmesini engeller.
+**Neden her biri ayrı — tek fonksiyonda değil:**
 
-```
-Düşük trafik:   1 embedding  +  1 eşleştirme
-Yüksek trafik:  5 embedding  +  10 eşleştirme
-```
-
-**Neden ayrı türler:**
-
-| Durum | Ayrı oldukları için |
+| Tek fonksiyonda olsaydı | Ayrı oldukları için |
 |---|---|
-| Embedding servisi yavaşladı | Metni değişmeyen ilanların eşleştirmesi devam eder |
-| Binlerce profil aynı anda güncellendi | Sadece embedding işçisi artırılır |
-| Popüler ilan binlerce adayla eşleşiyor | Sadece eşleştirme işçisi artırılır |
-| Bildirim gönderimi takıldı | Eşleştirme etkilenmez |
+| Biri takılınca hepsi takılır | Embedding servisi yavaşladı → bildirimler etkilenmez |
+| Ayrı büyütülemez | Sadece yükü artan işçi çoğaltılır |
+| Süre sınırı üç işe bölünür | Her işçi kendi süresini kullanır |
+
+**"İşçi" değil "işçi türü":** Her türden birden fazla kopya aynı kuyruktan iş çekebilir — kuyruk aynı işin iki işçiye gitmesini engeller.
 
 ### 8.4 İşçi değil, anında yapılanlar
 
@@ -1364,6 +1549,7 @@ Yüksek trafik:  5 embedding  +  10 eşleştirme
 | SMS doğrulama | Twilio Verify, anında |
 | Sohbet | Supabase Realtime |
 | Dosya kontrolü + virüs taraması | Yüklemede Edge Function → ClamAV *(Altyapı dokümanı)* |
+| Ekip üyesi oluşturma | Edge Function, anında |
 | Toplu yeniden embedding (model değişimi) | Embedding kuyruğuna **düşük öncelikli** iş |
 
 ### 8.5 Yüksek trafik için altı kural
@@ -1373,9 +1559,9 @@ Yüksek trafik:  5 embedding  +  10 eşleştirme
 | 1 | **Veri ve iş aynı anda yazılır** | Profil kaydı ile "embedding üret" işi aynı veritabanı işleminde | "Profil yayında ama hiç eşleşmedi" durumu oluşamaz |
 | 2 | **Aynı iş bir kez yapılır** | İşin kimliği = *varlık + metin hash'i* | Aday 3 kez art arda kaydederse sadece son hali işlenir |
 | 3 | **Toplu embedding** | İşçi 50-100 metni tek API çağrısıyla gönderir | Çağrı sayısı ve maliyet düşer, sağlayıcı sınırına takılma azalır |
-| 4 | **Tekrar çalışsa sorun çıkmaz** | Sonuç "üstüne yaz" mantığıyla yazılır | İşçi tam bitirirken çökerse iş tekrar işlenir, sonuç bozulmaz |
+| 4 | **Tekrar çalışsa sorun çıkmaz** | Sonuç "üstüne yaz" mantığıyla | İşçi bitirirken çökerse iş tekrar işlenir, sonuç bozulmaz |
 | 5 | **Öncelik sırası** | Yeni yayın > güncelleme > toplu yenileme | Yoğun anda yeni kullanıcı beklemez |
-| 6 | **Durum her zaman görünür** | `beklemede → hesaplanıyor → hazır / hata` | Kullanıcı boş ekran değil "hazırlanıyor" görür; hata izlenir |
+| 6 | **Küçük partiler** | Her çağrıda sınırlı iş (örn. 20 eşleştirme); büyük işler 500'lük parçalara bölünür | Edge Function süre sınırına takılmaz |
 
 ### 8.6 Kod yapısı — ağır iş SQL'de, işçi ince
 
@@ -1383,7 +1569,7 @@ Yüksek trafik:  5 embedding  +  10 eşleştirme
 |---|---|---|
 | Kuyruğa iş yazma | Veritabanı tetikleyicisi | SQL |
 | Filtre + vektör + skor | Veritabanı fonksiyonları (`eslestir`) | SQL |
-| İşçiler | Edge Function | TypeScript |
+| İşçiler | Edge Function | TypeScript (Deno) |
 | Zamanlama | `pg_cron` | SQL |
 
 ```typescript
@@ -1399,11 +1585,28 @@ await db.rpc('pgmq_delete', { kuyruk: 'eslestirme', isler })
 |---|---|
 | **Veri orada** | Binlerce satır okunuyor — dışarı taşımak yavaş |
 | **Tek yer** | Kural değişince tek SQL fonksiyonu değişir; Flutter, Next.js, işçiler etkilenmez |
-| **Taşınabilir** | 1M+ ölçekte işçi ayrı sunucuya taşındığında aynı SQL fonksiyonlarını çağırmaya devam eder |
 
-> Edge Function'ların çalışma süresi sınırlı: büyük işler parçalanır — "50.000 adayı eşleştir" tek iş değil, 500'lük parçalar. Supabase'in güncel süre ve eşzamanlılık sınırları kurulumdan önce kontrol edilmeli.
+### 8.7 Taşınabilirlik — gerekirse container'a
 
----
+Edge Function'lar Deno ile yazılıyor; **aynı kod değiştirilmeden bir Deno container'ında da çalışır.** Bunu garanti eden üç kural:
+
+| Kural | Neden |
+|---|---|
+| **İnce** — kuyruktan al, SQL fonksiyonunu çağır, sil | Taşınacak çok kod olmasın |
+| **Durumsuz** — işçi kendi içinde hiçbir şey saklamaz | Kaç kopya çalışırsa çalışsın sorun çıkmaz |
+| **Standart bağlantı** — Supabase'e özel çalışma ortamı özelliği kullanmaz | Container'dan da aynı şekilde bağlanır |
+
+**Taşıma sinyalleri** — ölçümle izlenir:
+
+| Sinyal | Karar |
+|---|---|
+| Kuyruk sürekli birikiyor | O işçi container'a taşınır (Fly.io / Cloud Run), birden çok kopya |
+| İş süreleri sınıra yaklaşıyor | Aynı |
+| Çağrı maliyeti sürekli açık işçiyi geçiyor | Aynı |
+
+**Bir işçiyi taşımak diğerlerini etkilemez** — örneğin sadece eşleştirme işçisi container'a geçer; kuyruk, işlerin yapısı ve SQL fonksiyonları aynı kalır.
+
+> Supabase'in Edge Function süre ve eşzamanlılık sınırları plana göre değişir — kurulumdan önce güncel değerler kontrol edilmeli.
 
 ## 9. Bildirim
 
@@ -1413,6 +1616,7 @@ await db.rpc('pgmq_delete', { kuyruk: 'eslestirme', isler })
 |---|---|
 | Giriş, veritabanı, dosyalar, kuyruk, işçiler | **Supabase** |
 | Push bildirimi | **Sadece Firebase Cloud Messaging (FCM)** |
+| E-posta | E-posta servisi (Resend, Postmark, SES vb.) |
 
 FCM; Android, iOS (Apple'ın APNs'i üzerinden) ve web'i (Next.js) tek servisle kapsıyor, gönderim başına ücret yok. Firebase'de kullanıcı hesabı **yok** — Firebase kullanıcıyı değil, **cihazı** tanır.
 
@@ -1449,47 +1653,101 @@ Kullanıcı sadece kendi adresini kaydedebilir (RLS). FCM anahtarı sadece Edge 
 ```
 Olay (başvuru geldi)
   → tetikleyici iki şey yazar:
-     ├─ bildirimler tablosu  ← uygulama içi 🔔 (herkes için)
-     └─ bildirim kuyruğu     ← push işi (kurala uyanlar için)
+     ├─ bildirimler tablosu  ← uygulama içi 🔔 (ilgili herkes)
+     └─ bildirim kuyruğu     ← push işi (kurala uyanlar)
   → bildirim işçisi: kime? cihazları? dili? → FCM → telefon
 ```
 
-### 9.4 Push ve uygulama içi
+### 9.4 Üç kanal
 
-| | Push 📱 | Uygulama içi 🔔 |
+> **📱 Push** — telefona / tarayıcıya, uygulama kapalıyken · **🔔 Uygulama içi** — bildirim kutusunda saklanır, sayaçta görünür · **✉️ E-posta**
+
+| | 📱 Push | 🔔 Uygulama içi |
 |---|---|---|
-| Ne zaman görünür | Uygulama kapalıyken | Uygulama açıkken |
-| Kayıt | Gönderilir, saklanmaz | Saklanır, okundu / okunmadı |
-| Kim alır | İzin veren + kuralına göre | Herkes — sayaç |
-
-### 9.5 Kim neyi alır
-
-| Olay | Aday | İlanın sorumlusu | Sahip / yönetici |
-|---|---|---|---|
-| Başvuru geldi | — | 📱 🔔 | 🔔 |
-| Davet geldi | 📱 🔔 | — | — |
-| Başvuru / davet kabul · red | 📱 🔔 | 📱 🔔 | 🔔 |
-| Yeni mesaj | 📱 🔔 | 📱 🔔 | 🔔 |
-| İletişim bilgisi isteği | 📱 🔔 | — | — |
-| Günlük özet | 📱 | 📱 | — |
+| Amaç | **Hemen haberdar et** | **Kaybolmasın, sonra bakılsın** |
+| Saklanır mı | Hayır — gönderilir, biter | Evet — okundu / okunmadı |
+| Kim alır | Sadece **harekete geçmesi gereken** kişi | **İlgili herkes** |
 
 > **İşverende push sadece ilanın sorumlusuna:** Büyük şirkette yönetici günde yüzlerce bildirim alır, kapatır, önemliyi kaçırır. Sayaç ile haberdar, ama rahatsız edilmiyor.
 
-### 9.6 Yeni ilan / aday — günlük özet
+### 9.5 Bildirim kataloğu
+
+#### Başvuru
+
+| # | Olay | Kime | Kanal | Metin | Dokununca |
+|:---:|---|---|:---:|---|---|
+| 1 | Aday başvurdu | İlanın sorumlusu | 📱 🔔 | *"Senior Backend Developer ilanınıza yeni başvuru: Ayşe Kaya"* | İlan → Başvuranlar |
+| 2 | Aday başvurdu | Sahip / yönetici | 🔔 | Aynı | İlan → Başvuranlar |
+| 3 | Başvuru **kabul edildi** | Aday | 📱 🔔 | *"ABC Teknoloji başvurunuzu kabul etti. Görüşmeye başlayabilirsiniz."* | Süreçteki İlanlar → sohbet |
+| 4 | Başvuru **kabul edilmedi** | Aday | 📱 🔔 | *"ABC Teknoloji, Senior Backend Developer pozisyonu için başka adaylarla ilerlemeye karar verdi."* | Başvurularım → Sonuçlanan |
+| 5 | Başvurunun **süresi doldu** | Aday | 🔔 | *"Senior Backend Developer başvurunuz yanıtlanmadan sona erdi."* | Başvurularım → Sonuçlanan |
+| 6 | Aday başvurusunu **geri çekti** | İlanın sorumlusu | 🔔 | *"Ayşe Kaya başvurusunu geri çekti."* | İlan → Başvuranlar → Sonuçlanan |
+
+#### Davet
+
+| # | Olay | Kime | Kanal | Metin | Dokununca |
+|:---:|---|---|:---:|---|---|
+| 7 | İşveren davet etti | Aday | 📱 🔔 | *"ABC Teknoloji sizi Senior Backend Developer pozisyonuna davet etti."* | Davetlerim |
+| 8 | Davet **kabul edildi** | İlanın sorumlusu | 📱 🔔 | *"Ayşe Kaya davetinizi kabul etti. Görüşmeye başlayabilirsiniz."* | Süreçteki Adaylar → sohbet |
+| 9 | Davet kabul edildi | Sahip / yönetici | 🔔 | Aynı | Süreçteki Adaylar |
+| 10 | Davet **kabul edilmedi** | İlanın sorumlusu | 📱 🔔 | *"Ayşe Kaya davetinizi kabul etmedi."* | Davet Edilenler → Sonuçlanan |
+| 11 | Davet kabul edilmedi | Sahip / yönetici | 🔔 | Aynı | |
+| 12 | Davetin **süresi doldu** | İlanın sorumlusu | 🔔 | *"Ayşe Kaya'ya gönderdiğiniz davet yanıtlanmadan sona erdi."* | Davet Edilenler → Sonuçlanan |
+| 13 | İşveren daveti **geri çekti** | Aday | 🔔 | *"ABC Teknoloji davetini geri çekti."* | Davetlerim → Sonuçlanan |
+
+#### Süreç ve sohbet
+
+| # | Olay | Kime | Kanal | Metin | Dokununca |
+|:---:|---|---|:---:|---|---|
+| 14 | Yeni mesaj | Aday veya ilanın sorumlusu | 📱 🔔 | *"ABC Teknoloji: Merhaba Ayşe Hanım, …"* (ilk satır) | Sohbet |
+| 15 | Yeni mesaj | Sahip / yönetici | 🔔 | Aynı | Sohbet |
+| 16 | **İletişim bilgisi istendi** | Aday | 📱 🔔 | *"ABC Teknoloji telefon ve e-posta bilginizi görmek istiyor."* | Sohbet → [Paylaş] / [Şimdilik hayır] |
+| 17 | İletişim bilgisi **paylaşıldı** | İlanın sorumlusu | 📱 🔔 | *"Ayşe Kaya iletişim bilgilerini paylaştı."* | Sohbet |
+| 18 | İlan **devredildi** | Aday | 🔔 | *"Bu görüşme artık Can Demir tarafından yürütülüyor."* *(sohbette sistem mesajı olarak da)* | Sohbet |
+| 19 | İlan **devredildi** | Yeni sorumlu | 📱 🔔 | *"Senior Backend Developer ilanı size devredildi."* | İlan |
+
+#### İlan durumu
+
+| # | Olay | Kime | Kanal | Metin | Dokununca |
+|:---:|---|---|:---:|---|---|
+| 20 | İlan **kapandı** | Bekleyen başvurusu olan adaylar | 🔔 | *"Başvurduğunuz Senior Backend Developer ilanı kapandı."* | Başvurularım → Sonuçlanan |
+| 21 | İlan kapandı | Daveti bekleyen adaylar | 🔔 | *"ABC Teknoloji'nin davet ettiği pozisyon kapandı."* | Davetlerim → Sonuçlanan |
+| 22 | İlan **yeniden açıldı**, başvurular geri getirildi | İlgili adaylar | 🔔 | *"Başvurduğunuz Senior Backend Developer ilanı yeniden açıldı; başvurunuz değerlendirmeye alındı."* | Başvurularım → Bekleyen |
+
+#### Günlük özet
+
+| # | Olay | Kime | Kanal | Metin | Dokununca |
+|:---:|---|---|:---:|---|---|
+| 23 | İlk 50'ye giren yeni ilanlar | Aday *("haber ver" açık, aktif)* | 📱 | *"Sana uygun 4 yeni ilan var."* | Keşfet |
+| 24 | İlk 50'ye giren yeni adaylar | İlanın sorumlusu | 📱 | *"Senior Backend Developer ilanına uygun 6 yeni aday var."* | İlan → Adaylar |
+
+> **Günlük özet neden sadece 📱:** Bir hatırlatma; kullanıcı uygulamayı açınca yeni ilanları / adayları zaten listede görüyor.
+
+### 9.6 Kurallar
+
+| Kural | |
+|---|---|
+| **Dil** | Alıcının arayüz dilinde — tüm metinler şablon, her dile çevrilir |
+| **Saat** | Anlık bildirimler hemen; günlük özet alıcının saat diliminde sabah |
+| **Mesaj gruplama** | Aynı sohbetten kısa sürede çok mesaj → tek push: *"ABC Teknoloji'den 3 yeni mesaj"* |
+| **Sessize alma** | Push **türlere göre** kapatılabilir (mesaj, başvuru, günlük özet); 🔔 her zaman kalır |
+| **Ret metinleri** | Kibar ve nötr — aday için kırıcı olmasın |
+| **İzin verilmezse** | Push gitmez; 🔔 sayaç yine çalışır |
+
+> Bakım kaynaklı bildirimler (otomatik düşme uyarısı, hesap askıya alma) → `bakim-isleri.md` · Hesap / şirket e-postaları (işveren onayı, ekip daveti, değişiklik talebi) → ilgili dokümanlar
+
+### 9.7 Yeni ilan / aday — günlük özet
 
 | | Aday | İşveren |
 |---|---|---|
-| Mesaj | *"Sana uygun 4 yeni ilan var"* | *"Backend Developer ilanına uygun 6 yeni aday var"* |
 | "Uygun" ne demek | Yeni ilan adayın listesinde **ilk 50'ye** girdi | Yeni aday ilanın listesinde **ilk 50'ye** girdi |
 | Kime | "Haber ver" açık + **aktif** aday | İlanın **sorumlusu** |
-| Sıklık | **Günde en fazla bir**, kullanıcının saat diliminde sabah | Aynı |
+| Sıklık | Günde en fazla bir, sabah | Aynı |
 | Varsayılan | Açık, kapatılabilir | Açık, kapatılabilir |
 
-**Neden ilk 50:** Filtreden geçen her yeni ilan sayılsa geniş profilli adaya *"87 yeni ilan"* gider — anlamsız. **Pasif kullanıcılar** önceden hesaplanmadığı için özet almaz — 14 gündür girmeyene her gün bildirim, uygulamayı silmeye iter.
+**Neden ilk 50:** Filtreden geçen her yeni ilan sayılsa geniş profilli adaya *"87 yeni ilan"* gider — anlamsız. **Pasif kullanıcılar** önceden hesaplanmadığı için özet almaz — 14 gündür girmeyene her gün bildirim uygulamayı silmeye iter.
 
-**Maliyet:** Neredeyse sıfır — eşleştirme zaten yapılıyor, sadece "ilk 50'ye girdi mi" kontrolü ve günlük toplama.
-
-### 9.7 Anlık güncelleme — sadece sohbette
+### 9.8 Anlık güncelleme — sadece sohbette
 
 | Ekran | Yöntem | Neden |
 |---|---|---|
@@ -1497,25 +1755,106 @@ Olay (başvuru geldi)
 | Sayaçlar, bildirim kutusu, ilan kartı sayıları | **60 sn'de bir yenileme** + aşağı çekip yenile; arka plandayken durur; tek istekte tüm sayılar | Bir dakika gecikme sorun değil |
 | Keşfet | Açılınca yükle | Anlık değişim gerekmiyor |
 
-> Realtime bağlantı sayısı "o an ekranı açık olan" kadar. Sadece sohbette açık tutmak bağlantıları onda birine indiriyor.
+> Realtime bağlantı sayısı "o an ekranı açık olan" kadar — sadece sohbette açık tutmak bağlantıları onda birine indiriyor.
 
----
+## 10. Keşfet, Kartlar ve Menüler
 
-## 10. Keşfet ve Kartlar
+### 10.1 Menüler
 
-### 10.1 Liste görünümü
-
-Keşfet **liste** — kaydırıp geçme yok. Kart, kullanıcı aksiyon alana kadar listede kalır.
+**Aday — alt menü (en fazla 5):**
 
 ```
-Aday:     [ Keşfet ] [ Başvurularım ] [ Davetler ] [ Süreçteki İlanlar ]
-İşveren:  (her ilanın içinde)
-          [ Adaylar ] [ Başvuranlar ] [ Davet Edilenler ] [ Süreçteki Adaylar ] [ Gizlenenler ]
+┌──────────────────────────────────────────────────────┐
+│  Üst bar:   🔔 3      💬 2           🟢 Aktif arıyorum │
+├──────────────────────────────────────────────────────┤
+│                    (ekran içeriği)                   │
+├──────────────────────────────────────────────────────┤
+│  🔍        📨           ✉️         🤝         👤      │
+│ Keşfet  Başvurularım  Davetlerim  Süreçte   Profilim │
+└──────────────────────────────────────────────────────┘
 ```
 
-Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dolan.**
+| Sekme | İçerik | Rozet |
+|---|---|---|
+| 🔍 **Keşfet** | Uygun ilanlar | — |
+| 📨 **Başvurularım** | Bekleyen / Sonuçlanan | Görülmemiş yeni sonuç |
+| ✉️ **Davetlerim** | Bekleyen / Sonuçlanan | Cevap bekleyen davet |
+| 🤝 **Süreçteki İlanlar** | Eşleşilen ilanlar — sohbet | Okunmamış mesaj |
+| 👤 **Profilim** | Profil, **Gizlediklerim**, ayarlar | — |
 
-### 10.2 Aday Keşfet kartı
+**İşveren — her ilanın içinde:**
+```
+[ Adaylar ] [ Başvuranlar ] [ Davet Edilenler ] [ Süreçteki Adaylar ] [ Gizlenenler ]
+```
+
+**İki tarafın simetrisi:**
+
+| Aday | İşveren (ilan bazlı) |
+|---|---|
+| Keşfet | Adaylar |
+| Başvurularım (Bekleyen / Sonuçlanan) | Başvuranlar (Bekleyen / Sonuçlanan) |
+| Davetlerim (Bekleyen / Sonuçlanan) | Davet Edilenler (Bekleyen / Sonuçlanan) |
+| Süreçteki İlanlar | Süreçteki Adaylar |
+| Profilim → Gizlediklerim | Gizlenenler |
+
+> **Neden ayrı "Reddedilenler" sekmesi yok:** Alt menüde yer sınırlı; reddedilen + süresi dolan + kapanan aynı şey — **sonuçlanmış.** Bekleyenler önde, sonuçlananlar bir dokunuş uzakta; aday her açtığında ret listesiyle karşılaşmaz.
+
+### 10.2 Kart standardı — tüm kartlar için tek kural
+
+> **Kartta:** ayıklama + incele · **Detayda:** süreci başlatan aksiyon + ayıklama
+
+| | Kartta | Detayda |
+|---|:---:|:---:|
+| **[Bir daha gösterme]** | ✅ | ✅ |
+| **[İncele →]** | ✅ | — |
+| **[Başvur]** *(aday)* | ❌ | ✅ |
+| **[Davet et]** *(işveren)* | ❌ | ✅ |
+| Uyum rozeti 🟢 🟡 ⚪ | ✅ | ✅ |
+| **Neden önerildi? ▾** | ✅ | ✅ |
+
+**Kartın tamamına dokunmak da detayı açar** — [İncele] görünür bir ipucu.
+
+| Neden bu standart | |
+|---|---|
+| İki taraf aynı mantıkla | Öğrenmesi kolay, ekip için tek kural |
+| Başvuru / davet **bilinçli** | Karşı tarafın tamamını gördükten sonra |
+| Uyumsuz başvuru / davet yığılmaz | İki tarafın listesi daha kaliteli |
+| Ayıklama hızlı | İlgisizi açmadan çıkarabilir |
+
+### 10.3 "Neden önerildi? ▾" — açılır bölüm
+
+**Tüm kartlarda ve tüm detay ekranlarında** — kapalı başlar, dokununca açılır (Flutter `ExpansionTile`).
+
+```
+│ Neden önerildi?                           ▾  │      ← kapalı
+
+│ Neden önerildi?                           ▴  │      ← açık
+│   ✅ Profilin bu ilanla çok uyumlu            │
+│   ✅ React ✓  PostgreSQL ✓                    │
+│   ⚠️ .NET sende yok                           │
+│   ⚠️ Tecrübe istenenin biraz altında          │
+│      (3 yıl, istenen 5)                      │
+│   ✅ Maaş belirtilmiş                         │
+```
+
+| Kart | Rozet | Neden önerildi? ▾ | Skor kaynağı |
+|---|:---:|:---:|---|
+| Aday — Keşfet | ✅ | ✅ | Sonuç tablosu (güncel) |
+| Aday — Başvurularım | ✅ | ✅ | **Başvuru anındaki** anlık görüntü |
+| Aday — Davetlerim | ✅ | ✅ | **Davet anındaki** anlık görüntü |
+| İşveren — Adaylar | ✅ | ✅ | Sonuç tablosu (güncel) |
+| İşveren — Başvuranlar | ✅ | ✅ | **Başvuru anındaki** anlık görüntü |
+| İşveren — Davet Edilenler | ✅ | ✅ | **Davet anındaki** anlık görüntü |
+
+| | |
+|---|---|
+| Ne zaman hesaplanır | Sadece **açılınca** — açılmayan kart için hesap yok |
+| Üretim | Alt skorlar + etiket karşılaştırması → hazır şablonlar, her dile çevrilmiş — **LLM yok** |
+| Maliyet | Açılan kart başına milisaniyeler |
+
+> **Neden kapalı başlar:** Kart sade kalır; "eksik / altında" uyarıları ilk bakışta caydırmasın — ama merak eden tek dokunuşla görür, detaya girmeden bilinçli ayıklama yapar.
+
+### 10.4 Aday — Keşfet kartı
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -1526,6 +1865,10 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 │ 📍 Kadıköy, İstanbul                          │
 │ Hibrit · Tam zamanlı                         │
 │ 💰 80.000 – 110.000 TRY (net)                 │
+│                                              │
+│ Neden önerildi?                           ▾  │
+│                                              │
+│ [Bir daha gösterme]              [İncele →]  │
 └──────────────────────────────────────────────┘
 ```
 
@@ -1537,11 +1880,10 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 | Konum | İlanın konumu |
 | Çalışma şekli · tipi | Stajda tip yerine çalışma düzeni |
 | Maaş / ücret | **Sadece belirtilmişse** |
-| Uyum seviyesi | 🟢 / 🟡 / ⚪ |
 
-**Aksiyonlar:** [Başvur] · [Bir daha gösterme]
+**Detay:** İlanın tamamı + şirket profili + Neden önerildi? ▾ + alt çubukta **[Bir daha gösterme] [Başvur]**
 
-### 10.3 İşveren "Adaylar" kartı
+### 10.5 İşveren — Adaylar kartı
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -1555,15 +1897,15 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 │ 🎓 Lisans · Bilgisayar Mühendisliği · Mezun   │
 │ ⏱ 1 ay içinde başlayabilir                    │
 │                                              │
-│ [Davet et]   [Bir daha gösterme]             │
+│ Neden önerildi?                           ▾  │
+│                                              │
+│ [Bir daha gösterme]              [İncele →]  │
 └──────────────────────────────────────────────┘
 ```
 
 | Kartta | |
 |---|---|
-| Fotoğraf, ad soyad | |
-| Meslek alanı, unvan | |
-| Uyum seviyesi | 🟢 / 🟡 / ⚪ |
+| Fotoğraf, ad soyad, meslek alanı, unvan | |
 | Arama durumu | 🟢 Aktif arıyorum / 🟡 Fırsatlara açığım |
 | Konum | Yaşadığı konum |
 | Toplam tecrübe | Otomatik hesaplanan yıl |
@@ -1572,9 +1914,87 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 
 **Kartta bilerek olmayanlar:** Cinsiyet ve askerlik (**sadece detayda** — kartta hızlı eleme sebebi olmasın), doğum tarihi, telefon, e-posta, belgeler.
 
-**Karta tıklayınca:** Adayın tüm profili + "Neden önerildi?" — telefon, e-posta, doğum tarihi ve belgeler kendi kurallarına göre gizli.
+**Detay:** Profilin tamamı + Neden önerildi? ▾ + alt çubukta **[Bir daha gösterme] [Davet et]**. Telefon, e-posta, doğum tarihi, belgeler kendi kurallarına göre gizli.
 
-### 10.4 İşveren ilan kartı
+### 10.6 Aday — Başvurularım kartları
+
+**Bekleyen:**
+```
+┌──────────────────────────────────────────────┐
+│ [İŞ İLANI]                     🟢 Yüksek uyum │
+│ Senior Backend Developer                     │
+│ ABC Teknoloji  ✓ Doğrulanmış şirket          │
+│ 📍 Kadıköy, İstanbul · Hibrit                 │
+│                                              │
+│ ⏳ Değerlendiriliyor                          │
+│ Başvuru: 12 Eylül · 5 gün önce               │
+│ Gönderdiğin: 💰 90.000 TRY (net) · 📄 3 belge  │
+│                                              │
+│ Neden önerildi?                           ▾  │
+│                                              │
+│ [Başvurumu geri çek]          [İlanı gör →]  │
+└──────────────────────────────────────────────┘
+```
+
+**Sonuçlanan:**
+```
+┌──────────────────────────────────────────────┐
+│ Frontend Developer · DEF Yazılım             │
+│ ✕ Başka adaylarla ilerlendi                   │
+│ Başvuru: 1 Ağustos · Sonuç: 15 Ağustos       │
+└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ Backend Developer · JKL Yazılım              │
+│ 🔒 İlan kapandı                               │
+│ Başvuru: 20 Temmuz · Kapandı: 2 Ağustos      │
+└──────────────────────────────────────────────┘
+```
+
+| Bekleyen kartında | |
+|---|---|
+| İlan tipi, unvan, şirket, konum | |
+| Durum | ⏳ Değerlendiriliyor *(+ duraklatıldıysa notu)* |
+| Başvuru tarihi + kaç gün önce | **Kalan gün gösterilmez** |
+| Gönderdiği | Maaş beklentisi (yazdıysa) + kaç belge |
+| [Başvurumu geri çek] · [İlanı gör →] | |
+
+**Davetlerim** aynı yapıda — bekleyen kartında *"⏳ Cevabın bekleniyor · Davet: 15 Eylül"*, detayda **[Kabul et] [Kabul etme]**.
+
+### 10.7 İşveren — Başvuranlar ve Davet Edilenler kartları
+
+**Başvuranlar (Bekleyen):**
+```
+┌──────────────────────────────────────────────┐
+│ [Foto]  Ayşe Kaya          🟢 Yüksek uyum     │
+│         Backend Geliştirici                  │
+│                                              │
+│ ⏳ Karar bekliyor · 25 gün kaldı               │
+│ Başvuru: 12 Eylül                            │
+│ 💰 90.000 TRY (net) · 📄 3 belge               │
+│                                              │
+│ Neden önerildi?                           ▾  │
+│                                              │
+│ [Profili ve başvuruyu gör →]                 │
+└──────────────────────────────────────────────┘
+```
+Detayda **[Kabul et] [Kabul etme]**. Başvuranlar **başvuru anındaki skora** göre sıralı.
+
+**Davet Edilenler (Bekleyen):**
+```
+┌──────────────────────────────────────────────┐
+│ [Foto]  Ayşe Kaya          🟢 Yüksek uyum     │
+│         Backend Geliştirici                  │
+│                                              │
+│ ⏳ Cevap bekleniyor · 7 gün kaldı              │
+│ Davet: 15 Eylül · Davet eden: Mehmet Kaya    │
+│                                              │
+│ Neden önerildi?                           ▾  │
+│                                              │
+│ [Daveti geri çek]            [Profili gör →] │
+└──────────────────────────────────────────────┘
+```
+
+### 10.8 İşveren — ilan kartı
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -1592,12 +2012,8 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 
 | Kartta | |
 |---|---|
-| Meslek alanı, unvan | |
-| Durum | 🟢 Yayında · ⏸ Duraklatıldı · ⏱ Süresi doldu · ✓ Kapatıldı |
-| Açan kişi | Sahip / yönetici / uzman |
-| Konum, kalan gün | |
-| Görüntülenme | Tekil aday sayısı |
-| Sekme sayıları | Uygun · bekleyen başvuru · cevap bekleyen davet · süreçte · gizlenen *(kabul/red dökümü yok)* |
+| Meslek alanı, unvan, durum, açan kişi, konum, kalan gün, görüntülenme | |
+| Sekme sayıları | Uygun · **bekleyen** başvuru · **cevap bekleyen** davet · süreçte · gizlenen *(kabul/red dökümü yok)* |
 
 | Buton | |
 |---|---|
@@ -1606,41 +2022,18 @@ Başvurular, davetler listelerinde filtre: **Bekleyen / Reddedilen / Süresi dol
 | **[Kapat]** | *Pozisyon doldu* / *Alımdan vazgeçtik* |
 | **[Tekrar yayınla]** | Süresi dolmuş / kapatılmış ilan — aynı ilan, geçmiş korunur |
 
-**Kapatınca:** Bekleyen başvuru ve davetler kapanır (adaya bildirim), süreçteki adaylarla sohbet **devam eder.**
-
 > Sayaçların nasıl tutulduğu → `isveren-paneli-v2.md`
 
-### 10.5 "Neden önerildi?" — detayda
-
-Kartta **sadece uyum seviyesi.** Karta tıklayınca:
-
-```
-Neden önerildi?
-✅ Profilin bu ilanla çok uyumlu
-✅ React ✓  PostgreSQL ✓
-⚠️ .NET sende yok
-⚠️ Tecrübe istenenin biraz altında (3 yıl, istenen 5)
-✅ Maaş belirtilmiş
-```
-
-| | |
-|---|---|
-| Kaynak | Saklanan **alt skorlar** + etiket karşılaştırması |
-| Üretim | Hazır şablonlar, her dile çevrilmiş — **LLM yok** |
-| Maliyet | Neredeyse sıfır — sadece açılan kart için, milisaniyeler |
-
-**Neden kartta değil detayda:** Kart sade kalır; "eksik / altında" uyarıları ilk bakışta caydırmasın — aday iyi bir ilana hiç tıklamamazlık etmesin.
-
-### 10.6 Gizlediklerim / Gizlenenler
+### 10.9 Gizlediklerim / Gizlenenler
 
 | | Aday — Gizlediklerim | İşveren — Gizlenenler |
 |---|---|---|
-| Nerede | Profilde liste | **Her ilanın kendi sekmesi** |
+| Nerede | Profilim altında | **Her ilanın kendi sekmesi** |
 | İçerik | Sadece **hâlâ yayında** olan ilanlar | O ilanda gizlenen adaylar |
 | [Geri al] | İlan tekrar Keşfet'e düşer *(filtreye uyuyorsa)* | Aday tekrar Adaylar'a düşer |
 | İlan kapanırsa | Listeden düşer; tekrar yayınlanırsa gizli olarak geri gelir | Gizleme kaydı korunur |
 
-### 10.7 Kartlar tükendiğinde
+### 10.10 Kartlar tükendiğinde
 
 [Daha fazla getir] yeni sonuç döndürmediyse:
 
@@ -1651,60 +2044,64 @@ Aday:                                       İşveren (ilan bazlı):
 [Profilini güçlendir]                       [İlanını güçlendir]
 ```
 
-> **Kart tükenmesi hata değil** — kullanıcı tüm uygun ilanları/adayları gördü demek. Çözümü arayüzde değil, havuzu büyütmekte.
+> **Kart tükenmesi hata değil** — kullanıcı tüm uygunları gördü. Çözüm arayüzde değil, havuzu büyütmekte.
 
-**Değerlendirilip ertelenen:** *"Uzaktan da açarsan 12 ilan daha var"* gibi filtre gevşetme önerisi — her filtre için ayrı sorgu gerektirir ve gevşetince gelen sonuçlar düşük kaliteli olup güveni zedeleyebilir. İleride sadece konum için düşünülebilir.
+**Ertelenen:** *"Uzaktan da açarsan 12 ilan daha var"* gibi filtre gevşetme önerisi — her filtre için ayrı sorgu gerektirir, gevşetince gelen sonuçlar güveni zedeleyebilir.
 
----
+## 11. Mimari — İlk Günden 1 Milyon+ İçin
 
-## 11. Ölçek Planı
+> **Karar:** Mimari ilk günden **1 milyon+ kullanıcıya** göre kuruluyor. Büyüme anında taşıma, yeniden yazma, kesinti olmasın.
+>
+> **Bilinçli bedeli:** Kullanıcı azken de okuma kopyası gibi parçalar için ödeme yapılır; ilk günden daha çok parça yönetilir.
 
-### 11.1 Yol haritası
-
-| Kullanıcı | Yapılacak | Neden |
-|---|---|---|
-| **0 – 100K** | Tek veritabanı, Supabase Queues + Edge Function işçileri, iyi indeksler | Gereksiz karmaşıklık yok |
-| **100K – 1M** | Sonuç tablosu bölümleme (hash 16), okuma kopyaları, işçi sayısını artırma | Satır sayısı 100M'a yaklaşıyor; okuma–yazma yarışı |
-| **1M+** | İşçiler ayrı sunuculara, ayrı vektör veritabanı, kendi embedding servisi, önbellek | Edge Function sınırları; API maliyeti |
-| **Çok yüksek / çok ülke** | Bölgesel veritabanları | Veri yerleşimi yasaları |
-
-### 11.2 1M+ hedef mimari
+### 11.1 Genel şema
 
 ```
  Flutter / Next.js
         │
         ▼
- ┌────────────────────────────┐
- │ API (Supabase)             │  Auth · RLS · Edge Functions
- └─────────────┬──────────────┘
-               │ olay yazar
-               ▼
- ┌────────────────────────────┐
- │ KUYRUK                     │
- └──┬──────────┬──────────┬───┘
-    ▼          ▼          ▼
- Embedding  Eşleştirme  Bildirim     ← ayrı sunucularda, yük kadar kopya
-    │          │          │
-    ▼          ▼          ▼
- Vektör DB  Ana Postgres  FCM
-               │
-               ▼
- Okuma kopyaları + önbellek  ← Keşfet buradan okur
+ ┌──────────────────────────────────────────┐
+ │ SUPABASE                                 │
+ │  Auth · RLS · Edge Functions (istek anı) │
+ │                                          │
+ │  Ana Postgres  ── bölümlü tablolar       │
+ │       │                                  │
+ │       ├─▶ Kuyruklar (Supabase Queues)    │
+ │       │      ├─ embedding  ─▶ Edge Function işçisi
+ │       │      ├─ eslestirme ─▶ Edge Function işçisi
+ │       │      ├─ ayristirma ─▶ Edge Function işçisi
+ │       │      └─ bildirim   ─▶ Edge Function işçisi ─▶ FCM / e-posta
+ │       │                                  │
+ │       └─▶ Okuma kopyası ◀── Keşfet okur  │
+ └──────────────────────────────────────────┘
+        │
+        ├─▶ Önbellek (Keşfet ilk sayfası)
+        ├─▶ Embedding API · LLM API
+        └─▶ ClamAV container (dosya taraması)
 ```
 
-| Parça | Bugün | 1M+ |
+### 11.2 İlk günden kurulan parçalar
+
+| Parça | Karar | Neden |
 |---|---|---|
-| Kuyruk | Supabase Queues | Supabase Queues veya harici kuyruk |
-| İşçiler | Edge Function | Ayrı sunucular |
-| Vektör arama | `pgvector`, aynı veritabanı | **Ayrı vektör veritabanı** — filtre bilgisi vektörle birlikte; arama ve filtre tek adımda (Bölüm 4.4'teki çekişme kalkar) |
-| Sonuç tablosu | Tek tablo | Bölümlenmiş (16 → 64) |
-| Keşfet okuması | Ana veritabanı | Okuma kopyaları + önbellek |
-| Embedding | Harici API | Kendi modelimiz (GPU, toplu) |
-| Sohbet | Supabase Realtime | Ayrı gerçek zamanlı servis |
+| **Bölümleme** | Sonuç **32**, aksiyon **16**, mesajlar **16** (hash); görüntülenme, bildirim, iş kayıtları **zaman** | Boş tabloyu bölmek kolay, dolu tabloyu bölmek zor (Bölüm 6.9) |
+| **İşçiler** | Her biri **ayrı Edge Function**, taşınabilir | Ek sunucu yok; gerekirse tek tek container'a (Bölüm 8.7) |
+| **Okuma kopyası** | Keşfet ve listeler buradan okur | Okuma, yazma yüküyle yarışmaz |
+| **Önbellek** | Keşfet'in ilk sayfası kısa süreli önbellekte (örn. Upstash Redis) | Aynı kullanıcı tekrar açınca veritabanına gidilmez |
+| **Vektör arama** | `pgvector` + tüm aramalar **`vektor_ara()`** arkasında | Gerekirse ayrı vektör veritabanına geçiş tek fonksiyon |
+| **Servis soyutlamaları** | `embed()`, `ayristir()`, `eslestir()` tek fonksiyon arkasında | Sağlayıcı / yer değişince tek yerde |
+| **Bölge** | Tek bölge + **bölgeye hazır şema** (`ulke_kodu`, kişisel veri ile ilan verisi ayrı) | Çok bölge ancak lansman ülkeleri netleşince |
+| **Ölçüm** | Kuyruk uzunluğu, iş süresi, hata oranı, okuma kopyası gecikmesi — pano + uyarı | Darboğaz tahminle değil veriyle görülür |
 
-### 11.3 Bölgeler ve uzaktan ilanlar
+*Supabase okuma kopyaları, Queues ve Edge Function sınırları plana göre değişir — kurulumdan önce güncel koşullar kontrol edilmeli.*
 
-Yasalar veriyi bölge içinde tutmayı isteyebilir (AB, Türkiye…). Sorun: **uzaktan ilanlar bölge sınırını aşıyor.**
+### 11.3 Neden ayrı vektör veritabanı ilk günden değil
+
+Vektörleri iki yerde tutmak (Postgres + ayrı vektör veritabanı) **senkronizasyon sorunu** demek — bir yerde güncellenip diğerinde güncellenmeyen vektör sessizce yanlış eşleşme üretir. `pgvector` milyonlarca vektörde çalışıyor; `vektor_ara()` soyutlaması sayesinde gerçekten gerekirse geçiş tek fonksiyonu değiştirmek olur. Geçiş sinyali: filtre ile indeks çekişmesinin (Bölüm 4.4) indeks ayarıyla çözülememesi.
+
+### 11.4 Bölgeler ve uzaktan ilanlar — ileride
+
+Yasalar veriyi bölge içinde tutmayı isterse (AB, Türkiye…):
 
 | Veri | Nerede |
 |---|---|
@@ -1712,29 +2109,23 @@ Yasalar veriyi bölge içinde tutmayı isteyebilir (AB, Türkiye…). Sorun: **u
 | **İlan verisi** (kişisel veri yok) | **Tüm bölgelere kopyalanır** — her bölge global ilan havuzuna kendi içinden bakar |
 | Eşleşme olunca | Sadece gereken bilgi karşı tarafa açılır |
 
-İlan sayısı aday sayısından çok az — kopyalamak ucuz.
+**Neden şimdi kurulmuyor:** Hangi ülkeyle başlanacağı belli değil; çok bölgeli veritabanı ve ilan kopyalama ciddi karmaşıklık. Şema hazır, karar lansman planıyla verilir.
 
-### 11.4 Bugünden hazırlanması gerekenler
+### 11.5 Darboğaz nerede çıkar — beklenti
 
-Bunlar şimdi yapılırsa 1M+ geçişi **yeniden yazmak değil, büyütmek** olur:
-
-| Hazırlık | Neden |
+| Muhtemel darboğaz | Önlem |
 |---|---|
-| **Her arka plan işi "olay" olarak kuyruğa** | Bugün Edge Function okur, yarın ayrı sunucu — kod değişmez |
-| **`embed()`, `ayristir()`, `eslestir()` tek fonksiyon arkasında** | Sağlayıcı / yer değişince tek yerde |
-| **Tüm kayıtlarda `ulke_kodu`** | Bölgelere ayırırken verinin nereye gideceği belli |
-| **Kişisel veri ile ilan verisi ayrı tablolarda** | Bölgesel ayrımda ilanları kopyalamak kolay |
-| **Sonuç tablosu anahtarı `(ilan_id, aday_id)`** | Bölümleme tablo taşımadan yapılır |
-| **İş kimliği + "üstüne yaz"** | Kuyrukta tekrar denemeler güvenli |
-| **Ölçüm baştan** — hesap süresi, kuyruk uzunluğu, hata oranı | Darboğaz tahminle değil veriyle görülür |
+| **Vektör arama** (uzaktan ilanlarda geniş havuz) | Kısmi HNSW indeksler, `ef_search` ayarı, `vektor_ara()` soyutlaması |
+| **Embedding API sınırı** | Toplu gönderim, kuyruk, tekrar deneme |
+| **Eşleştirme hesabı** (popüler ilan × binlerce aday) | Parçalı işler, işçi kopyası, gerekirse container |
+| **Edge Function sınırları** | Küçük partiler, taşıma sinyalleri |
+| **Aday sorgusu 32 bölüme bakıyor** | `aday_id` indeksi, okuma kopyası, önbellek; gerekirse aday yönü için ikinci tablo |
 
-> **Profesyonel ilke:** Kullanıcı gelmeden büyük ölçek altyapısı kurmak en pahalı hata. **Şemayı baştan doğru kur, altyapıyı ölçerek büyüt.**
+## 12. Yayından Önce — İki Test
 
----
+> ⚠️ **İkisi de atlanırsa sonraki aylar boşa gidebilir.**
 
-## 12. İlk Sürümden Önce — Doğrulama Testi
-
-> ⚠️ **Bu adım atlanırsa sonraki aylar boşa gidebilir.**
+### 12.1 Doğrulama testi — eşleşme kalitesi
 
 **Arayüz yazmadan önce:**
 
@@ -1746,9 +2137,33 @@ Bunlar şimdi yapılırsa 1M+ geçişi **yeniden yazmak değil, büyütmek** olu
 4. Aynı test setiyle **embedding sağlayıcılarını** ve **LLM ayrıştırma doğruluğunu** karşılaştırın
 5. Cevap zayıfsa: ağırlıkları, formülleri, modeli değiştirin
 
-**Neden:** Eşleştirme kalitesi ürünün tamamını belirliyor. Arayüz yazıldıktan sonra "eşleştirme kötü" anlaşılırsa üstüne kurulan her şey sorgulanır. Bu test birkaç günlük iş, kazandırdığı süre aylar.
+**Neden:** Eşleştirme kalitesi ürünün tamamını belirliyor. Arayüz yazıldıktan sonra "eşleştirme kötü" anlaşılırsa üstüne kurulan her şey sorgulanır.
 
----
+### 12.2 Yük testi — hız ve dayanıklılık
+
+**Yayından önce, gerçeğe yakın ölçekte:**
+
+```
+1. Sahte veri üret
+   5 milyon aday · 500 bin ilan · 1 milyar sonuç satırı
+2. Gerçekçi trafik simüle et
+   - Aynı anda binlerce Keşfet açılışı
+   - Saatte binlerce ilan / profil güncellemesi
+   - "Pazartesi sabahı" — binlerce pasif kullanıcının aynı anda dönüşü
+   - Popüler ilan — tek ilan × on binlerce aday
+3. Ölç
+   - Keşfet açılış süresi
+   - Kuyruk birikmesi ve boşalma süresi
+   - İşçi süreleri, hata oranı
+   - Okuma kopyası gecikmesi
+4. Hedefler
+   - Keşfet  < 300 ms
+   - Kuyruk dakikalar içinde boşalıyor
+   - İşçiler Edge Function süre sınırının altında
+5. Zorlanan yeri bul → düzelt → tekrar ölç
+```
+
+**Neden:** Hiçbir mimari için "hiç yavaşlamaz" garantisi verilemez. Garantiye en yakın şey, gerçek yükten önce ölçmek.
 
 ## 13. Açık Kalanlar — Veriyle Ayarlanacaklar
 
