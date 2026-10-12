@@ -3,7 +3,7 @@
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
 > **Sürüm: final** — ekip toplantısı ve eşleştirme motoru kararları sonrası
-> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-final-v2.md`
+> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-final-v3.md`
 
 ---
 
@@ -1182,7 +1182,7 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 
 ## 16. Aday Ekranları — Özet
 
-> Ayrıntılar, kart taslakları ve kurallar → `eslestirme-motoru-final-v2.md` Bölüm 6 ve 10. Burada sadece adayın göreceği yapı özetleniyor — aynı detay iki yerde tutulmasın.
+> Ayrıntılar, kart taslakları ve kurallar → `eslestirme-motoru-final-v3.md` Bölüm 6 ve 10. Burada sadece adayın göreceği yapı özetleniyor — aynı detay iki yerde tutulmasın.
 
 ### Alt menü
 
@@ -1206,16 +1206,19 @@ Tüm ilan kartlarında ve detaylarda açılır-kapanır bölüm — kapalı baş
 
 | Durum | Adaya görünen |
 |---|---|
-| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa notu)* |
+| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa / kapandıysa notu: "İlan yayından kalktı")* |
 | Kabul edildi | → Süreçteki İlanlar |
-| Reddedildi | ✕ Başka adaylarla ilerlendi |
+| Reddedildi *(tek tek)* | ✕ Başka adaylarla ilerlendi |
+| Süreç sonlandı *(işveren ilanı kapatırken toplu)* | ⏹ Bu pozisyon için süreç sona erdi |
 | Süresi doldu (30 gün) | ⌛ Yanıtlanmadan sona erdi |
-| İlan kapandı | 🔒 İlan kapandı |
 | Geri çekildi | ↩ Başvurunu geri çektin |
+
+> **İlan kapanması başvuruyu sonuçlandırmaz** — ilan sadece Keşfet'ten çıkar; başvuru işverenin kararına veya 30 günlük süreye kadar geçerlidir. Kapatma sebebi (pozisyon doldu / vazgeçildi) adaya gösterilmez.
 
 - **[Başvurumu geri çek]** — Bekleyen kartında, onaylı; aynı ilana **tekrar başvurulamaz**
 - Adaya **kalan gün gösterilmez** — sadece kaç gün önce başvurduğu
-- Sonuçlananlar listede **90 gün** görünür
+- Sonuçlananlar listede **90 gün** görünür; kartta **[Listeden kaldır]**
+- Her başvurunun **ulaştığı en ileri aşama** kaydedilir (rapor için) — "işveren görüntüledi" bilgisi adaya **gösterilmez**
 
 ### Gizlediklerim
 
@@ -1409,7 +1412,7 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 > **Kaldırılan kriterler:** "Kısa tanıtım yazılmış" ve "eğitim kaydı tam" — artık zorunlu, her profilde dolu.
 
-> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-final-v2.md`
+> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-final-v3.md`
 
 ---
 
@@ -1437,7 +1440,8 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 | Doküman | Değişecek |
 |---|---|
-| **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru-final-v2.md` |
+| **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru-final-v3.md` |
+| **Bakım işleri** | ✅ Yazıldı — `bakim-isleri.md` (otomatik düşme, başvuru ayrıntılarının 1 yıl sonra silinmesi, 90 gün listeden gizleme) |
 | **İş ilanı** | Çalışma tipi **tek seçim → çoklu** (aday tarafıyla en az bir ortak); LLM onay ekranı yerine **"Algılanan" satırı + [Düzenle]**; meslek alanı ve unvan **yayından sonra kilitli** |
 | **Staj ilanı** | Aynı onay ekranı değişikliği; çalışma tipi filtresi stajda yok |
 | **İşveren Paneli / Keşfet** | İletişim isteği akışı; belgeler başvuru bazlı; cinsiyet ve askerlik detayda görünür, süzülemez |
