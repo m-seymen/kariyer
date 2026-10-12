@@ -2,7 +2,7 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final v2** — ekip toplantısı sonrası; ilk günden 1M+ mimari
+> **Sürüm: final v3** — ilk günden 1M+ mimari; ilan kapatma, aşama takibi, bakım kararları işlendi
 > İlgili dokümanlar: `aday-profili-v3.md`, `is-ilani-v3.md`, `staj-ilani.md`, `isveren-paneli-v2.md`, `auth-kararlari.md`
 > Kapsam dışı: **Bakım işleri** (süreler, temizlik, otomatik düşme, sayaç düzeltme, silmeler) → `bakim-isleri.md`
 
@@ -77,6 +77,12 @@ Eşleştirme motoru **ürünün kalbi.** Aday profili, ilan formu, şirket doğr
 | Listeler | — | İki tarafta **Bekleyen / Sonuçlanan**; her kartta o anki durum |
 | Geri çekme | Yok | Aday başvuruyu, işveren daveti geri çekebilir; tekrar yok |
 | Başvuru kaydı | — | Tarihler + **skor anlık görüntüsü**; belge erişimi sonuçlanınca kapanır |
+| İlan kapanınca | Bekleyenler "ilan kapandı" ile sonuçlanıyordu | **Sadece Keşfet'ten çıkar** — bekleyenler ve süreçtekiler devam eder |
+| Kapat ekranı | Sadece sebep | Sebep + bekleyenler için **açık kalsın / süreci sonlandır / davetlerimi geri çek** |
+| Sonuçlar | 🔒 İlan kapandı | **Kalktı**; yerine ⏹ *Bu pozisyon için süreç sona erdi* (toplu sonlandırma) |
+| İlan durumu | 6 durum | `taslak · yayinda · duraklatildi · kapali` + **kapanma sebebi** + yayın geçmişi |
+| Elle kapatılan ilan | Tekrar yayınlanabiliyordu | **Kalıcı** — **[Kopyala — yeni ilan oluştur]** |
+| Aşama takibi | — | Başvuru ve davette **en ileri aşama** + aşama geçmişi — raporlar için |
 
 ---
 
@@ -1107,7 +1113,7 @@ CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 | `eslesti` | İki taraf onayladı — süreçte |
 | `reddedildi` | İşveren başvuruyu / aday daveti kabul etmedi |
 | `suresi_doldu` | Başvuru 30 gün / davet 10 gün cevapsız |
-| `ilan_kapandi` | Karar verilmeden ilan kapandı |
+| `surec_sonlandi` | İşveren ilanı kapatırken bekleyen başvuruların sürecini toplu sonlandırdı |
 | `geri_cekildi` | Aday başvurusunu / işveren davetini geri çekti |
 
 | | Sonuç tablosu | Aksiyon tablosu |
@@ -1192,8 +1198,9 @@ CREATE TABLE basvurular (
   id                bigint PRIMARY KEY,
   ilan_id           bigint NOT NULL,
   aday_id           bigint NOT NULL,
-  durum             text   NOT NULL,   -- bekliyor | eslesti | reddedildi |
-                                       -- suresi_doldu | ilan_kapandi | geri_cekildi
+  sonuc             text   NOT NULL,   -- bekliyor | eslesti | reddedildi |
+                                       -- surec_sonlandi | suresi_doldu | geri_cekildi
+  en_ileri_asama    text   NOT NULL,   -- Bölüm 6.11
   basvuru_tarihi    timestamptz NOT NULL,
   sonuc_tarihi      timestamptz,
   geri_cekme_tarihi timestamptz,
@@ -1233,35 +1240,40 @@ CREATE TABLE basvurular (
 |---|---|---|
 | Bekliyor | ⏳ Değerlendiriliyor | ⏳ Karar bekliyor · *25 gün kaldı* |
 | Bekliyor + ilan duraklatıldı | ⏳ Değerlendiriliyor · İlan şu an duraklatıldı | ⏸ İlan duraklatıldı |
+| Bekliyor + ilan kapalı | ⏳ Değerlendiriliyor · **İlan yayından kalktı** | ⏳ Karar bekliyor · İlan kapalı |
 | Kabul edildi | → Süreçteki İlanlar | → Süreçteki Adaylar |
-| Reddedildi | ✕ **Başka adaylarla ilerlendi** | ✕ Reddedildi |
+| Reddedildi *(tek tek)* | ✕ **Başka adaylarla ilerlendi** | ✕ Reddedildi |
+| Süreç sonlandı *(kapatırken toplu)* | ⏹ **Bu pozisyon için süreç sona erdi** | ⏹ Süreç sonlandırıldı |
 | Süresi doldu | ⌛ Yanıtlanmadan sona erdi | ⌛ Yanıtlanmadan sona erdi |
-| İlan kapandı | 🔒 İlan kapandı | 🔒 İlan kapandı |
 | Geri çekildi | ↩ Başvurunu geri çektin | ↩ Aday başvurusunu geri çekti |
 
 | Durum | Aday — Davetlerim | İşveren — Davet Edilenler |
 |---|---|---|
 | Bekliyor | ⏳ Cevabın bekleniyor | ⏳ Cevap bekleniyor · *7 gün kaldı* |
+| Bekliyor + ilan kapalı | ⏳ Cevabın bekleniyor · **İlan yayından kalktı** — hâlâ kabul edebilir | ⏳ Cevap bekleniyor · İlan kapalı |
 | Kabul etti | → Süreçteki İlanlar | → Süreçteki Adaylar |
 | Kabul etmedi | ✕ Daveti kabul etmedin | ✕ Kabul etmedi |
 | Süresi doldu | ⌛ Yanıtlanmadan sona erdi | ⌛ Yanıtlanmadan sona erdi |
-| İlan kapandı | 🔒 İlan kapandı | 🔒 İlan kapandı |
 | Geri çekildi | ↩ Davet geri çekildi | ↩ Davet geri çekildi |
 
 > **"Başka adaylarla ilerlendi" = reddedildi.** Aday tarafında kibar ifade — çoğu zaman gerçek sebep de bu.
 > **Adaya kalan gün gösterilmez** — baskı yaratır; işverene gösterilir, süresi dolmak üzere olanı görsün.
 
-**"İlan kapandı"nın altına girenler** — aday için hepsi aynı sonuç:
+> **"Süreç sona erdi" neden ayrı:** İşveren "alımdan vazgeçtik" deyip toplu sonlandırdıysa adaya *"başka adaylarla ilerlendi"* demek **yanlış bilgi** olur. "Süreç sona erdi" her iki sebep için de doğru ve kişisel bir ret değil.
 
-| Arka planda | Adaya görünen |
+**Bir başvurunun tüm sonuçları:**
+
+| Sonuç | Kim belirler |
 |---|---|
-| Pozisyon doldu · alımdan vazgeçildi · 60 / 180 gün doldu · şirket hesabı kapatıldı | 🔒 İlan kapandı |
+| Kabul | İşveren |
+| Başka adaylarla ilerlendi | İşveren — tek tek |
+| Süreç sona erdi | İşveren — ilanı kapatırken toplu |
+| Yanıtlanmadan sona erdi | Sistem — 30 gün |
+| Geri çekildi | Aday |
 
-> "Pozisyon doldu" ayrıca söylenmez — adaya "başkası alındı" demek gereksiz yere kırıcı.
+> 🔒 **"İlan kapandı" diye bir sonuç yok.** İlan kapanması başvuruyu sonuçlandırmaz — her bekleyen ya işverenin / adayın kararıyla ya da kendi süresiyle biter.
 
-**Sonuçlandırmayan durumlar:** İlan duraklatıldı *(başvuru bekler, 30 gün işlemeye devam eder)*, ilan başka uzmana devredildi *(aday görmez)*, aday "şu an bakmıyorum" yaptı *(başvurusu devam eder)*.
-
-**İlan tekrar yayınlanırsa:** İşverene *"12 bekleyen başvurunuz vardı. Geri getirilsin mi?"* — **Evet** → başvurular Bekliyor'a döner, adaya 🔔, 30 gün yeniden başlar. **Hayır** → İlan kapandı olarak kalır.
+**Sonuçlandırmayan durumlar:** İlan duraklatıldı veya kapandı *(başvuru bekler, süre işler)*, ilan başka uzmana devredildi *(aday görmez)*, aday "şu an bakmıyorum" yaptı *(başvurusu devam eder)*.
 
 ### 6.7 Cevapsız kalma, geri çekme, belge erişimi
 
@@ -1278,7 +1290,7 @@ CREATE TABLE basvurular (
 
 | | Aday başvuruyu geri çeker | İşveren daveti geri çeker |
 |---|---|---|
-| Nerede | Başvurularım → Bekleyen kartı **[Başvurumu geri çek]** | Davet Edilenler → Bekleyen kartı **[Daveti geri çek]** |
+| Nerede | Başvurularım → Bekleyen kartı **[Başvurumu geri çek]** | Davet Edilenler → Bekleyen kartı **[Davetimi geri çek]** |
 | Onay | *"Başvurunuzu geri çekmek istediğinize emin misiniz?"* | *"Daveti geri çekmek istediğinize emin misiniz?"* |
 | Karşı tarafta | Başvuranlar → Sonuçlanan: *Aday başvurusunu geri çekti* | Davetlerim → Sonuçlanan: *Davet geri çekildi* |
 | Bildirim | İlanın sorumlusuna 🔔 | Adaya 🔔 |
@@ -1304,7 +1316,7 @@ Başvuru **sonuçlandığı anda** (ret, süre dolması, ilan kapanması, geri �
 
 | Olay | Sonuç satırları | Aksiyonlar | Sohbetler |
 |---|:---:|:---:|:---:|
-| İlan kapandı / doldu / süresi doldu | Silinir | Kalır | **Devam eder** |
+| İlan kapandı (her sebeple) | Silinir | Kalır | **Devam eder** — bekleyen başvuru ve davetler de |
 | Aday "şu an bakmıyorum" | Silinir | Kalır | **Devam eder** |
 | 14 günden eski hesap | Silinir | Kalır | — |
 | Aday telefonu değiştirdi, doğrulamadı | **Silinmez** — profil yayından çıktığı için görünmez | Kalır | Devam eder |
@@ -1349,6 +1361,159 @@ Bölümlemenin en kolay olduğu an tablo **boşken.** Dolu tabloyu sonradan böl
 - **Sayı sabit** — `hash(ilan_id) % 32`; yeni ilan yeni bölüm yaratmaz
 - **Sonradan değiştirmek** = tüm veriyi taşımak; bu yüzden baştan cömert
 - **Aday sorguları** tüm bölümlere bakar — her bölümde `aday_id` indeksi, okuma kopyası ve önbellek yükü alıyor. Çok yüksek ölçekte gerekirse aday yönü için ikinci bir tablo eklenir, mevcut yapı bozulmadan
+
+### 6.10 İlan kapatma ve ilan durumu
+
+> **Kural:** İlan nasıl kapanırsa kapansın — süresi dolsun ya da elle kapatılsın — **sadece Keşfet'ten çıkar.** Bekleyen başvurular, cevap bekleyen davetler ve süreçteki adaylar devam eder.
+
+#### İlan durumu
+
+```sql
+ilanlar (
+  ...
+  durum            text,   -- taslak | yayinda | duraklatildi | kapali
+  kapanma_sebebi   text,   -- suresi_doldu | pozisyon_doldu | vazgecildi
+  kapanma_tarihi   timestamptz,
+  kapatan_id       uuid,   -- sistemse boş
+  yayin_sayisi     int
+)
+
+ilan_yayin_gecmisi (       -- her yayın dönemi ayrı satır
+  ilan_id, yayin_baslangic, yayin_bitis, kapanma_sebebi, kapatan_id
+)
+```
+
+| Durum | Keşfet | Nasıl olur |
+|---|:---:|---|
+| `taslak` | ❌ | Henüz yayınlanmadı |
+| `yayinda` | ✅ | Aktif |
+| `duraklatildi` | ❌ | İşveren geçici durdurdu |
+| `kapali` + `suresi_doldu` | ❌ | Sistem — 60 / 180 gün *(bakım 1)* |
+| `kapali` + `pozisyon_doldu` | ❌ | İşveren — "Pozisyon doldu" |
+| `kapali` + `vazgecildi` | ❌ | İşveren — "Alımdan vazgeçtik" |
+
+| Neden tek "kapalı" + ayrı sebep | |
+|---|---|
+| Davranış aynı | Kod tek durumu kontrol eder — üç durumu ayrı kontrol etmek unutulmaya açık |
+| Ölçüm net | *"Kapananların %40'ı pozisyon doldu, %35'i süresi doldu"* |
+| Yayın geçmişi | İlk yayında süresi dolup ikincide dolan ilan **başarılı** sayılır — tek alan olsa üstüne yazılırdı |
+
+#### Kapat ekranı
+
+```
+İlanı kapat — Senior Backend Developer
+
+İlanı neden kapatıyorsunuz? *
+○ Pozisyon doldu
+○ Alımdan vazgeçtik
+  (Bu bilgi adaylara gösterilmez)
+
+─────────────────────────────────────────────
+
+📨 3 bekleyen başvurunuz var
+   ● Açık kalsın — sonra değerlendireceğim
+   ○ Süreci sonlandır
+     Adaylara gidecek mesaj:
+     "ABC Teknoloji, Senior Backend Developer pozisyonu
+      için değerlendirme sürecini sonlandırdı."
+   [Başvuranlara git →]
+
+✉️ 2 cevap bekleyen davetiniz var
+   ● Açık kalsın — aday sonradan kabul edebilir
+   ○ Davetlerimi geri çek
+     Adaylara gidecek mesaj:
+     "ABC Teknoloji davetini geri çekti."
+   [Davet Edilenlere git →]
+
+─────────────────────────────────────────────
+
+⚠️ Kapatılan ilan tekrar yayınlanamaz.
+   Ara vermek istiyorsanız [Duraklat] kullanın.
+
+İlan Keşfet'ten kalkacak, yeni başvuru ve davet gelmeyecek.
+Açık bıraktığınız başvuru ve davetler kendi süreleriyle devam eder.
+Süreçteki adaylarınızla görüşmeleriniz etkilenmez.
+
+[Vazgeç]                                   [İlanı kapat]
+```
+
+| Parça | Kural |
+|---|---|
+| **Sebep** | Zorunlu · `pozisyon_doldu` / `vazgecildi` · **adaya hiçbir yerde gösterilmez** |
+| **Bekleyen başvurular** | Varsayılan *Açık kalsın* · bekleyen yoksa bölüm görünmez |
+| **Cevap bekleyen davetler** | Varsayılan *Açık kalsın* · bekleyen yoksa bölüm görünmez |
+| **Adaya gidecek mesaj** | Toplu seçenek işaretlenince altında görünür |
+| **Son onay** | Toplu seçenek varsa: *"3 başvurunun süreci sonlandırılacak ve adaylara bildirilecek. Emin misiniz?"* |
+| **Kim kapatabilir** | İlanın sorumlusu · sahip · yönetici |
+
+> **Neden sebep soruluyor:** İşe alım platform dışında olur; *"pozisyon doldu"* platformun gerçekten işe yarayıp yaramadığının neredeyse tek sinyali.
+> **Neden sebep adaya gösterilmez:** *"Pozisyon doldu"* = *"başkası alındı"* — kırıcı; *"vazgeçtik"* şirketin iç kararı.
+
+#### Kapatınca adaylar ne görür
+
+| Aday | Açık kalsın | Süreci sonlandır / Davetlerimi geri çek |
+|---|---|---|
+| Başvurusu bekleyen | ⏳ *Değerlendiriliyor · İlan yayından kalktı* — bildirim yok | ⏹ *Bu pozisyon için süreç sona erdi* · 📱 🔔 |
+| Daveti cevap bekleyen | ⏳ *Cevabın bekleniyor · İlan yayından kalktı* — kabul edebilir | ↩ *Davet geri çekildi* · 🔔 |
+| Süreçte | Etkilenmez — kartta küçük not | Etkilenmez |
+| Sadece Keşfet'te görmüş / gizlemiş | İlan sessizce listeden kalkar | Aynı |
+
+İlan detayında bilgi bandı: *"Bu ilan yeni başvurulara kapandı. Başvurunuz değerlendirilmeye devam ediyor."*
+
+#### Tekrar yayınla ve Kopyala
+
+| Kapanma | Tekrar yayınla | Kopyala |
+|---|:---:|:---:|
+| **Süresi doldu** | ✅ Aynı ilan kimliği · aksiyonlar geçerli · yeni 60 gün | ✅ |
+| **Elle kapatıldı** | ❌ **Kalıcı** | ✅ |
+
+**[Kopyala — yeni ilan oluştur]:** Tüm alanlar yeni bir **taslak** ilana gelir; başvurular, davetler, gizlenenler, geçmiş gelmez. Yeni ilan kimliği — eski ilanda reddedilen / gizlenen aday yeni ilanda görünebilir (yeni pozisyon).
+
+| Neden elle kapatılan kalıcı | |
+|---|---|
+| Bilinçli karar | *"Pozisyon doldu"* / *"vazgeçtik"* diyen ilanı bitirmiş |
+| Ölçüm temiz | "Doldu" deyip tekrar açmak başarı oranını şişirir |
+| Kötüye kullanım | Kapat → aç ile ilanı "yeni" gibi tazelemek olmaz |
+| Geçici ara | Zaten **[Duraklat]** var |
+
+#### İlan kartı butonları
+
+| Durum | Butonlar |
+|---|---|
+| 🟢 Yayında | [Uzat] [Duraklat] [Kapat] |
+| ⏸ Duraklatıldı | [Devam ettir] [Kapat] |
+| ⏱ Süresi doldu | [Tekrar yayınla] [Kapat] [Kopyala — yeni ilan oluştur] |
+| ✓ Pozisyon doldu / ✕ Kapatıldı | [Kopyala — yeni ilan oluştur] |
+
+Kapalı ilanın sekmeleri (Başvuranlar, Davet Edilenler, Süreçteki Adaylar) **çalışmaya devam eder.**
+
+### 6.11 Aşama takibi
+
+Her başvuru ve davetin **nereye kadar ilerlediği** ve **nasıl bittiği** kaydedilir — ileride ilan ve şirket raporları için.
+
+```
+Başvuru:  başvurdu → işveren görüntüledi → kabul edildi → iletişim paylaşıldı → işe alındı*
+Davet:    davet edildi → aday görüntüledi → kabul etti → iletişim paylaşıldı → işe alındı*
+                                                                     * ileride
+```
+
+```sql
+basvuru_asamalari (basvuru_id, asama, tarih)   -- her geçiş ayrı satır
+davet_asamalari   (davet_id,   asama, tarih)
+-- basvurular / davetler: en_ileri_asama + sonuc
+```
+
+| Bilgi | Örnek |
+|---|---|
+| En ileri aşama | *İşveren görüntüledi* |
+| Sonuç | *Yanıtlanmadan sona erdi* |
+| Birlikte | *"İşveren başvuruyu açtı ama 30 gün cevap vermedi."* |
+
+**Neden ayrı aşama tablosu:** Sadece son aşama tutulsa **ne zaman** geçildiği kaybolur; *"işveren başvuruyu ortalama kaç günde açıyor?"* sorulamaz.
+
+**"Görüntülendi" karşı tarafa gösterilmez** — sadece kaydedilir. Gösterilse işverenler başvuruları açmaktan kaçınabilir, ölçüm bozulur.
+
+**İleride çıkacak raporlar** *(açık konu):* ilan hunisi, nerede kopuyor, şirket cevap davranışı, **hayalet ilan** tespiti, davet etkisi, eşleştirme kalitesi.
 
 ## 7. Hesaplama — Ne Zaman, Nasıl
 
@@ -1710,9 +1875,11 @@ Olay (başvuru geldi)
 
 | # | Olay | Kime | Kanal | Metin | Dokununca |
 |:---:|---|---|:---:|---|---|
-| 20 | İlan **kapandı** | Bekleyen başvurusu olan adaylar | 🔔 | *"Başvurduğunuz Senior Backend Developer ilanı kapandı."* | Başvurularım → Sonuçlanan |
-| 21 | İlan kapandı | Daveti bekleyen adaylar | 🔔 | *"ABC Teknoloji'nin davet ettiği pozisyon kapandı."* | Davetlerim → Sonuçlanan |
-| 22 | İlan **yeniden açıldı**, başvurular geri getirildi | İlgili adaylar | 🔔 | *"Başvurduğunuz Senior Backend Developer ilanı yeniden açıldı; başvurunuz değerlendirmeye alındı."* | Başvurularım → Bekleyen |
+| 20 | İlan kapatılırken **süreç sonlandırıldı** | Bekleyen başvurusu olan adaylar | 📱 🔔 | *"ABC Teknoloji, Senior Backend Developer pozisyonu için değerlendirme sürecini sonlandırdı."* | Başvurularım → Sonuçlanan |
+| 21 | İlan kapatılırken **davetler geri çekildi** | Daveti bekleyen adaylar | 🔔 | *"ABC Teknoloji davetini geri çekti."* | Davetlerim → Sonuçlanan |
+| 22 | İlanın **süresi doldu** | İlanın sorumlusu | 🔔 | *"Senior Backend Developer ilanınızın süresi doldu. 3 bekleyen başvuru ve 2 cevap bekleyen davetiniz var."* | İlan → [Tekrar yayınla] |
+
+> İlan kapandığında **"açık kalsın"** seçilen bekleyenlere bildirim gitmez — durumları değişmedi, sadece kartta *"İlan yayından kalktı"* notu.
 
 #### Günlük özet
 
@@ -1945,8 +2112,8 @@ Olay (başvuru geldi)
 └──────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────┐
 │ Backend Developer · JKL Yazılım              │
-│ 🔒 İlan kapandı                               │
-│ Başvuru: 20 Temmuz · Kapandı: 2 Ağustos      │
+│ ⏹ Bu pozisyon için süreç sona erdi            │
+│ Başvuru: 20 Temmuz · Sonuç: 2 Ağustos        │
 └──────────────────────────────────────────────┘
 ```
 
@@ -1990,7 +2157,7 @@ Detayda **[Kabul et] [Kabul etme]**. Başvuranlar **başvuru anındaki skora** g
 │                                              │
 │ Neden önerildi?                           ▾  │
 │                                              │
-│ [Daveti geri çek]            [Profili gör →] │
+│ [Davetimi geri çek]          [Profili gör →] │
 └──────────────────────────────────────────────┘
 ```
 
@@ -2019,8 +2186,9 @@ Detayda **[Kabul et] [Kabul etme]**. Başvuranlar **başvuru anındaki skora** g
 |---|---|
 | **[Uzat]** | 15 / 30 / 60 gün — kesintisiz en fazla 180 |
 | **[Duraklat]** → **[Devam ettir]** | Geçici gizleme, yeni başvuru gelmez |
-| **[Kapat]** | *Pozisyon doldu* / *Alımdan vazgeçtik* |
-| **[Tekrar yayınla]** | Süresi dolmuş / kapatılmış ilan — aynı ilan, geçmiş korunur |
+| **[Kapat]** | Kapat ekranı — sebep + bekleyenler için seçim · **kalıcı** (Bölüm 6.10) |
+| **[Tekrar yayınla]** | **Sadece süresi dolmuş** ilan — aynı ilan, geçmiş korunur |
+| **[Kopyala — yeni ilan oluştur]** | Kapalı ilandan yeni taslak |
 
 > Sayaçların nasıl tutulduğu → `isveren-paneli-v2.md`
 
