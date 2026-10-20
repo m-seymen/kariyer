@@ -2,8 +2,8 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final** — ekip toplantısı ve eşleştirme motoru kararları sonrası
-> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru-final-v3.md`
+> **Sürüm: final** — ekip toplantısı, eşleştirme motoru ve işveren paneli kararları sonrası
+> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru.md`, `isveren-paneli-final.md`
 
 ---
 
@@ -36,8 +36,12 @@
 | **Otomatik düşme** | 30-45 gün → fırsatlara açığım | **İki kademe:** 30 gün → fırsatlara açığım, 90 gün → şu an bakmıyorum |
 | **Skor adı** | "Yetenek bileşeni" | **"Nitelik uyumu"** — yetenek + sertifika + bölüm |
 | **Başvuru belge listesi** | Örnek sabit belgeler | **Profilden otomatik** — "Belgeler" (adayın verdiği adlarla) + "Sertifikalar" |
-| **Gizlediklerim** | — | Profilim altında — sadece yayındaki ilanlar, **[Geri al]** |
+| **"Bir daha gösterme"** | Gizlediklerim listesi + [Geri al] | **Kalıcı** — ayrı liste yok, geri alınmaz |
 | **Aday ekranları** | — | Alt menü, Başvurularım / Davetlerim (Bekleyen / Sonuçlanan), geri çekme, "Neden önerildi? ▾" — Bölüm 16 |
+| **Süreç** | Süresiz | **60 gün** — işveren sonuçlandırmazsa biter · aday **süreçten çekilebilir** |
+| **İşe alım onayı** | — | İşveren *"işe alındı"* derse adaya *"Doğru mu?"* sorusu — Bölüm 16 |
+| **İlanın sonucu** | İlan kapanınca *"ilan kapandı"* | İlanın yayından kalkması başvuruyu bitirmez · işveren **sonuç bildirince** biter, mesaj sonuca göre |
+| **Profil PDF** | — | İşveren profilini ve paylaştığı belgeleri **PDF olarak indirebilir** — başvuru ekranında yazar |
 
 ---
 
@@ -123,10 +127,10 @@ Bazı bilgiler işverene **görünür** ama işveren onlara göre **listeyi süz
 | Sertifika — kurum | 7 | ❌ | Serbest | ❌ | ❌ | ❌ | ✅ |
 | Sertifika — alınma tarihi | 7 | ✅⁴ | Ay + yıl | ❌ | ❌ | ❌ | ✅ |
 | Sertifika — geçerlilik | 7 | ❌ | Tarih / süresiz | ❌ | ❌ | ✅ *geçersizse sayılmaz* | ✅ |
-| **Sertifika — belge dosyası** | 7 | ✅⁴ | PDF / JPG / PNG | ❌ | ❌ | ❌ | *Başvuru/eşleşmede, seçilirse* |
+| **Sertifika — belge dosyası** | 7 | ✅⁴ | PDF / JPG / PNG | ❌ | ❌ | ❌ | *Başvuruda / süreçte, seçilirse* |
 | Proje adı + açıklama | 8 | ✅⁵ | Serbest | ✅ | ❌ | ❌ | ✅ |
 | Proje — link, teknolojiler, tarih | 8 | ❌ | | ❌ | ❌ | ❌ | ✅ |
-| **CV ve belgeler** | 9 | ❌ | Ad + dosya, max 10 | ❌ | ❌ | ❌ | *Başvuru/eşleşmede, seçilirse* |
+| **CV ve belgeler** | 9 | ❌ | Ad + dosya, max 10 | ❌ | ❌ | ❌ | *Başvuruda / süreçte, seçilirse* |
 | **Sürücü belgesi** | 10 | ✅ | Yok / Var + en az bir sınıf | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
 | **Askerlik durumu** | 10 | ✅ | Yapıldı / Muaf / Tecilli / Yükümlü değil | ❌ | ✅ *ilan şartlıysa — tecilli elenir* | ❌ | ✅ *detayda, süzülemez* |
 | **Seyahat engeli** | 10 | ✅ | Yok / Var | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
@@ -259,7 +263,7 @@ Cep telefonu *:  [+90 ▾] [532 123 45 67]   [Doğrula]
 - Doğrulama **anında kalkar**
 - Profil **yayından çıkar** — Keşfet'te görünmez, davet gelmez
 - Yeniden doğrulayınca profil geri döner
-- Mevcut başvuru ve eşleşmeler etkilenmez
+- Mevcut başvurular, davetler ve süreçteki ilanlar etkilenmez
 
 ### E-posta
 
@@ -959,10 +963,10 @@ Dosya *:      [📄 Dosya seç]   PDF, JPG, PNG · en fazla 5 MB
 | Davet gönderildi, cevap bekleniyor | ❌ |
 | **Başvuranlar** | ✅ Görüntüle + **indir** — **sadece adayın o başvuruda seçtikleri** |
 | **Süreçteki Adaylar** | ✅ Görüntüle + **indir** — **sadece seçilenler** |
-| **Başvuru sonuçlanınca** (ret, süre dolması, ilan kapanması, geri çekme) | ❌ **Erişim anında kapanır** |
+| **Başvuru / süreç sonuçlanınca** (ret, süre dolması, geri çekme, işverenin sonuç bildirmesi, süreçten çekilme, 60 gün dolması) | ❌ **Erişim anında kapanır** — *işe alınan adayda devam eder* |
 
 - Şirkette: **ilanın sorumlusu + sahip + yönetici** — diğer uzmanlar görmez
-- **İndirme açık** — aydınlatma metninde açıkça belirtilir (aday hesabını silse bile indirilmiş kopyalar işverende kalabilir)
+- **İndirme açık** — tek tek belge veya **profil + belgeler tek PDF** *(her sayfada şirket, indiren kişi ve tarih yazar · kim ne indirdi kaydedilir)* — aydınlatma metninde açıkça belirtilir (aday hesabını silse bile indirilmiş kopyalar işverende kalabilir) · ayrıntı → `isveren-paneli-final.md` Bölüm 10.2
 - **Teknik:** Supabase Storage, özel bucket, RLS ile erişim
 
 ---
@@ -1078,10 +1082,10 @@ Gizlemek istediğim şirketler
 
 ## 14. İletişim Bilgilerinin Paylaşılması
 
-Telefon ve e-posta **eşleşmeden sonra bile otomatik görünmez.**
+Telefon ve e-posta **süreç başladıktan sonra bile otomatik görünmez.**
 
 ```
-Eşleşme → sohbet açılır
+Süreç başladı → sohbet açılır
         ↓
 İşveren: [📞 İletişim bilgisi iste]
         ↓
@@ -1096,7 +1100,7 @@ Aday: "ABC Teknoloji telefon ve e-posta bilginizi görmek istiyor."
 | Telefon + e-posta | **Birlikte** paylaşılır |
 | **İlan bazlı** | ABC'nin "Backend" ilanında paylaşıldı diye, ABC'nin başka ilanının sorumlusu otomatik görmez |
 | Şirkette kim görür | **İlanın sorumlusu + sahip + yönetici** — diğer uzmanlar görmez |
-| Devredilirse | Yeni sorumlu görür, eski sorumlunun erişimi kalkar |
+| Devredilirse | Yeni sorumlu görür · eski sorumlu **uzmansa** erişimi kalkar *(yönetici tüm ilanları gördüğü için görmeye devam eder)* · aday devri fark etmez |
 | Erişim kaydı | Kim, ne zaman açtı — kayıt tutulur (KVKK/GDPR, kötüye kullanım) |
 
 > **Neden otomatik değil:** Eşleşme zaten iki tarafın onayı, ama aday 10 şirketle eşleşirse 10 şirkete telefonunu otomatik vermiş olurdu. Aday kime vereceğine **kendisi** karar verir. Konuşma önce uygulama içinde kalır — platform dışına erken kaçış azalır.
@@ -1124,6 +1128,9 @@ Belgeler
 Sertifikalar
 ☑ SRC Belgesi
 ☑ İSG Eğitimi
+
+ⓘ Profiliniz ve paylaştığınız belgeler işveren tarafından
+  görüntülenebilir ve indirilebilir.
 
 [Başvur]
 ```
@@ -1182,7 +1189,7 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 
 ## 16. Aday Ekranları — Özet
 
-> Ayrıntılar, kart taslakları ve kurallar → `eslestirme-motoru-final-v3.md` Bölüm 6 ve 10. Burada sadece adayın göreceği yapı özetleniyor — aynı detay iki yerde tutulmasın.
+> Aday ekranlarının tamamı **aday dokümanında** *(yazılacak)* ayrıntılanacak. İşverenin karşı taraftaki ekranları ve kuralları → `isveren-paneli-final.md`. Burada sadece adayın göreceği yapı özetleniyor.
 
 ### Alt menü
 
@@ -1195,39 +1202,82 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 | **Keşfet** | Uygun ilanlar — uyum seviyesine göre; kartta **[Bir daha gösterme] [İncele →]**, detayda **[Başvur]** |
 | **Başvurularım** | **Bekleyen / Sonuçlanan** — her kartta o anki durum |
 | **Davetlerim** | **Bekleyen / Sonuçlanan** — detayda **[Kabul et] [Kabul etme]** |
-| **Süreçteki İlanlar** | Eşleşilen ilanlar — sohbet, iletişim bilgisi paylaşımı |
-| **Profilim** | Profil adımları, **Gizlediklerim**, arama durumu, ayarlar |
+| **Süreçteki İlanlar** | **Devam eden / Sonuçlanan** — sohbet, iletişim bilgisi paylaşımı, **[Süreçten çekil]** |
+| **Profilim** | Profil adımları, arama durumu · **Ayarlar** ayrı bölüm (dil, saat dilimi, görünüm, bildirimler, güvenlik, gizlilik) |
 
 ### "Neden önerildi? ▾"
 
 Tüm ilan kartlarında ve detaylarda açılır-kapanır bölüm — kapalı başlar. Başvuru ve davet kartlarında **başvuru / davet anındaki** skor gösterilir.
 
+### "Bir daha gösterme"
+
+| | |
+|---|---|
+| Ne yapar | O ilan adayın Keşfet'inden **kalıcı olarak** çıkar |
+| Onay | *"Bu ilanı bir daha görmek istemediğinize emin misiniz? Bu işlem geri alınamaz."* |
+| Liste | **Yok** — "Gizlediklerim" listesi ve [Geri al] kaldırıldı |
+| İşveren | Etkilenmez — adayı görmeye ve davet etmeye devam edebilir |
+
+> "Gizlenecek şirketler" (Adım 11) ile karıştırılmasın: o, adayın bütün bir şirketten saklanmasıdır.
+
 ### Başvuru durumları
 
 | Durum | Adaya görünen |
 |---|---|
-| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa / kapandıysa notu: "İlan yayından kalktı")* |
+| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa / süresi dolduysa notu: "İlan yayından kalktı")* |
 | Kabul edildi | → Süreçteki İlanlar |
-| Reddedildi *(tek tek)* | ✕ Başka adaylarla ilerlendi |
-| Süreç sonlandı *(işveren ilanı kapatırken toplu)* | ⏹ Bu pozisyon için süreç sona erdi |
+| Reddedildi | ✕ Başka adaylarla ilerlendi |
+| İşveren sonucu bildirdi — **pozisyon doldu** | ⏹ Pozisyon doldu |
+| İşveren sonucu bildirdi — **alımdan vazgeçti** | ⏹ Pozisyon iptal edildi |
+| İşveren sonucu bildirdi — **uygun aday bulamadı** | ⏹ Süreç sona erdi *(nötr — "sen uygun değildin" diye okunmasın)* |
 | Süresi doldu (30 gün) | ⌛ Yanıtlanmadan sona erdi |
 | Geri çekildi | ↩ Başvurunu geri çektin |
 
-> **İlan kapanması başvuruyu sonuçlandırmaz** — ilan sadece Keşfet'ten çıkar; başvuru işverenin kararına veya 30 günlük süreye kadar geçerlidir. Kapatma sebebi (pozisyon doldu / vazgeçildi) adaya gösterilmez.
+> **İlanın yayından kalkması başvuruyu bitirmez** — duraklatılan veya süresi dolan ilanda başvuru işverenin kararına veya 30 günlük süreye kadar geçerlidir. Başvuru ancak işveren **ilanın sonucunu bildirince** toplu olarak biter.
 
 - **[Başvurumu geri çek]** — Bekleyen kartında, onaylı; aynı ilana **tekrar başvurulamaz**
 - Adaya **kalan gün gösterilmez** — sadece kaç gün önce başvurduğu
 - Sonuçlananlar listede **90 gün** görünür; kartta **[Listeden kaldır]**
 - Her başvurunun **ulaştığı en ileri aşama** kaydedilir (rapor için) — "işveren görüntüledi" bilgisi adaya **gösterilmez**
 
-### Gizlediklerim
+### Süreçteki İlanlar
 
 | | |
 |---|---|
-| Nerede | Profilim altında |
-| İçerik | "Bir daha gösterme" denilen ilanlardan **sadece hâlâ yayında olanlar** |
-| [Geri al] | İlan tekrar Keşfet'e düşer *(filtreye hâlâ uyuyorsa)* |
-| İlan kapanırsa | Listeden düşer; tekrar yayınlanırsa gizli olarak geri gelir |
+| Süre | Süreç başladıktan **60 gün** içinde işveren sonuçlandırmalı — **kalan gün adaya gösterilmez** |
+| **[Süreçten çekil]** | Aday istediği zaman çekilebilir — sohbet kapanır |
+| Sonuçlanınca | Sohbet **kapanır** — geçmiş görünür, yeni mesaj yazılamaz |
+
+| Sonuç | Adaya görünen |
+|---|---|
+| İşe alındı | 🎉 İşe alındın — **onay sorusu** *(aşağıda)* |
+| Devam edilmedi | ✕ Başka adaylarla ilerlendi |
+| Aday çekildi | ↩ Süreçten çekildin |
+| 60 gün doldu | ⌛ Süreç sona erdi *(nötr)* |
+| İlanın sonucu bildirildi | ⏹ Sonuca göre mesaj |
+| Şirket hesabını sildi | ⏹ Şirket platformdan ayrıldı |
+
+### İşe alım onayı
+
+İşveren adayı *"işe alındı"* olarak işaretlerse:
+
+```
+🎉 ABC Teknoloji sizi Senior Backend Developer
+   pozisyonu için işe aldığını bildirdi.
+   Doğru mu?
+   [Evet, işe alındım]        [Hayır]
+```
+
+| | |
+|---|---|
+| Cevap süresi | **14 gün** |
+| Cevabı değiştirmek | **30 gün** içinde **[Cevabımı değiştir]** |
+| *"Evet"* deyince | *"Arama durumunu 'Şu an bakmıyorum' yapmak ister misin?"* önerisi |
+| Neden soruluyor | İşe alım platform dışında olur — iki tarafın da onaylaması, şirket raporunun ve platformun başarısının **gerçek ölçüsü** |
+
+### Şirket profili ve işe alım raporu
+
+Aday ilan detayından şirket profiline gider; profilde şirketin **son 12 aylık işe alım raporu** görünür — kaç ilan açtığı ve nasıl sonuçlandığı, başvuruların kaçına cevap verdiği, kaç kişiyi işe aldığı. En az 20 başvurusu olmayan şirkette *"🆕 Platformda yeni"*. Ayrıntı → `isveren-paneli-final.md` Bölüm 14.
 
 ---
 
@@ -1266,8 +1316,8 @@ Tüm ilan kartlarında ve detaylarda açılır-kapanır bölüm — kapalı baş
 
 🔒 İşverenin göremediği:
    Doğum tarihi · Telefon · E-posta
-   CV ve belgeler (sadece başvuru/eşleşmede, seçtiklerin)
-   Sertifika dosyaları (sadece başvuru/eşleşmede, seçtiklerin)
+   CV ve belgeler (sadece başvuruda / süreçte, seçtiklerin)
+   Sertifika dosyaları (sadece başvuruda / süreçte, seçtiklerin)
 ```
 
 > Cinsiyet ve askerlik **Keşfet kartında değil, bu detay görünümünde.**
@@ -1305,7 +1355,7 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 |---|---|
 | 🟢 **Aktif arıyorum** | Rozet görünür |
 | 🟡 **Fırsatlara açığım** | **Varsayılan** |
-| ⚪ **Şu an bakmıyorum** | Keşfet'te **görünmez**, davet gelmez; **mevcut eşleşme ve sohbetler devam eder** |
+| ⚪ **Şu an bakmıyorum** | Keşfet'te **görünmez**, davet gelmez; **mevcut başvurular, davetler ve süreçteki ilanlar devam eder** |
 
 **Hızlı değiştirilebileceği yerler:**
 
@@ -1314,7 +1364,7 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 | Adım 12 | Yayınla butonunun üstünde |
 | **Profil ana ekranı** | En üstte, tek dokunuş |
 | **Keşfet ekranı** | Üst köşede durum rozeti — dokununca değişir |
-| Ayarlar | Hesap bölümünde |
+| Ayarlar | Genel bölümünde |
 
 "Şu an bakmıyorum" seçiliyse profil ana ekranında:
 > *"Profilin gizli, işverenler seni göremiyor."* **[Aktif et]**
@@ -1337,7 +1387,7 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 | Kademe 2 | 90 gün giriş yoksa → **Şu an bakmıyorum** |
 | Başlangıç durumu fark etmez | Zaten "fırsatlara açığım" olan da 90 günde düşer |
 | Önceden haber | Her düşüşten **7 gün önce** bildirim — adayın saat dilimine göre |
-| Mevcut eşleşme ve sohbetler | **Devam eder** |
+| Mevcut başvurular, davetler ve süreçteki ilanlar | **Devam eder** |
 | Geri dönünce | *"Profilin gizli. Tekrar iş aramaya başlamak ister misin?"* **[Aktif et]** — **otomatik açılmaz** |
 | Süreler | Veritabanında — gerçek veriyle ayarlanabilir |
 
@@ -1412,7 +1462,7 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 > **Kaldırılan kriterler:** "Kısa tanıtım yazılmış" ve "eğitim kaydı tam" — artık zorunlu, her profilde dolu.
 
-> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru-final-v3.md`
+> Tüm ağırlıklar veritabanında — kod değişmeden ayarlanabilir. Formüllerin tamamı → `eslestirme-motoru.md`
 
 ---
 
@@ -1440,10 +1490,11 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 | Doküman | Değişecek |
 |---|---|
-| **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru-final-v3.md` |
-| **Bakım işleri** | ✅ Yazıldı — `bakim-isleri.md` (otomatik düşme, başvuru ayrıntılarının 1 yıl sonra silinmesi, 90 gün listeden gizleme) |
-| **İş ilanı** | Çalışma tipi **tek seçim → çoklu** (aday tarafıyla en az bir ortak); LLM onay ekranı yerine **"Algılanan" satırı + [Düzenle]**; meslek alanı ve unvan **yayından sonra kilitli** |
-| **Staj ilanı** | Aynı onay ekranı değişikliği; çalışma tipi filtresi stajda yok |
-| **İşveren Paneli / Keşfet** | İletişim isteği akışı; belgeler başvuru bazlı; cinsiyet ve askerlik detayda görünür, süzülemez |
+| **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru.md` |
+| **Bakım işleri** | Güncellenecek — `bakim-isleri.md`: süreç 60 gün, işe alım onayı 14 / 30 gün, ilan 30 + 45 gün kuralları (otomatik düşme, 1 yıl, 90 gün kuralları zaten yazılı) |
+| **İş ilanı** | ✅ İşlendi — `is-ilani-v3.md`: çalışma tipi çoklu, "Algılanan" satırı, meslek alanı ve unvan kilidi |
+| **Staj ilanı** | ✅ İşlendi — `staj-ilani.md` |
+| **İşveren Paneli** | ✅ İşlendi — `isveren-paneli-final.md`: iletişim isteği, başvuru bazlı belgeler, PDF indirme, cinsiyet ve askerlik detayda görünür ama süzülemez, şirket raporu |
+| **Aday dokümanı** *(yazılacak)* | Keşfet, Başvurularım, Davetlerim, Süreçteki İlanlar, işe alım onayı, Ayarlar ekranları |
 | **Auth** | Aday telefon doğrulaması artık yayın eşiğinde (sadece başvuruda değil) |
 | **Veri koruma** *(yazılacak)* | Cinsiyet zorunlu ve işverene görünür; belge indirme açık; iletişim bilgisi erişim kaydı; aydınlatma metninde açık bilgilendirme |
