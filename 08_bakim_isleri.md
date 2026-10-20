@@ -2,8 +2,8 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final**
-> İlgili dokümanlar: `eslestirme-motoru-final-v3.md`, `aday-profili-final.md`, `isveren-paneli-v2.md`, `auth-kararlari.md`
+> **Sürüm: final** — işveren paneli kararlarıyla güncellendi
+> İlgili dokümanlar: `eslestirme-motoru.md`, `aday-profili-final.md`, `isveren-paneli-final.md`, `auth-kararlari.md`
 
 ---
 
@@ -20,6 +20,8 @@ Sistemdeki işlerin çoğu bir **olayla** tetiklenir: ilan yayınlandı → eşl
 | Aday 30 gündür girmedi | → "fırsatlara açığım"a düşmeli |
 | Eski skorlar birikti | → temizlenmeli |
 | Sonuçlanan başvurunun üzerinden 1 yıl geçti | → kişisel ayrıntılar silinmeli |
+| Süreç 60 gündür sonuçlandırılmadı | → kendiliğinden bitmeli |
+| Taslak 30 gündür yayınlanmadı | → silinmeli |
 
 Bunları bir kullanıcı aksiyonu tetiklemiyor — **biri saate bakıp yapmalı.** O da bakım işi. Bir binanın kapıcısı gibi: kimse çağırmasa da her sabah çöpleri toplar, süresi dolan ilanları panodan indirir.
 
@@ -52,7 +54,7 @@ SELECT cron.schedule(
 
 | # | İş | Grup | Sıklık |
 |:---:|---|---|---|
-| 1 | İlan süresi | Süreler | Saatlik |
+| 1 | İlan süresi — süre dolması, 30. gün, 75. gün | Süreler | Saatlik |
 | 2 | Başvuru ve davet süresi | Süreler | Saatlik |
 | 3 | Otomatik düşme | Kullanıcı durumu | Günlük |
 | 4 | Hesap askıya alma | Kullanıcı durumu | Günlük |
@@ -63,51 +65,83 @@ SELECT cron.schedule(
 | 9 | Sayaç düzeltme | Sayaçlar | Günlük |
 | 10 | Sonuçlananları listeden gizleme | Saklama | Günlük |
 | 11 | Başvuru ayrıntılarını silme | Saklama | Günlük |
-| 12 | Kapatılan şirketler ve belgeler | Saklama | Günlük |
+| 12 | Şirket belgeleri | Saklama | Günlük |
 | 13 | Zaman bölümleri | Saklama | Günlük |
+| 14 | **Süreç süresi** — 60 gün | Süreler | Saatlik |
+| 15 | **İşe alım onayı** — 14 / 30 gün | Süreler | Günlük |
+| 16 | **Taslak silme** — 30 gün | Süreler | Günlük |
+| 17 | **Sahiplik istekleri** — 7 / 14 gün | Kullanıcı durumu | Günlük |
+| 18 | **Günlük istatistik** — şirket ve platform defterleri | İstatistik | Günlük |
+| 19 | **Eski kayıtları silme** — 2 yıl | Saklama | Aylık |
 
 ---
 
 ## 1. İlan Süresi
 
-**Ne yapar:** Yayın süresi dolan ilanları kapatır.
+**Ne yapar:** Yayın süresi dolan ilanları yayından kaldırır; süresi dolmuş ilanda **30. günde** tekrar yayınlama hakkını kapatır, **75. günde** sonuç bildirilmediyse ilanı sonuçlandırır.
 
 | | |
 |---|---|
 | Yayın süresi | **60 gün** |
 | Uzatma | 15 / 30 / 60 gün — kesintisiz en fazla **180 gün** |
+| Duraklatılmış ilan | Süre **işlemeye devam eder** — duraklatılmışken de dolar |
 | Sıklık | **Saatlik** |
-| Önceden hatırlatma | Yok — işveren ilan kartındaki "⏱ X gün kaldı"dan görür |
 
-### Süre dolunca
+### Önceden hatırlatma
 
-> **Kural:** İlan nasıl kapanırsa kapansın — süresi dolsun ya da elle kapatılsın — **sadece Keşfet'ten çıkar.** Bekleyen işler devam eder.
+| Ne zaman | Kime | Bildirim |
+|---|---|---|
+| Süre bitmeden **3 gün** önce | Sorumlu | 🔔 *"İlanınızın süresi 3 gün sonra dolacak."* **[Uzat]** |
+
+### Süre dolunca — gün 0
+
+> **Kural:** Süre dolması işverenin kararı değil — **sadece yeni giriş durur, içerideki işler devam eder.**
 
 | | Ne olur |
 |---|---|
-| İlan | `durum = kapali`, `kapanma_sebebi = suresi_doldu`; `ilan_yayin_gecmisi`'ne satır |
-| Keşfet | Çıkar — yeni başvuru ve davet gelmez |
-| **Bekleyen başvurular** | **Kapanmaz** — işveren kabul / red yapmaya devam eder; 30 günlük süre işler |
-| **Cevap bekleyen davetler** | **Kapanmaz** — aday kabul / red yapmaya devam eder; 10 günlük süre işler |
-| Süreçteki adaylar | Sohbet devam eder |
+| İlan | `durum = suresi_doldu`; `ilan_yayin_gecmisi`'ne satır · **Yayında olmayanlar** sekmesine geçer |
+| Keşfet | Çıkar — yeni başvuru ve davet gelmez · işverenin Adaylar sekmesi kilitli |
+| **Bekleyen başvurular** | **Devam eder** — işveren kabul / red eder; 30 günlük süre işler |
+| **Cevap bekleyen davetler** | **Devam eder** — aday kabul / red eder; 10 günlük süre işler |
+| **Süreçteki adaylar** | **Devam eder** — sohbet, sonuçlandırma; 60 günlük süre işler |
 | Sonuç tablosu satırları | Silinir |
+| Embedding, "bir daha gösterme" | **Kalır** — ilan geri açılabilir |
 | Adayın gördüğü | ⏳ *Değerlendiriliyor · İlan yayından kalktı* |
-| İlanın sorumlusu | 🔔 *"Senior Backend Developer ilanınızın süresi doldu. 3 bekleyen başvuru ve 2 cevap bekleyen davetiniz var."* **[Tekrar yayınla]** |
+| Sorumluya | 🔔 *"Senior Backend Developer ilanınızın süresi doldu. 3 bekleyen başvuru, 1 süreçteki aday var."* · sahip / yöneticiye 🔔 |
 
 **Neden saatlik:** Günlük olsa ilan 23 saate kadar fazladan yayında kalabilir. Saatlik yük çok az — sadece o saatte süresi dolanlar işlenir.
 
-**Neden bekleyenler kapanmıyor:** Süre dolması işverenin kararı değil — elindeki işi kesmeyelim.
+### Süre dolduktan sonra — 30 + 45 gün
 
-### Tekrar yayınla — sadece süresi dolan ilanda
+| Gün | Ne olur |
+|---|---|
+| 23 | Sorumluya 🔔 *"Tekrar yayınlamak için 7 gün kaldı."* |
+| **30** | **[Tekrar yayınla] kilitlenir** · ilanın embedding'i ve "bir daha gösterme" kayıtları **silinir** |
+| 68 | Sorumluya 📱 🔔, sahip / yöneticiye 🔔 *"Sonucu 7 gün içinde bildirin; bildirmezseniz şirket raporunuzda 'sonuç bildirilmedi' görünecek."* |
+| **75** | Sonuç bildirilmediyse → **❓ Sonuç bildirilmedi** → Sonuçlananlar |
+
+**75. günde:**
 
 | | |
 |---|---|
-| İlan | `kapali` → `yayinda` · **aynı ilan kimliği** · `yayin_sayisi + 1` · yeni 60 gün |
+| Bekleyen başvuru / davet | Zaten kalmadı — en geç 30. günde süreleri doldu |
+| Süreçteki adaylar | Sonlanır (`surec_sonlandi`) · adaya nötr 🔔 *"ABC Teknoloji ile Muhasebe Uzmanı süreciniz sona erdi."* · sohbet kapanır |
+| Sorumluya | 🔔 *"İlan sonuç bildirilmediği için kapatıldı."* · sahip / yöneticiye 🔔 |
+| Şirket raporu | *"❓ Sonuç bildirilmedi"* satırına eklenir |
+| Sonradan düzeltme | Yok |
+
+**Neden:** Hiçbir ilan sonsuza kadar askıda kalmasın. En uzun ömür: 180 gün yayın + 75 gün.
+
+### Tekrar yayınla — sadece süresi dolan ilanda, ilk 30 gün
+
+| | |
+|---|---|
+| İlan | `suresi_doldu` → `yayinda` · **aynı ilan kimliği** · `yayin_sayisi + 1` · yeni 60 gün |
 | Sonuç tablosu | Sıfırdan hesaplanır — o anki aday havuzuyla |
 | Embedding, LLM etiketleri | Yeniden üretilmez — metin aynı |
 | Aksiyon tablosu | Korunur — gizlenen, reddedilen, başvurmuş adaylar tekrar listeye düşmez |
 
-> **Elle kapatılan ilan tekrar yayınlanamaz** — **[Kopyala — yeni ilan oluştur]** ile yeni taslak açılır. Ayrıntı → eşleştirme dokümanı.
+> **Sonuç bildirilen ilan tekrar yayınlanamaz** — **[⋮] → Kopyala** ile yeni taslak açılır. Ayrıntı → `isveren-paneli-final.md` Bölüm 11–13.
 
 ---
 
@@ -133,7 +167,7 @@ SELECT cron.schedule(
 |---|---|
 | Sıklık | **Saatlik** |
 | İlan kapalıysa | Fark etmez — süre işlemeye devam eder |
-| Önceden hatırlatma | Yok |
+| Önceden hatırlatma | **Başvuru:** 23. gün sorumluya 🔔 *"3 başvuru 7 gün içinde cevapsız kalacak."* — cevapsız başvurular şirket raporunda görünür · **Davet:** yok |
 
 **Neden saatlik — günlük değil:**
 
@@ -344,7 +378,7 @@ Bu tablo **geçici bir önbellek** — silinen satır her zaman yeniden hesaplan
 | Silinir | Neden |
 |---|---|
 | 14 günden eski hesaplananlar | Bayat — açılırsa yeniden hesaplanır |
-| Kapanan ilanların satırları | Keşfet'te görünmüyor |
+| Duraklatılan, süresi dolan ve sonuçlanan ilanların satırları | Keşfet'te görünmüyor · duraklatılan / süresi dolan geri açılırsa sıfırdan hesaplanır |
 | "Şu an bakmıyorum" adayların satırları | Kimse görmüyor |
 | Pasif (14+ gün girmemiş) kullanıcıların satırları | Açarsa anında hesaplanır |
 
@@ -417,7 +451,7 @@ Her sorgu hızlı ama milyonlarca kez tekrarlanınca veritabanı sürekli aynı 
 |---|---|
 | Yarıda kalan işlem | Kayıt yazıldı, sayaç güncellenmeden bağlantı koptu |
 | Aynı anda iki işlem | Aynı saniyede iki başvuru |
-| Toplu işlemler | "Süreci sonlandır" ile 50 başvuru |
+| Toplu işlemler | **Sonuç bildir** ile 50 başvuru, davet ve süreç birden sonlanır |
 | Elle düzeltmeler | Admin bir kaydı değiştirdi |
 
 ### Ne yapar
@@ -430,7 +464,7 @@ Her gün, her ilan için:
 
 | | |
 |---|---|
-| Kapsam | Yayındaki ilanlar + kapalı ama **bekleyeni olan** ilanlar |
+| Kapsam | Yayındaki ilanlar + **yayında olmayan** (duraklatılmış / süresi dolmuş) ama içinde bekleyeni olan ilanlar |
 | Düzeltme kaydı | Hangi ilan, hangi sayaç, ne kadar |
 | **Erken uyarı** | Günlük düzeltme sayısı birden artarsa → kodda hata var, admin uyarısı |
 | Sıklık | **Günlük** |
@@ -449,8 +483,8 @@ Her gün, her ilan için:
 | Başvuru ayrıntıları | Kalır — 1 yıl dolunca Bakım 11 |
 | Elle | Kartta **[Listeden kaldır]** — 90 günü beklemeden |
 | Liste altında | *"Son 90 gündeki sonuçlanan başvuruların gösteriliyor."* |
-| Kapsam | Sadece **sonuçlanmış** — bekleyen asla gizlenmez; süreçteki ilanlar bu kurala girmez |
-| Taraflar | Aday (Başvurularım, Davetlerim) ve işveren (Başvuranlar, Davet Edilenler) |
+| Kapsam | Sadece **sonuçlanmış** — bekleyen ve devam eden asla gizlenmez |
+| Taraflar | Aday (Başvurularım, Davetlerim, Süreçteki İlanlar) ve işveren (Başvuranlar, Davet Edilenler, Süreçteki Adaylar, İlan özeti içindeki aday kartları) |
 | Sıklık | **Günlük** |
 
 ---
@@ -474,7 +508,9 @@ KVKK ve GDPR'ın temel kuralı: **kişisel veri, toplandığı amaç için gerek
 
 **Aydınlatma metninde:** *"Başvuru ayrıntılarınız sonuçlandıktan 1 yıl sonra silinir; başvuru yaptığınız bilgisi ve süreç adımları hizmetin işleyişi ve istatistik amacıyla saklanır."*
 
-**Aday hesabını silerse** 1 yıl beklenmez — ayrıntılar hemen silinir, aksiyon ve aşamalar **anonimleşir** (Veri koruma dokümanı).
+**Aday hesabını silerse** 1 yıl beklenmez — ayrıntılar, aksiyonlar ve aşamalar **hemen ve tamamen** silinir; anonimleştirme yok. Raporlar istatistik tablolarından okunduğu için bozulmaz (Bakım 18).
+
+> Aksiyon kaydı, aşama geçmişi ve skor anlık görüntüsü de sonsuza kadar kalmaz — ilan sonuçlandıktan **2 yıl** sonra silinir (Bakım 19).
 
 | | |
 |---|---|
@@ -483,48 +519,33 @@ KVKK ve GDPR'ın temel kuralı: **kişisel veri, toplandığı amaç için gerek
 
 ---
 
-## 12. Kapatılan Şirketler ve Belgeler
+## 12. Şirket Belgeleri
 
-### A — Şirket hesabı kapatılınca
+### A — Şirket hesabı silinince — bakım işi değil
 
-Sahip **Şirket Yönetimi → Hesabı Kapat** der.
+Şirket hesabının silinmesi **anında** olur — bekleme süresi yok, bakım işi beklenmez. Sahip **Şirket Yönetimi → Şirket hesabını sil** der, şirket adını yazar, SMS ile doğrular:
 
-```
-Gün 0    Kapanış süreci başlar — 30 gün içinde [Hesabı geri aç]
-Gün 23   Sahibe ✉️ "Hesabınız 7 gün sonra kalıcı olarak silinecek."
-Gün 30   Bakım işi kalıcı olarak kapatır
-```
-
-**Gün 0'da hemen:**
-
-| | |
+| | Hemen |
 |---|---|
-| İlanlar | Hepsi Keşfet'ten çıkar |
-| Ekip üyeleri | Giriş yapamaz |
-| Bekleyen başvurular | ⏹ *Bu pozisyon için süreç sona erdi* + adaylara 🔔 |
-| Cevap bekleyen davetler | ↩ *Davet geri çekildi* + adaylara 🔔 |
-| Süreçteki sohbetler | Sistem mesajı: *"Bu şirket hesabını kapattı."* — yeni mesaj gönderilemez |
+| Şirket profili, ekip hesapları, ilanlar, aksiyonlar, şirket istatistik satırları | 🗑 **Tamamen** silinir — anonimleştirme yok |
+| Bekleyen başvuru, davet, süreçteki adaylar | Sonlanır · adaylara 📱 🔔 *"ABC Teknoloji platformdan ayrıldı. Süreciniz sona erdi."* |
+| Sohbetler | Adayın tarafında kalır · şirket adı *"Silinmiş şirket"* |
+| Adayların "gizlenecek şirketler" listesi | Şirket düşer |
+| Platform istatistikleri | Değişmez — isimsiz toplu sayılar |
+| **Belgeler** | **1 yıl** saklanır → bu bakım işi siler |
 
-> **Neden burada bekleyenler açık kalmıyor:** İlan kapatmada şirket hâlâ var, sonra değerlendirebilir. Hesap kapatmada değerlendirecek kimse kalmıyor — aday boşuna beklemesin.
-
-**Gün 30'da:**
-
-| Bilgi | Ne olur |
-|---|---|
-| Şirket profili, logo, tanıtım | 🗑 Silinir |
-| Ekip üyelerinin hesapları | 🗑 Silinir |
-| İlanlar | Anonimleşir — *"Kapatılmış şirket"*; raporlar için sayısal veri kalır |
-| Sohbet mesajları | Adayın tarafında kalır, şirket adı *"Kapatılmış şirket"* |
-| Adayların gizleme listeleri | Şirket düşer |
+> Ayrıntı → `isveren-paneli-final.md` Bölüm 17.6
 
 ### B — Şirket belgeleri
 
 | Belge | Ne kadar tutulur | Neden |
 |---|---|---|
-| Onaylı şirketin doğrulama belgeleri | Şirket aktif oldukça | Değişiklik taleplerinde karşılaştırma |
-| Kapatılan şirketin belgeleri | Kapanıştan **1 yıl** sonra silinir | Sahtecilik, şikâyet, yasal talep için kanıt |
+| Onaylı şirketin işveren başvurusu belgeleri | Şirket **aktif olduğu sürece** | Onayın dayanağı · değişiklik taleplerinde karşılaştırma |
+| Onaylanan değişiklik talebinin belgesi | Şirket aktif olduğu sürece | Kim neyi neden değiştirdi kanıtı |
+| Reddedilen değişiklik talebinin belgesi | Retten **1 yıl** sonra silinir | |
+| Silinen şirketin tüm belgeleri | Silinmeden **1 yıl** sonra silinir | Sahtecilik, şikâyet, yasal talep için kanıt — sadece admin erişir |
 | Reddedilen işveren başvurusunun belgeleri | Retten **90 gün** sonra silinir | Tekrar başvuru kontrolü için yeterli |
-| Değişiklik talebi belgeleri | Sonuçlandıktan **1 yıl** sonra | Kim neyi neden değiştirdi kanıtı |
+| Sahiplik talebinin yetki belgesi | Talep sonuçlandıktan **1 yıl** sonra | Devir kanıtı |
 
 Adayın kendi belgeleri bu işe girmez — aday hesabını silince hemen silinir.
 
@@ -567,15 +588,143 @@ DROP TABLE ilan_goruntulemeleri_2025_09;
 
 ---
 
-## 14. Çalışma Düzeni
+## 14. Süreç Süresi
 
-### 14.1 Global ölçekte "gece" yok
+**Ne yapar:** Başladığı günden itibaren 60 gün içinde sonuçlandırılmayan süreçleri bitirir.
+
+| Gün | Ne olur |
+|---|---|
+| 0 | Süreç başladı (başvuru kabul edildi / davet kabul edildi) |
+| 53 | Sorumluya 📱 🔔 *"Ayşe Kaya ile süreç 7 gün sonra sona erecek. Sonuçlandırmak ister misiniz?"* |
+| 60 | Otomatik biter → `surec_suresi_doldu` |
+
+**60. günde:**
+
+| | İşveren | Aday |
+|---|---|---|
+| Kartta | ⌛ *Süre doldu — sonuçlandırılmadı* | ⌛ *Süreç sona erdi* |
+| Bildirim | 📱 🔔 sorumluya · 🔔 sahip / yöneticiye | 🔔 *"ABC Teknoloji ile Senior Backend Developer süreciniz sona erdi."* — push yok |
+| Sohbet | Kapanır — geçmiş görünür | Kapanır — geçmiş görünür |
+| Belgeler | Erişim kapanır | — |
+
+| | |
+|---|---|
+| Uzatma | **Yok** |
+| Süre neyden sayılır | Sürecin **başladığı** gün — mesajlaşma süreyi uzatmaz |
+| İlan yayında değilse | Fark etmez — süre işler |
+| Sıklık | **Saatlik** |
+
+```sql
+CREATE INDEX ON surecler (baslangic_tarihi) WHERE sonuc IS NULL;
+```
+
+---
+
+## 15. İşe Alım Onayı
+
+**Ne yapar:** İşverenin *"işe alındı"* dediği adayların onay sürelerini takip eder.
+
+| Süre | Ne olur |
+|---|---|
+| **14 gün** — aday cevap vermedi | Durum ⚪ *Aday cevap vermedi* · şirket raporunda onaysız işe alım |
+| **30 gün** — çelişki düzeltme süresi | Aday *"işe alınmadım"* dediyse ve kimse düzeltmediyse kayıt ⚠️ **tartışmalı** olarak kesinleşir → admin listesine düşer · [Yanlış işaretledim], [Adaya tekrar sor], [Cevabımı değiştir] kapanır |
+
+| | |
+|---|---|
+| Bildirim | Yok — durum değişikliği sessiz |
+| İlan silinmiş olsa da | Çalışır — onay arka planda sürer |
+| Sıklık | **Günlük** |
+
+---
+
+## 16. Taslak Silme
+
+**Ne yapar:** Oluşturulduğu günden itibaren 30 gün içinde yayınlanmayan taslakları siler.
+
+| Gün | Ne olur |
+|---|---|
+| 0 | Taslak oluştu — yeni ilan, yarıda bırakılan form veya **Kopyala** |
+| 23 | Sorumluya 🔔 *"Frontend Developer taslağınız 7 gün sonra silinecek. Yayınlamak ister misiniz?"* **[Taslağa git]** |
+| 30 | Taslak **tamamen** silinir — hiç yayınlanmadığı için rapora girmez |
+
+| | |
+|---|---|
+| Süre neyden sayılır | **Oluşturulduğu gün** — düzenlemek süreyi uzatmaz |
+| Sıklık | **Günlük** |
+
+---
+
+## 17. Sahiplik İstekleri
+
+**Ne yapar:** Şirket sahipliği devir isteklerinin ve sahiplik taleplerinin sürelerini takip eder.
+
+| İstek | Süre | Süre dolunca |
+|---|---|---|
+| **Planlı devir** — sahip bir yöneticiye devretmek istedi | **7 gün** | Yeni sahip kabul etmediyse istek **düşer** · sahibe 🔔 *"Sahiplik devri isteği süresi doldu."* |
+| **Sahiplik talebi** — sahip ulaşılamıyor, yönetici başvurdu | **14 gün** itiraz süresi | Sahip itiraz etmediyse talep admin kuyruğunda **"karar verilebilir"** olarak işaretlenir — **devri admin yapar**, otomatik değil |
+
+| | |
+|---|---|
+| Sıklık | **Günlük** |
+
+> Ayrıntı → `isveren-paneli-final.md` Bölüm 17.4, 17.5
+
+---
+
+## 18. Günlük İstatistik
+
+**Ne yapar:** O günün olaylarını sayıp **istatistik defterlerine** bir kez yazar. Raporlar canlı kayıtlardan değil, bu defterlerden okunur.
+
+| Defter | Satır | İçinde | Kim kullanır |
+|---|---|---|---|
+| **Şirket istatistikleri** | Şirket × gün | İlan · başvuru · kabul · red · cevapsız · davet (kabul / red / cevapsız) · süreç · işe alım · onaylı işe alım · ilan sonuçları — **aday adı yok** | Şirket profilindeki 12 aylık işe alım raporu · admin aylık / günlük döküm |
+| **Platform istatistikleri** | Gün × ülke × meslek alanı × ilan tipi | Açılan / sonuçlanan ilan · başvuru · kabul · red · cevapsız · davet · süreç · işe alım · yeni aday · yeni şirket — **şirket ve aday adı yok** | Admin |
+
+| Kural | |
+|---|---|
+| **Bir kez yazılır** | Sonradan **değişmez** — aday hesabını silse, aksiyonlar 2 yılda silinse de |
+| Şirket hesabı silinirse | O şirketin satırları silinir · platform satırları değişmez |
+| Şirket raporu | Son 365 satırın toplamı · ekranda *"Güncelleme: bugün 03:00"* |
+| Gecikmeli gelen olay | Ertesi günün satırına eklenir — geçmiş satır düzeltilmez |
+| Tekrar çalışsa | Aynı gün için satır zaten varsa üstüne yazılmaz |
+| Sıklık | **Günlük** — UTC 00:30 *(önceki günü kapatır)* |
+
+> **Neden:** Banka hesap özeti gibi — her gün ne girdi ne çıktı yazılır; bakiye (rapor) bunların toplamı. Geçmiş işlemler silinse de özet bozulmaz.
+
+---
+
+## 19. Eski Kayıtları Silme
+
+**Ne yapar:** Sonuçlanmasının üzerinden **2 yıl** geçen ilanların kalan tüm kayıtlarını siler.
+
+| Silinir | |
+|---|---|
+| Aksiyon kayıtları | Başvuru, davet, süreç, sonuç |
+| Aşama geçmişi, skor anlık görüntüleri | |
+| Başvuru / davet / süreç kayıtları | Ayrıntılar zaten 1 yılda silinmişti (Bakım 11) |
+| İşe alım onay kayıtları | |
+| **Soft delete edilmiş ilanlar** | İlan satırı, etiketleri, yayın geçmişi |
+
+| | |
+|---|---|
+| Neden 2 yıl | Şirket raporu son 12 ayı, aday kartları 90 günü gösteriyor — 2 yıldan eski ayrıntı kimsenin ekranında yok |
+| Raporlar | Etkilenmez — istatistik defterlerinden okunur (Bakım 18) |
+| Sonuç | Aksiyon tablosu sadece **son ~2 yılı** tutar — büyümesi durur |
+| Yöntem | Bölüm bölüm (aksiyon tablosu 16 bölüm), 10.000'er satır |
+| Sıklık | **Aylık** — ayın ilk günü, düşük trafik saatinde |
+| Süre | Başlangıç önerisi — gerekirse 1 yıla indirilir; hukuki danışmanla kesinleşecek |
+
+---
+
+## 20. Çalışma Düzeni
+
+### 20.1 Global ölçekte "gece" yok
 
 Türkiye'de gece 3 iken ABD'de akşam, Asya'da sabah. Ağır işler **UTC'de trafiğin en düşük olduğu saatte** — ilk aylarda gerçek trafiğe bakılarak seçilir. Başlangıç: **UTC 03:00** civarı.
 
 Bildirimler iş çalıştığında değil, **kullanıcının saat diliminde sabah** gönderilir — işler sadece bildirim kuyruğuna yazar.
 
-### 14.2 Takvim
+### 20.2 Takvim
 
 | # | İş | Sıklık | Saat (UTC) | Ağırlık |
 |:---:|---|---|---|:---:|
@@ -583,19 +732,25 @@ Bildirimler iş çalıştığında değil, **kullanıcının saat diliminde saba
 | 5 | Hata tekrarı | 15 dakikada bir | — | Hafif |
 | 1 | İlan süresi | Saatlik | :00 | Hafif |
 | 2 | Başvuru / davet süresi | Saatlik | :05 | Hafif |
+| 14 | Süreç süresi | Saatlik | :10 | Hafif |
+| 18 | Günlük istatistik | Günlük | 00:30 | Orta |
 | 3 | Otomatik düşme | Günlük | 01:00 | Orta |
 | 4 | Hesap askıya alma | Günlük | 01:15 | Hafif |
 | 10 | Sonuçlananları gizleme | Günlük | 01:30 | Hafif |
+| 15 | İşe alım onayı | Günlük | 01:40 | Hafif |
+| 16 | Taslak silme | Günlük | 01:50 | Hafif |
 | 6 | Sırayla tazeleme | Günlük | 02:00 | Orta |
 | 13 | Zaman bölümleri | Günlük | 02:30 | Hafif |
 | 7 | Sonuç tablosu temizliği | Günlük | 03:00 | **Ağır** |
 | 9 | Sayaç düzeltme | Günlük | 04:00 | Orta |
 | 11 | Başvuru ayrıntıları silme | Günlük | 04:30 | Orta |
-| 12 | Kapatılan şirketler, belgeler | Günlük | 05:00 | Orta |
+| 12 | Şirket belgeleri | Günlük | 05:00 | Orta |
+| 17 | Sahiplik istekleri | Günlük | 05:15 | Hafif |
+| 19 | Eski kayıtları silme | **Aylık** — ayın 1'i | 05:30 | **Ağır** |
 
 Dakikalar kaydırıldı — hepsi aynı anda başlamasın, ağır işler üst üste binmesin.
 
-### 14.3 Dört kural
+### 20.3 Dört kural
 
 | Kural | Ne demek | Neden |
 |---|---|---|
@@ -604,7 +759,7 @@ Dakikalar kaydırıldı — hepsi aynı anda başlamasın, ağır işler üst ü
 | **Tekrar çalışsa sorun çıkmaz** | "Süresi dolanları kapat" iki kez çalışsa ikincisi bir şey bulmaz | Yarıda kesilen iş sonraki çalışmada kaldığı yerden devam eder |
 | **Süre sınırı** | Ağır iş belirli sürede bitmezse durur, kalanı ertesi güne | Gündüz trafiğine taşmasın |
 
-### 14.4 İzleme
+### 20.4 İzleme
 
 | İzlenen | Uyarı ne zaman |
 |---|---|
@@ -614,16 +769,17 @@ Dakikalar kaydırıldı — hepsi aynı anda başlamasın, ağır işler üst ü
 | Sayaç düzeltme sayısı arttı | Kodda hata olabilir |
 | Zaman bölümü açılamadı | **Acil** |
 | Hata tekrarında biriken iş | Bir dış servis çökmüş olabilir |
+| Günlük istatistik yazılmadı | Şirket raporları bir gün eksik kalır — **önemli** |
 
 Uyarılar admin panelinde + e-posta.
 
 ---
 
-## 15. Açık Konular
+## 21. Açık Konular
 
 | # | Konu | Ne zaman |
 |:---:|---|---|
-| 1 | Saklama süreleri (1 yıl, 90 gün, 30 gün) | Hukuki danışmanla, lansman ülkelerine göre |
+| 1 | Saklama süreleri (1 yıl, 2 yıl, 90 gün, belgeler 1 yıl) | Hukuki danışmanla, lansman ülkelerine göre |
 | 2 | Ağır işlerin saati | İlk ayların trafik verisiyle |
 | 3 | Otomatik düşme süreleri (30 / 90) | Kullanıcı davranışı verisiyle |
 | 4 | Sırayla tazeleme günlük adedi | Kuyruk yüküne göre |
