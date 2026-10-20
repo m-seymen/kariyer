@@ -3,13 +3,13 @@
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
 > Durum: Ekip toplantısı sonrası nihai karar
-> İlgili dokümanlar: `is-ilani-v3.md`, `isveren-paneli-v2.md`, `eslestirme-motoru.md`
+> İlgili dokümanlar: `is-ilani-v3.md`, `isveren-paneli-final.md`, `eslestirme-motoru.md`
 
 ---
 
 ## 0. Bu Dokümanı Nasıl Okumalı
 
-Staj ilanı, iş ilanıyla **aynı altyapıyı** kullanır — aynı tablo, aynı eşleştirme motoru, aynı yapay zeka ayrıştırması, aynı onay ekranı, aynı yayın kuralları.
+Staj ilanı, iş ilanıyla **aynı altyapıyı** kullanır — aynı tablo, aynı eşleştirme motoru, aynı yapay zeka ayrıştırması, aynı "Algılanan" satırı, aynı yayın ve yaşam döngüsü kuralları.
 
 Bu doküman **staja özgü kararları** detaylı anlatır. İş ilanıyla birebir aynı olan kısımlar kısa tutulmuş ve `is-ilani-v3.md`'ye referans verilmiştir.
 
@@ -21,7 +21,7 @@ Bu doküman **staja özgü kararları** detaylı anlatır. İş ilanıyla birebi
 
 | Konu | İş ilanı | Staj ilanı |
 |---|---|---|
-| **Çalışma tipi** | Tam / yarı zamanlı / proje bazlı / dönemsel — katı filtre | ❌ **Yok** |
+| **Çalışma tipi** | Tam / yarı zamanlı / proje bazlı / dönemsel — **çoklu**, katı filtre | ❌ **Yok** |
 | **Çalışma düzeni** | — | ✅ Tam / yarı zamanlı — **sadece gösterim** |
 | **Toplam tecrübe** | Min–max yıl — skor | ❌ **Yok** — skorda nötr (0.5) |
 | **Eğitim — kimler başvurabilir** | Öğrenci / mezun / ikisi / **şart yok** | Öğrenci / mezun / ikisi — **şart yok seçeneği yok** |
@@ -40,8 +40,8 @@ Bu doküman **staja özgü kararları** detaylı anlatır. İş ilanıyla birebi
 
 | Alan | Adım | Zorunlu | Giriş | LLM ayrıştırır | Embedding | Katı filtre | Skor | Adaya görünür |
 |---|:---:|:---:|---|:---:|:---:|:---:|:---:|:---:|
-| **Meslek alanı** | 1 | ✅ | Kapalı liste | ❌ | ❌ | ✅ | — | ✅ |
-| **Unvan** | 1 | ✅ | Serbest + öneri | ❌ | ✅ | ❌ | — | ✅ |
+| **Meslek alanı** | 1 | ✅ *yayından sonra kilitli* | Kapalı liste | ❌ | ❌ | ✅ | — | ✅ |
+| **Unvan** | 1 | ✅ *yayından sonra kilitli* | Serbest + öneri | ❌ | ✅ | ❌ | — | ✅ |
 | **İş yeri konumu** | 1 | ✅ | Konum ağacı + şirket lokasyonu kısayolu | ❌ | ❌ | ✅ | — | ✅ |
 | **Çalışma şekli** | 1 | ✅ | Ofis / hibrit / uzaktan — çoklu | ❌ | ❌ | ✅ | — | ✅ |
 | **Çalışma düzeni** | 1 | ✅ | Tam zamanlı / yarı zamanlı | ❌ | ❌ | ❌ | ❌ | ✅ |
@@ -96,7 +96,7 @@ Sürücü belgesi · Seyahat · Vardiya (gerekliyse)
 
 **Sadece skor:**
 ```
-Yetenekler · Sertifikalar · Bölümler  → yetenek bileşeni
+Yetenekler · Sertifikalar · Bölümler  → nitelik uyumu
 Ücret belirtilmiş mi                  → kalite bileşeni
 (Tecrübe bileşeni stajda nötr — 0.5)
 ```
@@ -136,6 +136,8 @@ Yetenekler · Sertifikalar · Bölümler  → yetenek bileşeni
 | **Çalışma düzeni** | ✅ | Tam zamanlı / yarı zamanlı | **Sadece gösterim** |
 
 Meslek alanı, unvan, iş yeri konumu ve çalışma şekli **iş ilanıyla birebir aynı** — konum ağacı, uzaktan istisnası ve filtre kuralları için → `is-ilani-v3.md` Bölüm 4.
+
+> 🔒 **Meslek alanı ve unvan yayından sonra değiştirilemez** — iş ilanıyla aynı kural (`is-ilani-v3.md` Bölüm 4.6). Farklı bir staj programı için **[⋮] → Kopyala** ile yeni ilan açılır.
 
 ### İş yeri konumu
 
@@ -186,7 +188,7 @@ Tercih edilen yetenekler
 | LLM ayrıştırır | ✅ ad + yıl | ✅ ad |
 | Embedding | ✅ ham metin | ✅ ham metin |
 | Katı filtre | ❌ | ❌ |
-| Skor | ✅ Yetenek bileşeni — 0.75 | ✅ Yetenek bileşeni — 0.25 |
+| Skor | ✅ Nitelik uyumu — 0.75 | ✅ Nitelik uyumu — 0.25 |
 
 > **Stajda beklenti farkı:** İşveren genelde yıl yazmaz (*"Python bilgisi"*, *"Excel kullanabilen"*). Yıl yazmazsa skor sadece var/yok bakar; yazarsa iş ilanındaki kısmi puan formülü çalışır. Ayrı bir kural gerekmiyor.
 
@@ -275,7 +277,7 @@ Olmazsa olmaz sertifika ve belgeler (opsiyonel)
 Tercih edilen sertifika ve belgeler (opsiyonel)
 ```
 
-LLM ayrıştırır (ad), embedding'e girer, skorda yetenek bileşeni içinde, katı filtre değil. Adaydaki süresi dolmuş sertifika yok sayılır.
+LLM ayrıştırır (ad), embedding'e girer, skorda nitelik uyumu içinde, katı filtre değil. Adaydaki süresi dolmuş sertifika yok sayılır.
 
 ### 5.7 Serbest şartlar
 
@@ -399,18 +401,27 @@ Kabul edilen staj türü *
 ```
 [Kaydet] → "Yetenekler analiz ediliyor..."
         ↓
-┌──────────────────────────────────────────────────────────┐
-│ Şunları anladık — doğru mu?                              │
-│                                                          │
-│ Olmazsa olmaz yetenekler:     [Python ✕] [SQL ✕]          │
-│ Tercih edilen yetenekler:     [Git ✕]                    │
-│ Tercih edilen bölümler:       [Bilgisayar Müh. ✕]        │
-│                               [Yazılım Müh. ✕]           │
-│ Olmazsa olmaz sertifikalar:   —                          │
-│ Tercih edilen sertifikalar:   —                          │
-│                                                          │
-│ [+ Ekle]                         [Doğru, devam et]       │
-└──────────────────────────────────────────────────────────┘
+Her kutunun altında "Algılanan" satırı belirir — onay ekranı YOK
+```
+
+```
+Olmazsa olmaz yetenekler
+┌──────────────────────────────────────────────────┐
+│ Python ve SQL bilgisi                            │
+└──────────────────────────────────────────────────┘
+Algılanan: Python   SQL                            [Düzenle]
+
+Tercih edilen yetenekler
+┌──────────────────────────────────────────────────┐
+│ Git kullanmış olması artı                        │
+└──────────────────────────────────────────────────┘
+Algılanan: Git                                     [Düzenle]
+
+Tercih edilen bölümler
+┌──────────────────────────────────────────────────┐
+│ Bilgisayar veya yazılım mühendisliği öğrencisi   │
+└──────────────────────────────────────────────────┘
+Algılanan: Bilgisayar Müh.   Yazılım Müh.          [Düzenle]
 ```
 
 | Kural | |
@@ -418,8 +429,9 @@ Kabul edilen staj türü *
 | Tek istek | Beş kutu aynı yapay zeka isteğiyle ayrıştırılır |
 | Kutu sınıfı belirler | Zorunlu / tercihen ayrımını yapay zeka tahmin etmez |
 | Sadece metin değişince | Hash kontrolü |
-| İşveren onayı şart | Skor onaylı etiketlerle çalışır |
-| Hata durumunda | İlan yine kaydedilir; arka planda tekrar denenir |
+| Onay yok | İşveren "Algılanan" satırını görür, isterse **[Düzenle]** ile düzeltir — bir şey yapmak zorunda değil |
+| İşverenin düzeltmesi korunur | Metin değişip yapay zeka tekrar çalışsa bile üstüne yazılmaz |
+| Hata durumunda | İlan yine kaydedilir ve yayınlanabilir; arka planda tekrar denenir, başarılı olunca etiketler sessizce uygulanır |
 
 ---
 
@@ -439,9 +451,9 @@ Kabul edilen staj türü *
 | | |
 |---|---|
 | Yayın süresi | Sabit **60 gün** |
-| Uzat | İstediği zaman — **15 / 30 / 60 gün**, hatırlatma yok, uzatma sayısı +1 |
+| Uzat | İstediği zaman — **15 / 30 / 60 gün** · süre bitmeden 3 gün önce hatırlatma · uzatma sayısı +1 |
 | Üst sınır | Kesintisiz en fazla **180 gün** |
-| Süre dolunca | **[Tekrar yayınla]** → yeni 60 gün, yayın sayısı +1, aynı ilan, geçmiş korunur |
+| Süre dolunca | ⏱ **Süresi doldu** — ilk **30 gün** içinde **[Tekrar yayınla]** (yeni 60 gün, aynı ilan, geçmiş korunur) · **75 gün** içinde sonuç bildirilmeli, yoksa ❓ *Sonuç bildirilmedi* |
 
 > **Staj ilanının "yayın süresi" ile "staj süresi" farklı şeyler:** Yayın süresi ilanın platformda kaç gün açık kaldığı (60 gün). Staj süresi stajyerin şirkette ne kadar çalışacağı (1 ay, 2 ay…).
 
@@ -449,20 +461,23 @@ Kabul edilen staj türü *
 
 ## 10. İlan Durumları
 
-**İş ilanıyla birebir aynı.**
+**İş ilanıyla birebir aynı** — ayrıntılar `is-ilani-v3.md` Bölüm 10, ekranlar `isveren-paneli-final.md` Bölüm 3, 4, 11, 12, 13.
 
-| Durum | Eşleştirmede |
-|---|:---:|
-| `taslak` | ❌ |
-| `yayinda` | ✅ |
-| `duraklatildi` | ❌ |
-| `dolduruldu` | ❌ |
-| `kapatildi` | ❌ |
-| `suresi_doldu` | ❌ |
+| Durum | Eşleştirmede | Geri açılır mı |
+|---|:---:|:---:|
+| `taslak` | ❌ | — *(oluşturulduktan 30 gün sonra silinir)* |
+| `yayinda` | ✅ | — |
+| `duraklatildi` | ❌ | ✅ [Devam ettir] |
+| `suresi_doldu` | ❌ | ✅ [Tekrar yayınla] — ilk 30 gün |
+| **Sonuçlanan** — `pozisyon_doldu` · `aday_bulunamadi` · `vazgecildi` · `sonuc_bildirilmedi` | ❌ | ❌ Kalıcı |
 
-Tekrar yayınlama `süresi_doldu`, `kapatildi` ve `dolduruldu` durumlarından yapılabilir. Meslek alanı değiştirilirse "yeni ilan olarak açın" yönlendirmesi.
+| Kural | |
+|---|---|
+| Yayında olmayan ilan | Yeni başvuru ve davet durur · bekleyen başvurular, davetler ve süreçteki adaylar **devam eder** |
+| Sonuç bildirilince | Bekleyen başvuru, davet ve süreçteki adayların **hepsi** sonlanır · ilan tekrar yayınlanamaz |
+| Meslek alanı ve unvan | Yayından sonra kilitli |
 
-> **Dönemlik staj için ipucu:** Her yaz aynı staj programını açan şirket, geçen yılki ilanı **[Tekrar yayınla]** ile açabilir — geçen yıl geçilen veya reddedilen adaylar tekrar karşısına çıkmaz.
+> **Dönemlik staj için ipucu:** Her yaz aynı staj programını açan şirket, geçen yılki ilanı **[⋮] → Kopyala** ile yeni ilan olarak açar — tüm alanlar hazır gelir. Geçen yılki ilan sonuçlandığı için tekrar yayınlanamaz; kopya **yeni ilan** olduğu için geçen yılın adayları da yeniden görünebilir (bir yıl sonra durumları değişmiş olabilir).
 
 ---
 
@@ -472,7 +487,7 @@ Tekrar yayınlama `süresi_doldu`, `kapatildi` ve `dolduruldu` durumlarından ya
 
 ```
 skor = 0.65 × anlamsal       ← ilan vektörü (iş ilanıyla aynı yapı)
-     + 0.20 × yetenek        ← iş ilanıyla aynı formül
+     + 0.20 × nitelik uyumu  ← iş ilanıyla aynı formül
      + 0.10 × tecrübe        ← STAJDA NÖTR: her aday 0.5
      + 0.05 × kalite         ← aday yönü: "ücret belirtilmiş" en ağır kriter
 ```
@@ -480,7 +495,7 @@ skor = 0.65 × anlamsal       ← ilan vektörü (iş ilanıyla aynı yapı)
 | Bileşen | İş ilanı | Staj ilanı |
 |---|---|---|
 | Anlamsal | Aynı | Aynı |
-| Yetenek | Aynı formül | Aynı formül |
+| Nitelik uyumu | Aynı formül | Aynı formül |
 | **Tecrübe** | Min–max ile iki yönlü | **0.5 — nötr** |
 | **Kalite — en ağır kriter** | Maaş aralığı belirtilmiş (0.50) | **Ücretli + tutar belirtilmiş (0.50)** |
 
@@ -583,6 +598,7 @@ Staj ilanının çalışması için aday profilinde **ek alan gerekmiyor** — k
 
 | Doküman | Değişecek |
 |---|---|
-| **İş İlanı** | Eğitim alanı aynı yapıya geçti: "Kimler başvurabilir" (öğrenci / mezun / ikisi / **şart yok**) + "Hangi seviyede" (**ilkokul → doktora**) → `is-ilani-v3.md` |
-| **Eşleştirme Motoru** | Staj ilanında tecrübe bileşeni 0.5; kalite bileşeninde "ücret belirtilmiş"; "kimler başvurabilir + seviye" filtresi; çalışma tipi ve askerlik filtreleri staj için devre dışı |
+| **İş İlanı** | ✅ İşlendi — eğitim alanı aynı yapı · "Algılanan" satırı · yaşam döngüsü → `is-ilani-v3.md` |
+| **Eşleştirme Motoru** | ✅ İşlendi — staj ilanında tecrübe bileşeni 0.5 · kalitede "ücret belirtilmiş" · "kimler başvurabilir + seviye" filtresi · çalışma tipi ve askerlik filtreleri staj için devre dışı |
+| **İşveren Paneli** | ✅ İşlendi — `isveren-paneli-final.md`: ilan butonları, durumlar, sonuç bildirme staj ilanında da aynı |
 | **Aday Profili** | Değişiklik yok — gereken veriler zaten mevcut |
