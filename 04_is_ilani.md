@@ -2,9 +2,9 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm 3 — final** (eğitim şartı yeni yapıya geçti)
+> **Sürüm 3 — final** (eğitim şartı yeni yapıya geçti · işveren paneli kararlarıyla güncellendi)
 > Durum: Ekip toplantısı sonrası nihai karar
-> İlgili dokümanlar: `isveren-paneli-v2.md`, `eslestirme-motoru.md`, `aday-profili.md`
+> İlgili dokümanlar: `isveren-paneli-final.md`, `eslestirme-motoru.md`, `aday-profili-final.md`
 > Kapsam dışı: **Staj ilanı** → `staj-ilani.md`
 
 ---
@@ -34,7 +34,7 @@ Her alan için beş soru cevaplanıyor:
 
 **Neden gerekli oldu:** İşveren yetenekleri cümle olarak yazmak istiyor — *"5 yıl React bilen, 8 yıl .NET tecrübesi olan"*. Eşleştirmenin "React 5 yıl isteyen ilan, React 3 yıl bilen ile 1 yıl bileni ayırt edebilmesi" için bu cümleden **"React → 5 yıl"** bilgisinin sayı olarak çıkarılması şart. Kural yazarak (desen arama) bunu her dilde, her yazım şeklinde güvenilir yapmak mümkün değil.
 
-**Neden açıklanabilirlik bozulmuyor:** Yapay zekanın çıkardığı sonuç **işverene onaylatılıyor.** Skor, yapay zekanın yorumu üzerinden değil, **işverenin onayladığı etiketler** üzerinden çalışıyor.
+**Neden açıklanabilirlik bozulmuyor:** Yapay zekanın çıkardığı sonuç **gizli değil** — her kutunun altında *"Algılanan"* satırında görünür ve işveren **[Düzenle]** ile düzeltebilir. Onay ekranı yok; işveren bir şey yapmak zorunda değil. İşverenin düzelttiği etiket, metin sonradan değişse bile korunur (Bölüm 8).
 
 **Maliyet:** Küçük, hızlı bir model ile ilan başına bir sentin çok altında. Bir SMS doğrulamasından ucuz. *(Güncel fiyat model seçiminde kontrol edilmeli.)*
 
@@ -67,11 +67,11 @@ Yetenek, tecrübe, bölüm, sertifika **kimseyi elemez** — sadece sıralamayı
 
 | Alan | Adım | Zorunlu | Giriş | LLM ayrıştırır | Embedding | Katı filtre | Skor | Adaya görünür |
 |---|:---:|:---:|---|:---:|:---:|:---:|:---:|:---:|
-| **Meslek alanı** | 1 | ✅ | Kapalı liste | ❌ | ❌ | ✅ | — | ✅ |
-| **Unvan** | 1 | ✅ | Serbest + öneri | ❌ | ✅ | ❌ | — | ✅ |
+| **Meslek alanı** | 1 | ✅ *yayından sonra kilitli* | Kapalı liste | ❌ | ❌ | ✅ | — | ✅ |
+| **Unvan** | 1 | ✅ *yayından sonra kilitli* | Serbest + öneri | ❌ | ✅ | ❌ | — | ✅ |
 | **İş yeri konumu** | 1 | ✅ | Konum ağacı + şirket lokasyonu kısayolu | ❌ | ❌ | ✅ | — | ✅ |
 | **Çalışma şekli** | 1 | ✅ | Ofis / hibrit / uzaktan — çoklu | ❌ | ❌ | ✅ | — | ✅ |
-| **Çalışma tipi** | 1 | ✅ | Tam / yarı zamanlı / proje bazlı / dönemsel | ❌ | ❌ | ✅ | — | ✅ |
+| **Çalışma tipi** | 1 | ✅ | Tam / yarı zamanlı / proje bazlı / dönemsel — **çoklu** | ❌ | ❌ | ✅ | — | ✅ |
 | **Olmazsa olmaz yetenekler** | 2 | ❌ | Serbest metin | ✅ ad + yıl | ✅ ham metin | ❌ | ✅ | ✅ |
 | **Tercih edilen yetenekler** | 2 | ❌ | Serbest metin | ✅ ad | ✅ ham metin | ❌ | ✅ | ✅ |
 | **Toplam tecrübe** | 2 | ❌ | Min – max yıl | ❌ | ❌ | ❌ | ✅ | ✅ |
@@ -122,7 +122,7 @@ Sürücü belgesi · Seyahat · Vardiya · Askerlik (gerekliyse)
 
 **Sadece skor (sıralamayı etkiler, kimseyi elemez):**
 ```
-Yetenekler · Sertifikalar · Bölümler → yetenek bileşeni
+Yetenekler · Sertifikalar · Bölümler → nitelik uyumu
 Toplam tecrübe                       → tecrübe bileşeni
 Maaş belirtilmiş mi                  → kalite bileşeni
 ```
@@ -147,7 +147,7 @@ Serbest şartlar · Başlama zamanı · Maaş tutarı
 | **Kim açabilir** | Sahip, yönetici, uzman — hepsi |
 | **İlan tipi** | Butona göre otomatik — kullanıcı ayrıca seçmez |
 | **Sorumlu kişi** | **İlanı açan kişi otomatik sorumlu olur** |
-| **Devretme** | Sahip ve yönetici sorumluyu değiştirebilir (bkz. `isveren-paneli-v2.md`) |
+| **Devretme** | Sahip ve yönetici sorumluyu değiştirebilir (bkz. `isveren-paneli-final.md` Bölüm 5.3) |
 | **Taslak** | Her adımda otomatik kaydedilir, yarıda bırakılıp dönülebilir |
 
 > Staj ilanı aynı tabloyu ve eşleştirme motorunu kullanır, ama formu farklıdır → ayrı doküman.
@@ -169,6 +169,8 @@ Serbest şartlar · Başlama zamanı · Maaş tutarı
 > **Terminoloji:** Şirket profilinde **"Sektör"** (şirket ne iş yapıyor), ilanda **"Meslek alanı"** (pozisyon hangi meslek). Bir inşaat şirketi muhasebeci arayabilir — ilanın meslek alanı "Finans ve Muhasebe" olur.
 
 Meslek alanı adları çevrilebilir (kod sabit, ad kullanıcının diline göre). **Tek liste tüm ülkelerde.** Kaynak: ISCO-08, sadeleştirilerek.
+
+> 🔒 **Yayından sonra değiştirilemez** — Bölüm 4.6.
 
 ### 4.2 Unvan
 
@@ -193,6 +195,8 @@ Unvan:         [Backend Dev|                ]
 > **Neden katı filtre değil:** "Yazılım Mühendisi" ile "Backend Developer" farklı isim, aynı iş. Katı filtre olsa doğru adaylar elenir. Embedding bu yakınlığı yakalıyor.
 
 > **Başlangıç verisi şart:** Meslek alanı başına 20-40 unvan, her lansman dili için. Boş öneri listesiyle karşılaşan ilk kullanıcılar herkes farklı yazar ve öneri sistemi kendine gelemez.
+
+> 🔒 **Yayından sonra değiştirilemez** — Bölüm 4.6.
 
 ### 4.3 İş yeri konumu
 
@@ -247,13 +251,38 @@ diğer                              → konum filtresi UYGULANIR
 
 ### 4.5 Çalışma tipi
 
+```
+Çalışma tipi *
+☑ Tam zamanlı   ☑ Yarı zamanlı   ☐ Proje bazlı   ☐ Dönemsel
+```
+
 | | |
 |---|---|
-| Zorunlu | ✅ |
-| Giriş | Tam zamanlı / yarı zamanlı / proje bazlı / dönemsel — tek seçim |
-| Eşleştirme | **Katı filtre** |
+| Zorunlu | ✅ En az bir |
+| Giriş | Tam zamanlı / yarı zamanlı / proje bazlı / dönemsel — **çoklu seçim** |
+| Eşleştirme | **Katı filtre** — adayın çalışma tipi tercihiyle **en az bir ortak** seçenek olmalı |
+
+| İlan | Aday | Sonuç |
+|---|---|:---:|
+| Tam, Yarı | Tam zamanlı | ✅ |
+| Tam | Yarı zamanlı | ❌ |
+| Proje bazlı | Tam, Proje bazlı | ✅ |
+
+> **Neden çoklu:** Kafe, mağaza, çağrı merkezi *"tam veya yarı zamanlı"* der — tek seçim olsa işveren adayların yarısını kaybederdi. Aday tarafında da aynı alan çoklu.
 
 > "Staj" bu listede **yok** — staj ayrı ilan tipi.
+
+### 4.6 Yayından sonra kilitli alanlar
+
+| Alan | Taslakken | Yayından sonra |
+|---|:---:|:---:|
+| **Meslek alanı** | ✅ Değiştirilebilir | 🔒 **Değiştirilemez** |
+| **Unvan** | ✅ Değiştirilebilir | 🔒 **Değiştirilemez** |
+| Diğer tüm alanlar | ✅ | ✅ |
+
+> *"Meslek alanı ve unvan yayından sonra değiştirilemez. Farklı bir pozisyon için yeni ilan açın."*
+
+**Neden:** İkisi pozisyonun kimliği. Muhasebe ilanını yazılım ilanına çevirmek; eski başvuranların, davetlerin, "bir daha gösterme" kayıtlarının geçmişini alakasız bir pozisyona taşır. Benzer bir pozisyon için **[⋮] → Kopyala** ile yeni ilan açılır.
 
 ---
 
@@ -281,7 +310,7 @@ Tercih edilen yetenekler
 | **LLM ayrıştırır** | ✅ **Yetenek adı + yıl** | ✅ **Yetenek adı** |
 | **Embedding** | ✅ Ham metin | ✅ Ham metin |
 | Katı filtre | ❌ | ❌ |
-| **Skor** | ✅ Yetenek bileşeni — ağırlık 0.75 | ✅ Yetenek bileşeni — ağırlık 0.25 |
+| **Skor** | ✅ Nitelik uyumu — ağırlık 0.75 | ✅ Nitelik uyumu — ağırlık 0.25 |
 
 > **Neden iki alan:** İşverenin "olmazsa olmaz" dediği yetenek, "artı" dediğinden ayrılmalı. **Hangi kutuya yazıldığı** bu ayrımı belirler — yapay zeka tahmin etmez, sadece her kutudaki cümleyi etiketlere ayırır.
 
@@ -322,10 +351,10 @@ Toplam tecrübe (opsiyonel):  [ 3 ] – [ 6 ] yıl
 ```
 İlan: 1-2 yıl (junior)    Aday: 8 yıl
 
-İşveren yönü:  1.0   → "fazla nitelikli, fırsat"
+İşveren yönü:  0.4   → "fazla nitelikli — teklifi kabul etmeyebilir"
 Aday yönü:     0.2   → "geriye adım"
 ```
-Bu sayede 8 yıllık adayın Keşfet'ine junior ilanlar üst sıralarda düşmez.
+İyi eşleşme **iki tarafın da "evet" diyeceği** eşleşme: 8 yıllık aday junior ilanın maaşına çoğunlukla "hayır" der. Bu yüzden iki listede de **altta** — ama görünür. İşverende düşüş daha yumuşak (fazla nitelikli adayı gerçekten isteyen işveren için).
 
 > Formüllerin tamamı → `eslestirme-motoru.md`
 
@@ -424,7 +453,7 @@ Tercih edilen bölümler (opsiyonel)
 | **LLM ayrıştırır** | ✅ Bölüm adları |
 | **Embedding** | ✅ Ham metin |
 | Katı filtre | ❌ |
-| **Skor** | ✅ Yetenek bileşeni içinde, tercih edilen olarak |
+| **Skor** | ✅ Nitelik uyumu içinde, tercih edilen olarak |
 
 **Eşleşme:** Adayın bölümü listedekilerden **herhangi biriyle** eşleşirse puan alır.
 
@@ -498,7 +527,7 @@ Askerlik:         ○ Şart yok        ○ Askerlik engeli olmamalı
 
 > İşverenin asıl kaygısı da bu: "Bu kişi işe başlayıp askere gitmek zorunda kalmasın."
 
-**Adayın askerlik durumu işverene gösterilmez** — sadece filtre olarak çalışır. İşveren "kimin tecilli olduğunu" değil, sadece uygun adayları görür.
+**Adayın askerlik durumu işverene profil detayında görünür, ama işveren listeyi askerliğe göre süzemez** — filtre sadece ilan şartı varsa ve sadece tecillileri eler.
 
 **Sürücü belgesi sınıfları** ülkeye göre değişir (AB'de B/C/D/E, ABD'de eyalet bazlı); liste şirketin ülkesine göre gelir.
 
@@ -525,7 +554,7 @@ Tercih edilen sertifika ve belgeler (opsiyonel)
 | **LLM ayrıştırır** | ✅ Sertifika adı | ✅ Sertifika adı |
 | **Embedding** | ✅ Ham metin | ✅ Ham metin |
 | Katı filtre | ❌ | ❌ |
-| **Skor** | ✅ Yetenek bileşeni — olmazsa olmaz küme | ✅ Yetenek bileşeni — tercih edilen küme |
+| **Skor** | ✅ Nitelik uyumu — olmazsa olmaz küme | ✅ Nitelik uyumu — tercih edilen küme |
 
 > **Neden iki kutu:** Tek kutu olsaydı yapay zeka "şart", "tercih sebebi" gibi kelimelerden zorunlu mu tercihen mi olduğunu tahmin etmek zorunda kalırdı. İşveren bu kelimeleri kullanmazsa yanlış sınıflandırırdı. İki kutu tahmini kaldırıyor ve yeteneklerle aynı deneyimi sunuyor.
 
@@ -647,12 +676,15 @@ Sadece adaya gösterim.
 
 | | |
 |---|---|
-| Süre | **Sabit 60 gün** — seçim yok |
-| Süre dolunca | Otomatik kapanır → `süresi_doldu` |
+| İlk yayın | **60 gün** — seçim yok |
+| Uzatma | 15 / 30 / 60 gün — kesintisiz en fazla **180 gün** |
+| Süre dolunca | ⏱ **Süresi doldu** → ilk **30 gün** tekrar yayınlanabilir · **75 gün** içinde sonuç bildirilmeli |
+
+> Ayrıntı → Bölüm 10 ve `isveren-paneli-final.md` Bölüm 4, 11
 
 ---
 
-## 8. Kaydetme Akışı — Yapay Zeka Ayrıştırma ve Onay
+## 8. Kaydetme Akışı — Yapay Zeka Ayrıştırma ve "Algılanan" Satırı
 
 ### Akış
 
@@ -661,61 +693,70 @@ Sadece adaya gösterim.
         ↓
 "Yetenekler analiz ediliyor..."   (1-3 saniye)
         ↓
-┌──────────────────────────────────────────────────────────┐
-│ Şunları anladık — doğru mu?                              │
-│                                                          │
-│ Olmazsa olmaz yetenekler:                                │
-│   [React · 5 yıl ✕] [.NET · 8 yıl ✕] [PostgreSQL ✕]      │
-│                                                          │
-│ Tercih edilen yetenekler:                                │
-│   [Docker ✕] [Kubernetes ✕] [AWS ✕]                      │
-│                                                          │
-│ Tercih edilen bölümler:                                  │
-│   [Bilgisayar Müh. ✕] [Elektronik Müh. ✕]                │
-│   [Yazılım Müh. ✕]                                       │
-│                                                          │
-│ Olmazsa olmaz sertifika ve belgeler:                     │
-│   [SRC belgesi ✕] [Forklift ehliyeti ✕]                  │
-│                                                          │
-│ Tercih edilen sertifika ve belgeler:                     │
-│   [İSG eğitimi ✕]                                        │
-│                                                          │
-│ [+ Ekle]                         [Doğru, devam et]       │
-└──────────────────────────────────────────────────────────┘
+Her kutunun altında "Algılanan" satırı belirir — onay ekranı YOK
 ```
 
-**İşveren yapabilir:**
+```
+Olmazsa olmaz yetenekler
+┌──────────────────────────────────────────────────┐
+│ 5 yıl React bilen, 8 yıl .NET tecrübesi olan,    │
+│ PostgreSQL'e hakim                               │
+└──────────────────────────────────────────────────┘
+Algılanan: React · 5 yıl   .NET · 8 yıl   PostgreSQL   [Düzenle]
+
+Tercih edilen yetenekler
+┌──────────────────────────────────────────────────┐
+│ Docker ve Kubernetes bilgisi artı, AWS deneyimi  │
+└──────────────────────────────────────────────────┘
+Algılanan: Docker   Kubernetes   AWS                   [Düzenle]
+
+Tercih edilen bölümler
+┌──────────────────────────────────────────────────┐
+│ Bilgisayar, elektronik veya yazılım mühendisliği │
+└──────────────────────────────────────────────────┘
+Algılanan: Bilgisayar Müh.   Elektronik Müh.   Yazılım Müh.   [Düzenle]
+```
+
+**[Düzenle] ile işveren yapabilir:**
 - Etiket silmek, eklemek
+- Etiket adını düzeltmek
 - Yılı değiştirmek veya eklemek
-- Etiketi olmazsa olmaz ↔ tercih edilen arasında taşımak
+
+**İşveren hiçbir şey yapmak zorunda değil** — doğru gördüyse devam eder.
+
+### Neden onay ekranı yok
+
+Onay ekranı işveren için bir ekran ve bir karar daha demekti; *"onay bekliyor"*, hatırlatma, otomatik kabul gibi yan kurallar doğuruyordu. Etiketlerin **görünür ve düzeltilebilir** olması kaliteyi zorlamadan koruyor.
 
 ### Kurallar
 
 | Kural | Neden |
 |---|---|
-| **Tek istek** | Beş kutu (2 yetenek, 1 bölüm, 2 sertifika) aynı yapay zeka isteğiyle ayrıştırılır — tek onay ekranı |
+| **Tek istek** | Beş kutu (2 yetenek, 1 bölüm, 2 sertifika) aynı yapay zeka isteğiyle ayrıştırılır |
 | **Kutu sınıfı belirler** | Bir etiketin olmazsa olmaz mı tercihen mi olduğu, yazıldığı kutudan gelir — yapay zeka tahmin etmez |
 | **Sadece metin değişince çalışır** | İlgili metinlerin özeti (hash) tutulur. Maaş veya konum değişti diye yeniden ayrıştırılmaz |
+| **İşverenin düzeltmesi korunur** | Düzeltilen etiket `isveren_duzeltti` olarak işaretlenir — metin sonradan değişip yapay zeka tekrar çalışsa bile **üstüne yazılmaz** |
 | **Küçük, hızlı model** | Görev basit; büyük model gereksiz |
-| **İşveren onayı şart** | Skor, **onaylanmış etiketler** üzerinden çalışır — yapay zekanın ham yorumu üzerinden değil |
+| **Kalite sistemde korunur** | Kesin çıktı formatı, mantık kontrolü, test seti, [Düzenle] kullanım oranı izlenir → `eslestirme-motoru.md` 6.6 |
 | **Sunucuda çalışır** | Yapay zeka çağrısı Edge Function'da — anahtar istemcide değil |
+| **Taslakta da çalışır** | İşveren yayından önce "Algılanan" satırını kontrol edebilir |
 
 ### Yapay zeka cevap vermezse
 
 İşveren hiçbir zaman takılıp kalmaz:
 
 ```
-1. İlan yine kaydedilir
-2. Geçici olarak: adayın yetenek adları ilan metninde aranır (yılsız, var/yok)
-3. Ayrıştırma arka planda tekrar denenir
-4. Başarılı olunca işverene bildirim: "Yetenekleriniz analiz edildi, onaylayın"
+1. İlan yine kaydedilir, yayınlanabilir
+2. Kutunun altında: "Yetenekler birazdan analiz edilecek. İlanınızı yayınlayabilirsiniz."
+3. Geçici olarak: adayın yetenek adları ilan metninde aranır (yılsız, var/yok)
+4. Ayrıştırma arka planda tekrar denenir
+5. Başarılı olunca etiketler SESSİZCE uygulanır — bildirim yok, "Algılanan" satırı dolar
 ```
 
 ### Sonra ne olur
 
 ```
-Onaylandı
-  → Etiketler kaydedilir
+Etiketler kaydedildi
   → İlan metni birleştirilir → hash değiştiyse embedding üretilir
   → (Yayınlandıysa) eşleştirme arka planda hesaplanır
 ```
@@ -739,45 +780,66 @@ Onaylandı
 
 ## 10. İlan Durumları
 
+> Ekranlar, butonlar ve tüm akışlar → `isveren-paneli-final.md` Bölüm 3, 4, 5, 11, 12, 13
+
+### Dört hal
+
 ```
-taslak ──→ yayında ──→ süresi_doldu
-              │  ↑            │
-              │  └── uzat     │
-              ↓               ↓
-        duraklatıldı    [Tekrar yayınla] ──→ yayında
-              │
-              ↓
-     dolduruldu / kapatıldı
+TASLAK ──[Yayınla]──> YAYINDA ──[Sonuç bildir]──────────────> SONUÇLANAN
+                        │  ^                                   (kalıcı)
+        [Duraklat] /    │  │ [Devam ettir] /                       ^
+        süre doldu      v  │ [Tekrar yayınla] (ilk 30 gün)         │
+                     YAYINDA OLMAYAN ──[Sonuç bildir]──────────────┘
+                     (duraklatıldı / süresi doldu)    75. gün: sistem
 ```
 
 | Durum | Anlamı | Eşleştirmede | Nasıl olur |
 |---|---|:---:|---|
-| `taslak` | Henüz yayınlanmamış | ❌ | İlan açıldığında |
-| `yayinda` | Aktif | ✅ | [Yayınla] |
-| `duraklatildi` | Geçici durduruldu | ❌ | İşveren [Duraklat] — *"çok başvuru geldi, biraz durdur"* |
-| `dolduruldu` | Pozisyon doldu | ❌ | İşveren [Pozisyon doldu] |
-| `kapatildi` | İşveren vazgeçti | ❌ | İşveren [Kapat] |
-| `suresi_doldu` | 60 gün bitti | ❌ | Otomatik |
+| `taslak` | Henüz yayınlanmamış | ❌ | İlan açıldığında · oluşturulduktan **30 gün** sonra silinir |
+| `yayinda` | Aktif | ✅ | [Yayınla] · [Devam ettir] · [Tekrar yayınla] |
+| `duraklatildi` | Geçici durduruldu — geri açılabilir | ❌ | İşveren [Duraklat] — *"çok başvuru geldi, önce bunları değerlendireyim"* |
+| `suresi_doldu` | Yayın süresi bitti — ilk 30 gün geri açılabilir | ❌ | Otomatik |
+| **Sonuçlanan** | Kalıcı — tekrar yayınlanamaz | ❌ | İşveren [Sonuç bildir] · veya sistem 75. günde |
 
-> **"Dolduruldu" ile "kapatıldı" neden ayrı:** Dolduruldu **başarı göstergesi** — platformun asıl ölçüsü (işe alım oranı) buradan besleniyor. Vazgeçme farklı bir sinyal: ilan kalitesi veya aday havuzu sorunu olabilir.
+**Sonuçlanan ilanın sonucu:**
 
-> **Duraklat neden var:** Kapatmaktan farkı — tekrar açıldığında ilan sıfırdan kurulmaz, geçmiş korunur.
+| Sonuç | Kim |
+|---|---|
+| `pozisyon_doldu` | İşveren — işe alım yaptı *(kimi aldığını seçer)* |
+| `aday_bulunamadi` | İşveren — uygun aday bulamadı |
+| `vazgecildi` | İşveren — pozisyon iptal |
+| `sonuc_bildirilmedi` | Sistem — süre dolduktan **75 gün** sonra |
+
+> **Sonuçlar neden ayrı:** *Pozisyon doldu* platformun **asıl başarı ölçüsü.** *Uygun aday bulunamadı* eşleştirme veya aday havuzu sorununa işaret eder. *Vazgeçildi* şirketin iç kararı. Üçü şirket raporunda ayrı görünür.
+
+### Yayında olmayan ilan — ortak kural
+
+> **Yeni giriş durur, içerideki her şey devam eder.**
+
+| | |
+|---|---|
+| Keşfet, yeni başvuru, davet | ❌ Durur · işverenin Adaylar sekmesi kilitli |
+| Bekleyen başvurular | ✅ İşveren kabul / red eder — 30 gün işler |
+| Cevap bekleyen davetler | ✅ Aday kabul / red eder — 10 gün işler |
+| Süreçteki adaylar | ✅ Sohbet, sonuçlandırma — 60 gün işler |
+| Duraklatılmışken süre | **İşlemeye devam eder** — biterse *süresi doldu* olur |
+
+### Sonuç bildirilince — her şey biter
+
+| | |
+|---|---|
+| Bekleyen başvuru, davet, süreçteki adaylar | **Hepsi sonlanır** — adaya sonuca göre mesaj · işe alınanlara işe alım onayı sorusu |
+| Sohbetler | Kapanır — geçmiş görünür |
+| İlan | Tekrar yayınlanamaz · **[Kopyala]** ile yeni ilan açılabilir · **[Sil]** ile işverenin listesinden kaldırılabilir *(soft delete — rapor değişmez)* |
+
+> Görüşmesi süren işveren sonuç bildirmez — **duraklatır**, işi bitince bildirir.
 
 ### Uzatma — süre dolmadan
-
-```
-Senior Backend Developer        🟢 Yayında · 12 gün kaldı
-[Uzat]
-        ↓
-Ne kadar uzatmak istersiniz?
-○ 15 gün   ○ 30 gün   ○ 60 gün
-[Uzat]
-```
 
 | | |
 |---|---|
 | Ne zaman | İlan yayındayken **her zaman** |
-| Hatırlatma | **Yok** — işveren isterse kendisi uzatır |
+| Hatırlatma | Süre bitmeden **3 gün önce** sorumluya 🔔 |
 | Seçenekler | 15 / 30 / 60 gün |
 | Kesinti | Yok — ilan hiç kapanmaz |
 | Sayaç | **Uzatma sayısı +1** |
@@ -790,44 +852,47 @@ Ne kadar uzatmak istersiniz?
 
 ### Tekrar yayınlama — süre dolduktan sonra
 
-```
-Senior Backend Developer        ⏱ Süresi doldu
-Yayın sayısı: 1
-[Tekrar yayınla]
-        ↓
-Yeni 60 gün başlar · Yayın sayısı +1
-```
-
 | Konu | Davranış |
 |---|---|
-| İlan kaydı | **Aynı ilan** — yeni ilan açılmaz |
-| Aksiyon geçmişi | **Korunur** — geçilen ve reddedilen adaylar bir daha görünmez |
+| Hangi durumdan | **Sadece `suresi_doldu`** — ve sadece süre dolduktan sonraki **ilk 30 gün** |
+| İlan kaydı | **Aynı ilan** — yeni ilan açılmaz · yeni 60 gün · yayın sayısı +1 |
+| Aksiyon geçmişi | **Korunur** — gizlenen, reddedilen, başvurmuş adaylar bir daha görünmez |
 | Embedding | Metin değişmediyse **yeniden üretilmez** |
-| Eşleştirme sonuçları | Kapanınca silinmişti → **yeniden hesaplanır** |
-| Önceki bekleyen başvurular | İşverene sorulur: *"12 bekleyen başvurunuz vardı. Geri getirilsin mi?"* |
-| Hangi durumlardan | `süresi_doldu`, `kapatildi`, `dolduruldu` |
+| Eşleştirme sonuçları | Süre dolunca silinmişti → **yeniden hesaplanır** |
+| Bekleyen başvurular | Zaten **açık kalmıştı** — olduğu gibi devam eder |
+| Sonuçlanan ilan | **Tekrar yayınlanamaz** — [Kopyala] ile yeni ilan |
 
 > **Neden aynı ilan:** Yeni kayıt açılsaydı geçmiş kaybolurdu — aynı aday aynı ilanı tekrar görür, reddedilen tekrar başvurur.
 
-> **Meslek alanı değiştirilirse:** *"Bu değişiklik ilanın pozisyonunu değiştiriyor. Yeni ilan olarak açın."* yönlendirmesi. Yoksa eski aksiyon geçmişi farklı bir pozisyona yanlış uygulanır.
+### Süresi dolan ilan — 30 + 45 gün
+
+| Gün *(süre dolduktan sonra)* | Ne olur |
+|---|---|
+| 0 | ⏱ Süresi doldu — bekleyenler ve süreçtekiler devam eder |
+| 23 | Sorumluya 🔔 *"Tekrar yayınlamak için 7 gün kaldı."* |
+| 30 | **[Tekrar yayınla] kilitlenir** · ilanın embedding'i ve "bir daha gösterme" kayıtları silinir |
+| 68 | Sorumluya 📱 🔔 *"Sonucu 7 gün içinde bildirin."* |
+| 75 | Sonuç bildirilmediyse → **❓ Sonuç bildirilmedi** · kalan süreçler nötr mesajla sonlanır · şirket raporunda görünür |
 
 ### İki ayrı sayaç
 
 | Sayaç | Ne zaman artar | Ne anlatır |
 |---|---|---|
-| **Yayın sayısı** | Kapanıp **tekrar yayınlandığında** | İlanın kaç kez açıldığı |
+| **Yayın sayısı** | Süresi dolup **tekrar yayınlandığında** | İlanın kaç kez açıldığı |
 | **Uzatma sayısı** | **Kapanmadan uzatıldığında** | Pozisyonun ne kadar süredir doldurulamadığı |
 
 > "4 kez uzatıldı" bilgisi işverene ipucu (belki maaş veya şartlar gözden geçirilmeli), admin'e ölü ilan sinyali.
 
-### İlan kapanınca / süresi dolunca ne olur
+### Durum değişince eşleştirme ne olur
 
-| | |
-|---|---|
-| Eşleştirme sonuçları | Silinir *(tablo küçük kalsın — tekrar yayınlanırsa yeniden hesaplanır)* |
-| Aksiyon geçmişi | **Kalır** |
-| Bekleyen başvurular / davetler | Kapanır, adaylara bildirim gider |
-| Aktif sohbetler | **Devam eder** — konuşma yarıda kalmasın |
+| Olay | Eşleştirme sonuçları | Embedding | Aksiyon geçmişi |
+|---|---|---|---|
+| Duraklatıldı / süresi doldu | Silinir | Kalır | Kalır |
+| Devam ettirildi / tekrar yayınlandı | **Yeniden hesaplanır** | Kalır | Kalır |
+| Süre dolduktan sonra 30. gün | — | Silinir | "Bir daha gösterme" silinir · diğerleri kalır |
+| Sonuç bildirildi | Silinir | Silinir | "Bir daha gösterme" silinir · diğerleri kalır |
+
+> Ayrıntı → `eslestirme-motoru.md` 12.6
 
 ---
 
@@ -837,12 +902,12 @@ Yeni 60 gün başlar · Yayın sayısı +1
 
 ```
 skor = 0.65 × anlamsal       ← ilan vektörü (unvan, yetenek/bölüm/sertifika metinleri, iş tanımı)
-     + 0.20 × yetenek        ← onaylanmış etiketler
+     + 0.20 × nitelik uyumu  ← ilan etiketleri
      + 0.10 × tecrübe        ← toplam tecrübe min–max
      + 0.05 × kalite         ← aday yönünde: ilan kalitesi
 ```
 
-### Yetenek bileşeni — yeni hali
+### Nitelik uyumu *(eski adı: yetenek bileşeni)*
 
 **Olmazsa olmaz küme** = olmazsa olmaz yetenekler + olmazsa olmaz sertifikalar
 **Tercih edilen küme** = tercih edilen yetenekler + tercih edilen sertifikalar + bölüm eşleşmesi
@@ -862,7 +927,7 @@ Tercih edilen kümedeki her öğe:
 zorunlu_puan  = olmazsa olmaz kümenin ortalaması
 tercihen_puan = tercih edilen kümenin ortalaması
 
-yetenek = 0.75 × zorunlu_puan + 0.25 × tercihen_puan
+nitelik uyumu = 0.75 × zorunlu_puan + 0.25 × tercihen_puan
 ```
 
 | Durum | Sonuç |
@@ -890,12 +955,12 @@ Tercih edilen:
   Bölüm       eşleşti → 1
   tercihen_puan = 2/3 = 0.67
 
-yetenek = 0.75 × 0.60 + 0.25 × 0.67 = 0.62
+nitelik uyumu = 0.75 × 0.60 + 0.25 × 0.67 = 0.62
 ```
 
-**Eşleşme nasıl yapılır:** Adayın yetenek ve sertifika adları, ilanın onaylanmış etiketleriyle karşılaştırılır. Yazım farkları ("ReactJS" / "React.js") benzerlik kontrolüyle yakalanır.
+**Eşleşme nasıl yapılır:** Adayın yetenek ve sertifika adları, ilanın etiketleriyle (yapay zekanın algıladığı + işverenin düzelttiği) karşılaştırılır. Yazım farkları ("ReactJS" / "React.js") benzerlik kontrolüyle yakalanır.
 
-**İki yönde aynı** — yetenek bileşeninde yön farkı yok.
+**İki yönde aynı** — nitelik uyumunda yön farkı yok.
 
 ### Kalite bileşeni — aday yönü (ilan kalitesi)
 
@@ -972,10 +1037,10 @@ Tüm alanlar — iş tanımı, yetenekler, eğitim, iş dili, diğer şartlar, s
 | **Yapay zeka çağrıları** | Edge Function içinde; anahtar istemcide değil |
 | **Ayrıştırma hash'i** | Beş kutunun (yetenek, bölüm, sertifika) metinlerinin özeti — değişmediyse yapay zeka çağrılmaz |
 | **Embedding hash'i** | Yedi metin alanının özeti — değişmediyse API çağrılmaz |
-| **Sayaçlar** | İlanın satırında hazır kolonlar; başvuru/davet tetikleyiciyle, görüntülenme dakikalık toplu işle (bkz. `isveren-paneli-v2.md`) |
+| **Sayaçlar** | İlanın satırında hazır kolonlar; başvuru/davet tetikleyiciyle, görüntülenme dakikalık toplu işle (bkz. `isveren-paneli-final.md`) |
 | **Yetkiler** | RLS — uzman sadece sorumlu olduğu ilanları görür ve düzenler |
 | **Taslak** | Her adımda otomatik kayıt |
-| **Durum geçişleri** | `süresi_doldu` otomatik (periyodik iş); diğerleri işveren aksiyonuyla |
+| **Durum geçişleri** | `suresi_doldu`, 30. gün kilidi, 75. gün `sonuc_bildirilmedi` ve taslağın 30. günde silinmesi otomatik (bakım işleri); diğerleri işveren aksiyonuyla |
 
 ---
 
@@ -983,7 +1048,7 @@ Tüm alanlar — iş tanımı, yetenekler, eğitim, iş dili, diğer şartlar, s
 
 | Doküman | Değişecek |
 |---|---|
-| **Eşleştirme Motoru** | "LLM yok" → **"LLM sadece ilan kaydında ayrıştırma için"**; yetenek bileşeninin yeni formülü (sertifika + bölüm dahil, yıl opsiyonel); ilan kalitesi kriterlerinin yeni dağılımı; askerlik filtresi (tecilli elenir); diğer şartlarda boş durum kalktı |
-| **Aday Profili** | Diğer bilgiler (sürücü belgesi, seyahat, vardiya, askerlik) **zorunlu** — yayın eşiğine giriyor; askerlikte **"Yükümlü değil"** seçeneği; askerlik işverene gösterilmez; boş alan uyarıları kaldırılıyor |
-| **İşveren Paneli** | İlan kartında yayın ve uzatma sayıları; [Uzat] ve [Tekrar yayınla] butonları |
+| **Eşleştirme Motoru** | ✅ İşlendi — LLM sadece ilan kaydında ayrıştırma · nitelik uyumu · ilan kalitesi kriterleri · askerlik filtresi · ilan durumu değişince motorun davranışı |
+| **Aday Profili** | ✅ İşlendi — diğer bilgiler zorunlu · askerlikte "Yükümlü değil" · askerlik profil detayında görünür, süzülemez · çalışma tipi çoklu |
+| **İşveren Paneli** | ✅ İşlendi — `isveren-paneli-final.md`: ilan yaşam döngüsü, sonuç bildirme, butonlar, sayaçlar |
 | **Staj İlanı** | `staj-ilani.md` — bu dokümanın yapısını temel alır; eğitim şartı iki ilan tipinde aynı mantıkla çalışır |
