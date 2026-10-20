@@ -1,7 +1,7 @@
 # Eşleştirme Motoru
 
 > **Kapsam:** Sadece motorun **nasıl çalıştığı** — arka plan.
-> Kullanıcının ne gördüğü (kartlar, menüler, başvuru / davet akışı, ilan kapatma ekranı, bildirimler) → `kesfet-ve-surec.md`
+> Kullanıcının ne gördüğü: işveren ekranları, ilan yaşam döngüsü, sonuç bildirme, bildirimler → `isveren-paneli-final.md` · aday ekranları → aday dokümanı
 > Zamanla çalışan işler (süreler, temizlik, otomatik düşme) → `bakim-isleri.md`
 > **Kapsam: global** — uygulama tüm dünyaya açık · **Mimari: ilk günden 1 milyon+ kullanıcı**
 
@@ -272,6 +272,15 @@ CREATE INDEX emb_ilan_hnsw ON embeddings
 | **`model_adi`, `boyut`** | Model değişince eski vektörler bulunup yeniden üretilir |
 | **Staj ayrı tür değil** | `ilan_tipi = 'staj'`, `varlik_tipi = 'ilan'` |
 
+**Vektör ne zaman silinir:**
+
+| Olay | İlanın / adayın vektörü |
+|---|---|
+| İlanın **sonucu bildirildi** | Silinir — ilan bir daha eşleştirmeye girmeyecek |
+| İlanın süresi doldu, **30 gün** tekrar yayınlanmadı | Silinir — tekrar yayınlama hakkı bitti |
+| İlan duraklatıldı / süresi doldu *(ilk 30 gün)* | **Kalır** — ilan geri açılabilir |
+| Aday veya şirket **hesabını sildi** | Silinir |
+
 ### 5.6 Embedding servisi
 
 | Karar | Neden |
@@ -372,7 +381,7 @@ LLM sonucu işverene **onaylatılmaz**, ama **gizli de değil:** her kutunun alt
 
 **Neden onay yok:** Onay ekranı işveren için bir ekran ve karar daha demekti; *"onay bekliyor"*, hatırlatma, otomatik kabul gibi yan kurallar doğuruyordu. Görünür ve düzeltilebilir olması yeterli.
 
-> Ekran ayrıntısı → `kesfet-ve-surec.md`
+> Ekran ayrıntısı → `isveren-paneli-final.md`
 
 ### 6.5 Etiket tablosu
 
@@ -947,6 +956,8 @@ nitelik uyumu = 0.75 × 0.60 + 0.25 × 0.67 = 0.62
 | Yazım farkı (*ReactJS* / *React.js*) | Normalize + metin benzerliği (`pg_trgm`) ile eşleşir |
 | LLM henüz çevirmedi | Geçici: adayın adları ilan metninde aranır (yılsız) |
 
+> **Karşılaştırma ekranı da bu hesabı kullanır:** İşverenin adayları yan yana gördüğü ekrandaki ✓ (var) · ⚠️ (yıl eksik) · ✕ (yok) işaretleri buradaki öğe puanlarından gelir.
+
 #### Neden iki yönde aynı
 
 İlk tasarımda aday yönü *"yeteneklerimin kaçı bu işte kullanılıyor"* diye hesaplanıyordu — **çok yetenek yazmayı cezalandırıyordu** (10 yetenekli aday, 2 yetenek isteyen ilanla 0.2 alıyordu). Aday yeteneklerini eksik yazmaya başlar, hem liste hem embedding zayıflardı.
@@ -1187,7 +1198,9 @@ Bu tablodaki hiçbir satır **tek kopya bilgi değil** — hepsi başka yerlerde
 | Ne zaman silinir | Neden |
 |---|---|
 | 14 günden eski hesaplananlar | Bayat — açılırsa güncel haliyle yeniden hesaplanır |
-| İlan kapandı | Keşfet'te artık görünmüyor |
+| İlan **duraklatıldı** | Kimse görmüyor · devam ettirilince **sıfırdan** hesaplanır |
+| İlanın **süresi doldu** | Keşfet'te görünmüyor · tekrar yayınlanırsa **sıfırdan** hesaplanır |
+| İlanın **sonucu bildirildi** | İlan bir daha Keşfet'e çıkmayacak |
 | Aday "Şu an bakmıyorum" | Kimse görmüyor |
 | Pasif kullanıcı (14+ gün girmemiş) | Açarsa anında hesaplanır |
 | Aday telefonu değiştirip doğrulamadı | **Silinmez** — profil yayından çıktığı için görünmez; doğrulayınca anında geri gelir |
@@ -1207,7 +1220,7 @@ Kullanıcının **yaptığı** her şey burada — ve **kalıcı.** Motor bu tab
 ```sql
 CREATE TABLE ilan_aday_aksiyon (
   ilan_id  bigint NOT NULL,
-  aday_id  bigint,            -- hesap silinince NULL (anonim)
+  aday_id  bigint NOT NULL,
   aksiyon  text   NOT NULL,
   taraf    text   NOT NULL,   -- aday | isveren | sistem
   tarih    timestamptz NOT NULL DEFAULT now()
@@ -1225,11 +1238,17 @@ CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 | `eslesti` | İki taraf onayladı — süreçte | — |
 | `reddedildi` | İşveren başvuruyu / aday daveti kabul etmedi | İşveren veya aday |
 | `suresi_doldu` | Başvuru 30 gün / davet 10 gün cevapsız | Sistem |
-| `surec_sonlandi` | İşveren ilanı kapatırken bekleyen başvuru **ve** davetleri toplu bitirdi | İşveren |
+| `surec_sonlandi` | İşveren ilanın **sonucunu bildirdi** — bekleyen başvuru, cevap bekleyen davet **ve süreçteki adaylar** sonlandı *(işe alınanlar hariç)* | İşveren |
 | `basvuru_geri_cekildi` | Aday başvurusunu geri çekti | Aday |
 | `davet_geri_cekildi` | İşveren davetini geri çekti | İşveren |
+| `ise_alindi` | Süreçteki aday işe alındı — **işe alım onayı** başlar | İşveren |
+| `devam_edilmedi` | İşveren süreçteki adayla devam etmedi | İşveren |
+| `surecten_cekildi` | Aday süreçten çekildi | Aday |
+| `surec_suresi_doldu` | Süreç 60 gün içinde sonuçlandırılmadı | Sistem |
 
-> Bu aksiyonların kullanıcıya nasıl göründüğü → `kesfet-ve-surec.md`
+> **İşe alım onayı** (adayın *"Evet, işe alındım"* / *"Hayır"* cevabı, çelişki düzeltmeleri) ayrı kaydedilir — şirket raporu ve eşleştirme kalitesi ölçümü için. Ayrıntı → `isveren-paneli-final.md` Bölüm 9.6.
+
+> Bu aksiyonların kullanıcıya nasıl göründüğü → `isveren-paneli-final.md` (işveren) · aday dokümanı (aday)
 
 ### 11.2 Neden sonuç tablosundan ayrı
 
@@ -1264,22 +1283,38 @@ Bir pozisyona uymayan aday başka pozisyona çok uygun olabilir.
 | Frontend Dev | Zeynep | davet_edildi | işveren | 14 Eylül |
 | Frontend Dev | Zeynep | suresi_doldu | sistem | 24 Eylül |
 
-### 11.5 Ne zaman silinir — ne zaman anonimleşir
+### 11.5 Ne zaman silinir
 
-> **Kural:** Kim olduğunu söyleyen her şey silinir. Kimseye bağlanamayan sayılar raporlar için kalır.
+> **Kural:** Anonimleştirme yok — zamanı gelen kayıt **tamamen** silinir. Raporlar ve istatistikler bu tablodan değil, **günlük istatistik tablolarından** okunduğu için bozulmaz (Bölüm 11.6).
 
-| Durum | Aksiyon kayıtları |
-|---|---|
-| İlan **kapandı** — süresi doldu | **Kalır** — tekrar yayınlanırsa "bir daha gösterme" hâlâ geçerli olmalı |
-| İlan **elle kapatıldı** | `bir_daha_gosterme` kayıtları **silinir** (ilan tekrar yayınlanamıyor, işe yaramıyor) · diğerleri kalır |
-| Süresi dolan ilan **1 yıl** tekrar yayınlanmadı | Kalıcı kapalı sayılır → aynı temizlik |
-| İşveren kapalı ilanı **sildi** *(soft delete)* | `bir_daha_gosterme` kayıtları silinir · diğerleri raporlar için kalır |
-| **Aday hesabını sildi** | `bir_daha_gosterme` silinir · diğerleri **anonimleşir** (`aday_id` boşaltılır) |
-| **Şirket hesabını sildi** *(30 gün sonra)* | `bir_daha_gosterme` silinir · diğerleri **anonimleşir** |
+| Durum | `bir_daha_gosterme` | Diğer aksiyonlar |
+|---|---|---|
+| İlan **duraklatıldı** veya **süresi doldu** *(ilk 30 gün)* | **Kalır** — ilan geri açılırsa hâlâ geçerli olmalı | Kalır |
+| Süresi dolan ilan **30 gün** tekrar yayınlanmadı | **Silinir** — tekrar yayınlama hakkı bitti | Kalır |
+| İlanın **sonucu bildirildi** | **Silinir** — ilan tekrar yayınlanamaz | Kalır — adayın ve işverenin *Sonuçlanan* listeleri, İlan özeti, işe alım onayı için |
+| İşveren sonuçlanan ilanı **sildi** *(soft delete)* | — | Kalır |
+| İlan sonuçlandıktan **2 yıl** sonra | — | **Silinir** |
+| **Aday hesabını sildi** | Silinir | **Silinir** |
+| **Şirket hesabını sildi** *(anında)* | Silinir | **Silinir** |
 
-**Neden tamamen silmiyoruz:** İlan raporu *"120 başvuru → 5 kabul → 1 işe alım"* der. Aday kayıtları tamamen silinse sayılar geriye dönük değişir. Anonim kayıt kimseye bağlanamaz — **KVKK / GDPR açısından kişisel veri sayılmaz.**
+**Boyut:** Bir kayıt ~50 bayt. Tablo sadece **son ~2 yılın** kayıtlarını tutar — kullanıcı sayısı artmadıkça büyümesi durur. En kalabalık tür olan `bir_daha_gosterme` ilan bitince hemen silindiği için birikmez.
 
-**Boyut:** Bir kayıt ~50 bayt; 100 milyon kayıt ~5 GB. Gereksiz olanlar yukarıdaki kurallarla temizlenir.
+### 11.6 İstatistik tabloları
+
+Raporlar canlı kayıtlardan değil, her gece doldurulan **günlük defterlerden** okunur. Defter bir kez yazılır ve **sonradan değişmez** — kaynak kayıtlar silinse bile.
+
+| Tablo | İçinde | Kim kullanır |
+|---|---|---|
+| **Şirket istatistikleri** | Her şirket için her gün: ilan · başvuru · kabul · red · cevapsız · davet · süreç · işe alım — **aday adı yok** | Şirket profilindeki 12 aylık **işe alım raporu** · admin |
+| **Platform istatistikleri** | Gün × ülke × meslek alanı: açılan / sonuçlanan ilan, başvuru, işe alım — **şirket ve aday adı yok** | Admin — *"hangi alanda ilanlar dolmuyor"*, eşleştirme kalitesi |
+
+| Olay | Şirket raporu | Platform istatistikleri |
+|---|---|---|
+| Aday hesabını sildi | Değişmez | Değişmez |
+| Aksiyonlar 2 yılda silindi | Değişmez | Değişmez |
+| Şirket hesabını sildi | Şirketin satırları silinir | Değişmez |
+
+> Ayrıntı ve ekranlar → `isveren-paneli-final.md` Bölüm 14.7 ve 22
 
 > Temizlik işleri → `bakim-isleri.md` · Hesap silme ayrıntısı → Veri koruma dokümanı
 
@@ -1436,6 +1471,23 @@ Aday yeni deneyim ekledi           → embedding VAR → eşleştirme VAR
 
 **Önceden olanlar korunur:** Yeni şartlara artık uymayan aday zaten başvurmuşsa başvurusu geçerli kalır — sadece listedeki yeni adaylar değişir.
 
+#### İlanın durumu değişince motor ne yapar
+
+| Olay | Sonuç tablosu | Embedding | `bir_daha_gosterme` | Diğer aksiyonlar |
+|---|---|---|---|---|
+| Duraklatıldı | Silinir | Kalır | Kalır | Kalır |
+| Devam ettirildi | **Sıfırdan** hesaplanır | Kalır | Kalır | Kalır |
+| Süresi doldu | Silinir | Kalır | Kalır | Kalır |
+| Tekrar yayınlandı *(ilk 30 gün)* | **Sıfırdan** hesaplanır | Kalır | Kalır | Kalır |
+| Süre dolduktan sonra 30. gün | — | **Silinir** | **Silinir** | Kalır |
+| Sonuç bildirildi | Silinir | **Silinir** | **Silinir** | Kalır |
+| Sonuçlanan ilan silindi *(soft delete)* | — | — | — | Kalır |
+| Sonuçlandıktan 2 yıl sonra | — | — | — | **Silinir** |
+
+**Yayında olmayan ilan** (duraklatılmış veya süresi dolmuş) Filtre 1'de elenir — Keşfet'e çıkmaz, işveren aday listesini göremez. Bekleyen başvurular, davetler ve süreçteki adaylar motordan bağımsız olarak devam eder.
+
+**Sıfırdan hesaplamada** önceki aksiyonlar (gizleme, başvuru, davet, sonuçlar) Filtre 10'da yine elenir — aynı adaylar listeye geri düşmez.
+
 ### 12.7 Aday telefonu değişirse
 
 ```
@@ -1486,7 +1538,7 @@ Bir şey olur          →   Sıraya iş yazılır        →   İşçi sırayla
 | **Eşleştirme** | `eslestirme` | Embedding bitti · filtre / puan alanı değişti · [Daha fazla getir] · pasif kullanıcı Keşfet'i açtı | Filtre + vektör + puan → sonuç tablosu |
 | **Ayrıştırma** | `ayristirma` | LLM ilan kaydında cevap vermedi | LLM'i tekrar dener, etiketleri sessizce uygular |
 
-> Bildirim işçisi → `kesfet-ve-surec.md` · Zamanla çalışan bakım işleri → `bakim-isleri.md`
+> Bildirim işçisi → `isveren-paneli-final.md` · Zamanla çalışan bakım işleri → `bakim-isleri.md`
 
 **Neden her biri ayrı:**
 
