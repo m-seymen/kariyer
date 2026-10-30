@@ -2,8 +2,9 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final** — ekip toplantısı, eşleştirme motoru ve işveren paneli kararları sonrası
-> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru.md`, `isveren-paneli-final.md`
+> **Sürüm: final** — ekip toplantısı, eşleştirme motoru, işveren paneli ve aday paneli kararları sonrası
+> İlgili dokümanlar: `auth-kararlari.md`, `is-ilani-v3.md`, `staj-ilani.md`, `eslestirme-motoru.md`, `isveren-paneli-final.md`, `aday-paneli-final.md`
+> **Bu dokümanın kapsamı:** Özgeçmiş'in içi — alanlar, adımlar, kurallar, eşleştirmeye etkisi. Aday ekranlarının tamamı (Keşfet, Başvurularım, Davetlerim, Süreçteki, Profilim, Ayarlar, bildirimler, hesap silme) → `aday-paneli-final.md`
 
 ---
 
@@ -11,7 +12,7 @@
 
 | Konu | Önceki | Şimdi |
 |---|---|---|
-| **Telefon** | Doğrulanmıyordu | **SMS doğrulama — doğrulanmadan profil yayınlanamaz** |
+| **Telefon** | Doğrulanmıyordu | **SMS doğrulama — doğrulanmadan özgeçmiş yayınlanamaz** |
 | **İletişim görünürlüğü** | Eşleşince otomatik | **Eşleşme sonrası işveren ister, aday onaylarsa** görünür |
 | **E-posta** | Profilde alan | **Giriş hesabından gelir, değiştirilemez** |
 | **Doğum tarihi** | Ülkeye göre çalışma yaşı | **Her ülkede 18+** |
@@ -33,11 +34,15 @@
 | **Aktif araç sahibi** | Bilgi | **Kaldırıldı** |
 | **Başlama zamanı** | Opsiyonel | **Zorunlu** |
 | **Gizlenecek şirketler** | Şirketler | **Sadece onaylı şirketler**, otomatik öneri yok |
-| **Otomatik düşme** | 30-45 gün → fırsatlara açığım | **İki kademe:** 30 gün → fırsatlara açığım, 90 gün → şu an bakmıyorum |
+| **Otomatik düşme** | 30-45 gün → fırsatlara açığım | **İki kademe:** 30 gün → fırsatlara açığım, 90 gün → şu an iş aramıyorum |
 | **Skor adı** | "Yetenek bileşeni" | **"Nitelik uyumu"** — yetenek + sertifika + bölüm |
 | **Başvuru belge listesi** | Örnek sabit belgeler | **Profilden otomatik** — "Belgeler" (adayın verdiği adlarla) + "Sertifikalar" |
 | **"Bir daha gösterme"** | Gizlediklerim listesi + [Geri al] | **Kalıcı** — ayrı liste yok, geri alınmaz |
-| **Aday ekranları** | — | Alt menü, Başvurularım / Davetlerim (Bekleyen / Sonuçlanan), geri çekme, "Neden önerildi? ▾" — Bölüm 16 |
+| **Aday ekranları** | — | Ayrı doküman: `aday-paneli-final.md` — Bölüm 16'da özet |
+| **Sekmenin adı** | Profilim | **Özgeçmiş** — işverenin gördüğü profil |
+| **Hesap bilgileri** | Adım 1'de | **Profilim**'e taşındı — ad soyad, e-posta, telefon (SMS doğrulama), doğum tarihi *(kilitli)*, şifre · üst bardaki profil fotoğrafından açılır |
+| **Arama durumu adları** | Aktif arıyorum / Şu an bakmıyorum | **Aktif iş arıyorum** · **Fırsatlara açığım** · **Şu an iş aramıyorum** — her sekmede üst barda |
+| **Hesap silme** | — | Ayarlar → Hesabımı sil · anında · işverende *"Silinmiş kullanıcı"* olarak isimsiz kalır — `aday-paneli-final.md` Bölüm 15 |
 | **Süreç** | Süresiz | **60 gün** — işveren sonuçlandırmazsa biter · aday **süreçten çekilebilir** |
 | **İşe alım onayı** | — | İşveren *"işe alındı"* derse adaya *"Doğru mu?"* sorusu — Bölüm 16 |
 | **İlanın sonucu** | İlan kapanınca *"ilan kapandı"* | İlanın yayından kalkması başvuruyu bitirmez · işveren **sonuç bildirince** biter, mesaj sonuca göre |
@@ -96,12 +101,12 @@ Bazı bilgiler işverene **görünür** ama işveren onlara göre **listeyi süz
 
 | Alan | Adım | Zorunlu | Giriş | Embedding | Katı filtre | Skor | İşverene görünür |
 |---|:---:|:---:|---|:---:|:---:|:---:|---|
-| Fotoğraf | 1 | ❌ | Yükleme / avatar | ❌ | ❌ | Kalite | ✅ |
-| Ad, soyad | 1 | ✅ | Serbest | ❌ | ❌ | ❌ | ✅ |
-| Doğum tarihi | 1 | ✅ | Tarih | ❌ | ❌ | ❌ | ❌ |
+| Fotoğraf | Profilim | ❌ | Yükleme / avatar | ❌ | ❌ | Kalite | ✅ |
+| Ad, soyad | Profilim | ✅ | Serbest | ❌ | ❌ | ❌ | ✅ |
+| Doğum tarihi | Kayıt · Profilim *(kilitli)* | ✅ | Tarih | ❌ | ❌ | ❌ | ❌ |
 | **Cinsiyet** | 1 | ✅ | Kadın / Erkek | ❌ | ❌ **asla** | ❌ | ✅ *sadece detayda* |
-| **Cep telefonu + SMS doğrulama** | 1 | ✅ | Ülke kodu + numara | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
-| **E-posta** | 1 | ✅ | Giriş hesabından, değişmez | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
+| **Cep telefonu + SMS doğrulama** | Profilim | ✅ | Ülke kodu + numara | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
+| **E-posta** | Profilim *(kilitli)* | ✅ | Giriş hesabından, değişmez | ❌ | ❌ | ❌ | *İletişim isteği onaylanınca* |
 | Yaşadığı konum | 1 | ✅ | Konum ağacı | ❌ | ❌ | ❌ | ✅ |
 | Çalışmak istediği konumlar | 1 | ✅¹ | Konum ağacı, çoklu, max 10 | ❌ | ✅ | ❌ | ✅ |
 | Her konumda çalışmaya hazırım | 1 | ❌ | Kutu | ❌ | Konumu atlatır | ❌ | ✅ |
@@ -137,7 +142,7 @@ Bazı bilgiler işverene **görünür** ama işveren onlara göre **listeyi süz
 | **Vardiyalı çalışma** | 10 | ✅ | Evet / Hayır | ❌ | ✅ *ilan gerektiriyorsa* | ❌ | ✅ |
 | **Başlama zamanı** | 11 | ✅ | Kapalı liste | ❌ | ❌ | ❌ | ✅ |
 | Gizlenecek şirketler | 11 | ❌ | **Sadece onaylı şirketler** | ❌ | ✅ *işveren yönünde* | ❌ | ❌ |
-| Arama durumu | 12 | ✅ | 3 seçenek | ❌ | ✅ *"bakmıyorum" görünmez* | ❌ | ✅ *rozet* |
+| Arama durumu | Üst bar · 12 | ✅ | 3 seçenek | ❌ | ✅ *"Şu an iş aramıyorum" görünmez* | ❌ | ✅ *rozet* |
 
 ¹ *"Her konumda hazırım" işaretliyse değil*
 ² *Seviyeye göre — Bölüm 5'e bakın*
@@ -165,7 +170,7 @@ Proje adı + açıklama                   (link, tarih HARİÇ)
 Eğitim (seviye + durum — ilan istediyse)
 Sürücü belgesi · Seyahat · Vardiya · Askerlik (ilan istediyse)
 Gizlenecek şirketler (işveren yönünde)
-Arama durumu ("şu an bakmıyorum" görünmez)
+Arama durumu ("Şu an iş aramıyorum" görünmez)
 ```
 
 **Sadece skor:**
@@ -186,23 +191,29 @@ CV ve belgeler · Sertifika dosyaları · Proje linkleri
 
 ## 3. Adım 1 — Temel Bilgiler
 
+> **Hesap bilgileri Profilim'de:** Fotoğraf, ad soyad, doğum tarihi, cep telefonu ve e-posta **Özgeçmiş'in Adım 1'inde değil**, sağ üstteki profil fotoğrafından açılan **Profilim** ekranında düzenlenir *(`aday-paneli-final.md` Bölüm 3)*. Kuralları aşağıda aynen geçerli. Ad ve fotoğraf özgeçmişin en üstünde **görünür**; dokununca Profilim açılır.
+>
+> **Özgeçmiş Adım 1'de kalanlar:** Cinsiyet · yaşadığı konum · çalışmak istediği konumlar · her konumda hazırım · çalışma şekli · çalışma tipi · kısa tanıtım.
+
 ### Fotoğraf
 
 | | |
 |---|---|
 | Zorunlu | ❌ |
+| Nerede | **Profilim** — Profilim ve Özgeçmiş'te **aynı** fotoğraf |
 | Yüklenmezse | Baş harflerden renkli avatar |
 | İşverene | ✅ |
 
 ### Ad, soyad
 
-Zorunlu, işverene görünür.
+Zorunlu, işverene görünür. **Profilim**'de düzenlenir.
 
 ### Doğum tarihi
 
 | | |
 |---|---|
 | Zorunlu | ✅ |
+| Nerede | **Kayıtta bir kez** alınır · Profilim'de **kilitli** görünür · yanlışsa Ayarlar → Bize ulaşın |
 | İşverene | ❌ **Gösterilmez** |
 | Kullanım | **18 yaş kontrolü** + istatistik |
 
@@ -210,6 +221,8 @@ Zorunlu, işverene görünür.
 > *"Platformu kullanabilmek için 18 yaşını doldurmuş olmalısınız."*
 
 > **Neden işverene gösterilmez:** Kartta yaş yazması gereksiz eleme sebebi yaratır.
+
+> **Neden kilitli:** Serbestçe değişirse 18 yaş kontrolü anlamsızlaşır. Aday hakkında hangi bilgiyi tuttuğumuzu görebilsin diye Profilim'de görünür.
 
 ### Cinsiyet
 
@@ -243,7 +256,8 @@ Cep telefonu *:  [+90 ▾] [532 123 45 67]   [Doğrula]
 | | |
 |---|---|
 | Zorunlu | ✅ |
-| **Doğrulama** | ✅ **SMS — doğrulanmadan profil yayınlanamaz** |
+| Nerede | **Profilim** → [Değiştir] · Özgeçmiş doğrulanmamışsa *"Telefonunu doğrula"* uyarısı gösterir, **[Doğrula]** Profilim'i açar |
+| **Doğrulama** | ✅ **SMS — doğrulanmadan özgeçmiş yayınlanamaz** |
 | Format | Ülke kodu ayrı; **E.164** ile saklanır (`+905321234567`) |
 | İşverene | Sadece **iletişim isteği onaylanınca** (Bölüm 14) |
 | Aynı numara | **Tek aday hesabı** |
@@ -270,6 +284,7 @@ Cep telefonu *:  [+90 ▾] [532 123 45 67]   [Doğrula]
 | | |
 |---|---|
 | Kaynak | **Giriş hesabından** — Google, Apple veya e-posta + şifre |
+| Nerede | **Profilim**'de kilitli görünür |
 | Değiştirilebilir | ❌ |
 | İşverene | Sadece **iletişim isteği onaylanınca** |
 
@@ -375,12 +390,12 @@ Yaşadığın konum *:  [Kadıköy, İstanbul, Türkiye    ]   ← konum ağacı
 
 ```
 Kendini kısaca tanıt *
-┌──────────────────────────────────────────────────┐
-│ Örn: 5 yıldır e-ticaret alanında backend         │
+┌───────────────────────────────────────────────────┐
+│ Örn: 5 yıldır e-ticaret alanında backend          │
 │ geliştiriyorum. Ödeme sistemleri üzerine          │
 │ çalıştım, mimari kararlara dahil olmak istiyorum. │
-└──────────────────────────────────────────────────┘
-                                            0 / 500
+└───────────────────────────────────────────────────┘
+                                              0 / 500
 ```
 
 | | |
@@ -1072,7 +1087,7 @@ Gizlemek istediğim şirketler
 > **Neden tek yönlü:** Aday mevcut işvereninin onu bulmasını istemiyor ama o şirketin ilanlarını görmekten rahatsız değil — kendi şirketinde başka pozisyona başvurmak isteyebilir.
 
 **Gizlediği şirkete başvururken uyarı:**
-> *"Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"*
+> *"ABC Teknoloji'yi gizlediğin şirketler arasına eklemişsin. Başvurursan bu şirket özgeçmişini görebilecek."* **[Vazgeç]** **[Yine de başvur]**
 
 - **RLS ile korunur** — gizlenen şirket adayı veritabanı seviyesinde okuyamaz
 - Gizlenen aday şirketin **istatistiklerinde de sayılmaz**
@@ -1109,30 +1124,41 @@ Aday: "ABC Teknoloji telefon ve e-posta bilginizi görmek istiyor."
 
 ## 15. Başvuru ve Davet Kabulü Anında
 
-Aday tarafında **profilde olmayan, başvuruya özel** bilgiler burada sorulur.
+Aday tarafında **özgeçmişte olmayan, başvuruya özel** bilgiler burada sorulur. Ekranın tamamı → `aday-paneli-final.md` Bölüm 9 (başvuru) ve 11.5 (daveti kabul et).
 
 ```
-Başvuruyu onayla
-
-Senior Backend Developer · ABC Teknoloji
-
-Net minimum maaş beklentiniz (opsiyonel):  [______] [TRY ▾]
-Not (opsiyonel):                            [______________]
-
-Bu başvuruyla paylaşılacak belgeler:
-
-Belgeler
-☑ Özgeçmiş
-☑ Portfolyo
-
-Sertifikalar
-☑ SRC Belgesi
-☑ İSG Eğitimi
-
-ⓘ Profiliniz ve paylaştığınız belgeler işveren tarafından
-  görüntülenebilir ve indirilebilir.
-
-[Başvur]
+┌──────────────────────────────────────────────────────────┐
+│ ← Geri                  Başvuru                          │
+├──────────────────────────────────────────────────────────┤
+│ Senior Backend Developer                                 │
+│ ABC Teknoloji · Kadıköy, İstanbul                        │
+│ Maaş: 80.000 – 110.000 TRY / ay (net)                    │
+│                                                          │
+│ ── Maaş beklentin (opsiyonel) ────────────────────────── │
+│ Net, aylık, en az:                                       │
+│ [  90.000        ]  [TRY ▾]                              │
+│                                                          │
+│ ── İşverene not (opsiyonel) ──────────────────────────── │
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ Yan haklara göre maaşta esnek olabilirim.            │ │
+│ └──────────────────────────────────────────────────────┘ │
+│                                                 43/300   │
+│                                                          │
+│ ── Paylaşılacak belgeler ─────────────────────────────── │
+│ Belgeler                                                 │
+│   ☑ Özgeçmiş                                    PDF      │
+│   ☑ Portfolyo                                   PDF      │
+│ Sertifikalar                                             │
+│   ☑ SRC belgesi                                 PDF      │
+│   ☑ İSG eğitimi        (süresi geçmiş)          PDF      │
+│                                                          │
+│ (i) Özgeçmişin ve paylaştığın belgeler işveren           │
+│     tarafından görüntülenebilir ve indirilebilir.        │
+│                                                          │
+│ [Özgeçmişimi önizle]                                     │
+├──────────────────────────────────────────────────────────┤
+│ [Vazgeç]                                     [Başvur]    │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Maaş beklentisi
@@ -1140,9 +1166,9 @@ Sertifikalar
 | | |
 |---|---|
 | Zorunlu | ❌ |
-| Biçim | **Net minimum** — tek rakam |
-| Para birimi | Varsayılan: ilanın para birimi |
-| Not | Opsiyonel — *"esnek olabilirim"*, *"yan haklara göre değişir"* |
+| Biçim | **Net, aylık, en az** — tek rakam |
+| Para birimi | Varsayılan: ilanın para birimi, değiştirilebilir |
+| İşverene not | Opsiyonel · en fazla **300** karakter · telefon, e-posta, bağlantı **yazılamaz** |
 | Filtre | ❌ |
 | İşverene | Başvuranlar listesinde kolon |
 
@@ -1167,21 +1193,21 @@ Sertifikalar
 
 ### Gizlediği şirkete başvururken
 
-> *"Bu şirketi gizli listenize eklemişsiniz. Başvurursanız şirket profilinizi görebilecek. Devam etmek istiyor musunuz?"*
+> *"ABC Teknoloji'yi gizlediğin şirketler arasına eklemişsin. Başvurursan bu şirket özgeçmişini görebilecek."* **[Vazgeç]** **[Yine de başvur]**
 
 ### Davet kabulü
 
-Aday daveti kabul ederken **aynı ekran** — maaş beklentisi + belge seçimi.
+Aday daveti kabul ederken **aynı ekran** — başlık *"Daveti kabul et"*, en üstte işverenin davet notu, maaş beklentisi + not + belge seçimi. Kabul edilince süreç başlar; sohbette **işverenin notu ilk, adayın notu ikinci mesaj** olur.
 
 ### Başvuru kaydına giren
 
-Maaş beklentisi, para birimi, not, paylaşılan belgeler, başvuru tarihi ve **başvuru anındaki skor anlık görüntüsü** (uyum skoru, alt skorlar, eksik olmazsa olmazlar) — Başvurularım kartındaki "Neden önerildi? ▾" bu görüntüden gösterilir, sonuç tablosu temizlense bile doğru kalır.
+Maaş beklentisi, para birimi, not, paylaşılan belgeler, başvuru tarihi ve **başvuru anındaki skor anlık görüntüsü** (uyum skoru, alt skorlar, eksik olmazsa olmazlar) — Başvuru, davet ve süreç detaylarındaki **[Neden önerildi?]** penceresi bu görüntüden gösterilir, sonuç tablosu temizlense bile doğru kalır.
 
 ### Telefon kontrolü
 
-Yayındaki her profilin telefonu doğrulanmış (yayın eşiği). Başvuru ve davet kabulünde sunucu yine kontrol eder — numara değişmiş ve doğrulanmamışsa:
+Yayındaki her özgeçmişin telefonu doğrulanmış (yayın eşiği). Başvuru ve davet kabulünde sunucu yine kontrol eder — numara değişmiş ve doğrulanmamışsa:
 ```
-"Devam etmek için telefonunuzu doğrulayın"
+"Devam etmek için telefonunu doğrula"
 SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 ```
 
@@ -1189,130 +1215,79 @@ SMS → doğrulandı → başvuru KALDIĞI YERDEN tamamlanır
 
 ## 16. Aday Ekranları — Özet
 
-> Aday ekranlarının tamamı **aday dokümanında** *(yazılacak)* ayrıntılanacak. İşverenin karşı taraftaki ekranları ve kuralları → `isveren-paneli-final.md`. Burada sadece adayın göreceği yapı özetleniyor.
+> Aday ekranlarının tamamı — her ekran çizimi, her buton, akışlar, bildirim kataloğu — **`aday-paneli-final.md`**'de. Burada sadece yapının özeti var; ayrıntı için ilgili bölüme bakın.
 
-### Alt menü
-
-```
-🔍 Keşfet · 📨 Başvurularım · ✉️ Davetlerim · 🤝 Süreçteki İlanlar · 👤 Profilim
-```
-
-| Sekme | İçerik |
-|---|---|
-| **Keşfet** | Uygun ilanlar — uyum seviyesine göre; kartta **[Bir daha gösterme] [İncele →]**, detayda **[Başvur]** |
-| **Başvurularım** | **Bekleyen / Sonuçlanan** — her kartta o anki durum |
-| **Davetlerim** | **Bekleyen / Sonuçlanan** — detayda **[Kabul et] [Kabul etme]** |
-| **Süreçteki İlanlar** | **Devam eden / Sonuçlanan** — sohbet, iletişim bilgisi paylaşımı, **[Süreçten çekil]** |
-| **Profilim** | Profil adımları, arama durumu · **Ayarlar** ayrı bölüm (dil, saat dilimi, görünüm, bildirimler, güvenlik, gizlilik) |
-
-### "Neden önerildi? ▾"
-
-Tüm ilan kartlarında ve detaylarda açılır-kapanır bölüm — kapalı başlar. Başvuru ve davet kartlarında **başvuru / davet anındaki** skor gösterilir.
-
-### "Bir daha gösterme"
-
-| | |
-|---|---|
-| Ne yapar | O ilan adayın Keşfet'inden **kalıcı olarak** çıkar |
-| Onay | *"Bu ilanı bir daha görmek istemediğinize emin misiniz? Bu işlem geri alınamaz."* |
-| Liste | **Yok** — "Gizlediklerim" listesi ve [Geri al] kaldırıldı |
-| İşveren | Etkilenmez — adayı görmeye ve davet etmeye devam edebilir |
-
-> "Gizlenecek şirketler" (Adım 11) ile karıştırılmasın: o, adayın bütün bir şirketten saklanmasıdır.
-
-### Başvuru durumları
-
-| Durum | Adaya görünen |
-|---|---|
-| Bekliyor | ⏳ Değerlendiriliyor *(ilan duraklatıldıysa / süresi dolduysa notu: "İlan yayından kalktı")* |
-| Kabul edildi | → Süreçteki İlanlar |
-| Reddedildi | ✕ Başka adaylarla ilerlendi |
-| İşveren sonucu bildirdi — **pozisyon doldu** | ⏹ Pozisyon doldu |
-| İşveren sonucu bildirdi — **alımdan vazgeçti** | ⏹ Pozisyon iptal edildi |
-| İşveren sonucu bildirdi — **uygun aday bulamadı** | ⏹ Süreç sona erdi *(nötr — "sen uygun değildin" diye okunmasın)* |
-| Süresi doldu (30 gün) | ⌛ Yanıtlanmadan sona erdi |
-| Geri çekildi | ↩ Başvurunu geri çektin |
-
-> **İlanın yayından kalkması başvuruyu bitirmez** — duraklatılan veya süresi dolan ilanda başvuru işverenin kararına veya 30 günlük süreye kadar geçerlidir. Başvuru ancak işveren **ilanın sonucunu bildirince** toplu olarak biter.
-
-- **[Başvurumu geri çek]** — Bekleyen kartında, onaylı; aynı ilana **tekrar başvurulamaz**
-- Adaya **kalan gün gösterilmez** — sadece kaç gün önce başvurduğu
-- Sonuçlananlar listede **90 gün** görünür; kartta **[Listeden kaldır]**
-- Her başvurunun **ulaştığı en ileri aşama** kaydedilir (rapor için) — "işveren görüntüledi" bilgisi adaya **gösterilmez**
-
-### Süreçteki İlanlar
-
-| | |
-|---|---|
-| Süre | Süreç başladıktan **60 gün** içinde işveren sonuçlandırmalı — **kalan gün adaya gösterilmez** |
-| **[Süreçten çekil]** | Aday istediği zaman çekilebilir — sohbet kapanır |
-| Sonuçlanınca | Sohbet **kapanır** — geçmiş görünür, yeni mesaj yazılamaz |
-
-| Sonuç | Adaya görünen |
-|---|---|
-| İşe alındı | 🎉 İşe alındın — **onay sorusu** *(aşağıda)* |
-| Devam edilmedi | ✕ Başka adaylarla ilerlendi |
-| Aday çekildi | ↩ Süreçten çekildin |
-| 60 gün doldu | ⌛ Süreç sona erdi *(nötr)* |
-| İlanın sonucu bildirildi | ⏹ Sonuca göre mesaj |
-| Şirket hesabını sildi | ⏹ Şirket platformdan ayrıldı |
-
-### İşe alım onayı
-
-İşveren adayı *"işe alındı"* olarak işaretlerse:
+### Ana yapı
 
 ```
-🎉 ABC Teknoloji sizi Senior Backend Developer
-   pozisyonu için işe aldığını bildirdi.
-   Doğru mu?
-   [Evet, işe alındım]        [Hayır]
+┌──────────────────────────────────────────────────────────┐
+│ [● Aktif iş arıyorum ▾]          (zil 3) (ayarlar) (AK)  │
+├──────────────────────────────────────────────────────────┤
+│                (seçili sekmenin içeriği)                 │
+├──────────────────────────────────────────────────────────┤
+│ Keşfet  Başvurularım  Davetlerim  Süreçteki  Özgeçmiş    │
+└──────────────────────────────────────────────────────────┘
 ```
 
-| | |
+| Yer | İçinde | `aday-paneli-final.md` |
+|---|---|:---:|
+| Üst bar | Arama durumu · zil · dişli (Ayarlar) · profil fotoğrafı (Profilim) | 2 |
+| **Keşfet** | Uygun ilanlar · kartta **[Bir daha gösterme] [İncele] [Başvur]** · Neden önerildi? | 6 |
+| İlan detayı | İlanın tüm alanları · [Neden önerildi?] ve [Şirket profili] pencereleri · Paylaş · İlanı bildir | 7, 8 |
+| **Başvurularım** | Bekleyen / Sonuçlanan · [Başvurumu geri çek] | 10 |
+| **Davetlerim** | Bekleyen / Sonuçlanan · [Kabul et] [Kabul etme] · cevap süresi adaya gösterilir | 11 |
+| **Süreçteki İlanlar** | Devam eden / Sonuçlanan · sohbet · [Süreçten çekil] · işe alım onayı | 12 |
+| **Özgeçmiş** | Bu dokümandaki adımlar, önizleme, tamamlanma, yayınla | 13 |
+| Profilim | Ad soyad, e-posta, telefon, doğum tarihi, şifre, çıkış | 3 |
+| Ayarlar | Dil, saat dilimi, görünüm, bildirimler, oturumlar, verilerimi indir, yardım, **hesabımı sil** | 4, 15 |
+| Bildirimler | Zil ekranı · aday bildirim kataloğu | 14 |
+
+### Bu dokümanı ilgilendiren kurallar
+
+| Konu | Kural |
 |---|---|
-| Cevap süresi | **14 gün** |
-| Cevabı değiştirmek | **30 gün** içinde **[Cevabımı değiştir]** |
-| *"Evet"* deyince | *"Arama durumunu 'Şu an bakmıyorum' yapmak ister misin?"* önerisi |
-| Neden soruluyor | İşe alım platform dışında olur — iki tarafın da onaylaması, şirket raporunun ve platformun başarısının **gerçek ölçüsü** |
-
-### Şirket profili ve işe alım raporu
-
-Aday ilan detayından şirket profiline gider; profilde şirketin **son 12 aylık işe alım raporu** görünür — kaç ilan açtığı ve nasıl sonuçlandığı, başvuruların kaçına cevap verdiği, kaç kişiyi işe aldığı. En az 20 başvurusu olmayan şirkette *"🆕 Platformda yeni"*. Ayrıntı → `isveren-paneli-final.md` Bölüm 14.
+| **"Bir daha gösterme"** | Kalıcı · "Gizlediklerim" listesi ve [Geri al] **yok** · sadece o ilan · işveren etkilenmez |
+| **Başvurunun sonucu** | İlanın yayından kalkması başvuruyu bitirmez · işveren **sonuç bildirince** biter, adaya sonuca göre mesaj (*pozisyon doldu / iptal / nötr*) |
+| **Süreç** | 60 gün · kalan süre adaya gösterilmez · aday **[Süreçten çekil]** diyebilir |
+| **İşe alım onayı** | İşveren *"işe alındı"* derse adaya *"Doğru mu?"* · 14 gün cevap · 30 gün değiştirme |
+| **Kalan gün** | Başvuruda ve süreçte adaya **gösterilmez** · davette **gösterilir** (karar adayda) |
+| **Şirket profili** | Son 12 aylık işe alım raporu · 20 başvurudan az veride *"Platformda yeni"* |
+| **Hesap silme** | Anında · kişisel bilgiler silinir · işverende *"Silinmiş kullanıcı"* olarak isimsiz kalır · istatistikler değişmez |
 
 ---
 
 ## 17. Adım 12 — Önizleme, Arama Durumu, Yayınla
 
-### 1 — Profil önizlemesi
+### 1 — Özgeçmiş önizlemesi
 
 İşverenin **izin almadan** görebildiği her şey — birebir onun ekranı:
 
 ```
 Önizleme — İşveren seni böyle görür
 
-┌──────────────────────────────────────────────┐
-│ [Foto]  Ayşe Kaya                    🟢 Aktif │
-│ Backend Geliştirici · Bilişim                 │
-│ 📍 Kadıköy, İstanbul                           │
-│ Çalışmak istediği: İstanbul, Almanya          │
-│ Ofis · Hibrit · Tam / Yarı zamanlı            │
-│ Başlayabilir: 1 ay içinde                     │
-│                                               │
-│ Kadın                                         │
-│ "5 yıldır e-ticaret alanında backend..."      │
-│                                               │
-│ 🎓 Lisans · Bilgisayar Müh. · ODTÜ · Mezun     │
-│ 💼 Backend Geliştirici · ABC Teknoloji        │
-│    2022 – Halen · "Ödeme altyapısında..."     │
-│ 🛠 React (5 yıl) · PostgreSQL (4 yıl)          │
-│ 🌐 İş dilleri: Türkçe, İngilizce               │
-│    Bildiği: İngilizce (İleri)                  │
-│ 📜 SRC Belgesi (2023, süresiz)                 │
-│ 📁 Projeler: Kargo takip uygulaması            │
-│ 🚗 Sürücü belgesi: B · Seyahat engeli yok ·    │
-│    Vardiyalı çalışabilir                      │
-│ 🎖 Askerlik: Yapıldı                           │
-└──────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│ [Foto]  Ayşe Kaya                 ● Aktif iş arıyorum   │
+│ Backend Geliştirici · Bilişim                           │
+│ Kadıköy, İstanbul                                       │
+│ Çalışmak istediği: İstanbul, Almanya                    │
+│ Ofis · Hibrit · Tam / Yarı zamanlı                      │
+│ Başlayabilir: 1 ay içinde                               │
+│                                                         │
+│ Kadın                                                   │
+│ "5 yıldır e-ticaret alanında backend..."                │
+│                                                         │
+│ Eğitim: Lisans · Bilgisayar Müh. · ODTÜ · Mezun         │
+│ Deneyim: Backend Geliştirici · ABC Teknoloji            │
+│    2022 – Halen · "Ödeme altyapısında..."               │
+│ Yetenekler: React (5 yıl) · PostgreSQL (4 yıl)          │
+│ İş dilleri: Türkçe, İngilizce                           │
+│    Bildiği: İngilizce (İleri)                           │
+│ Sertifika: SRC Belgesi (2023, süresiz)                  │
+│ Projeler: Kargo takip uygulaması                        │
+│ Sürücü belgesi: B · Seyahat engeli yok ·                │
+│    Vardiyalı çalışabilir                                │
+│ Askerlik: Yapıldı                                       │
+└─────────────────────────────────────────────────────────┘
 
 🔒 İşverenin göremediği:
    Doğum tarihi · Telefon · E-posta
@@ -1325,7 +1300,7 @@ Aday ilan detayından şirket profiline gider; profilde şirketin **son 12 aylı
 ### 2 — Profil tamamlanma yüzdesi
 
 ```
-Profilin %75 dolu
+Özgeçmişin %75 dolu
 Eksikler:  + Yetenek ekle   + Proje ekle
 ```
 
@@ -1348,47 +1323,45 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 ### 5 — Arama durumu
 
 ```
-🟢 Aktif arıyorum   🟡 Fırsatlara açığım   ⚪ Şu an bakmıyorum
+🟢 Aktif iş arıyorum   🟡 Fırsatlara açığım   ⚪ Şu an iş aramıyorum
 ```
 
 | Durum | Etkisi |
 |---|---|
-| 🟢 **Aktif arıyorum** | Rozet görünür |
+| 🟢 **Aktif iş arıyorum** | Rozet görünür |
 | 🟡 **Fırsatlara açığım** | **Varsayılan** |
-| ⚪ **Şu an bakmıyorum** | Keşfet'te **görünmez**, davet gelmez; **mevcut başvurular, davetler ve süreçteki ilanlar devam eder** |
+| ⚪ **Şu an iş aramıyorum** | İşverenlerin listesinde **görünmez**, davet gelmez; **mevcut başvurular, davetler ve süreçteki ilanlar devam eder** · aday Keşfet'e bakmaya ve başvurmaya devam edebilir |
 
-**Hızlı değiştirilebileceği yerler:**
+**Nerede değiştirilir:**
 
 | Yer | Nasıl |
 |---|---|
+| **Her sekmede üst bar** | Solda arama durumu — dokununca pencere, her seçeneğin altında ne olacağı yazar *(`aday-paneli-final.md` 2.3)* |
 | Adım 12 | Yayınla butonunun üstünde |
-| **Profil ana ekranı** | En üstte, tek dokunuş |
-| **Keşfet ekranı** | Üst köşede durum rozeti — dokununca değişir |
-| Ayarlar | Genel bölümünde |
 
-"Şu an bakmıyorum" seçiliyse profil ana ekranında:
-> *"Profilin gizli, işverenler seni göremiyor."* **[Aktif et]**
+"Şu an iş aramıyorum" seçiliyse üst barın altında bant:
+> *"Özgeçmişin gizli — işverenler seni göremiyor"* **[Aktif et]**
 
 ### 6 — Otomatik düşme — iki kademe
 
 ```
-🟢 Aktif arıyorum
+🟢 Aktif iş arıyorum
       │  30 gün giriş yok
       ↓
 🟡 Fırsatlara açığım
       │  toplam 90 gün giriş yok
       ↓
-⚪ Şu an bakmıyorum   → Keşfet'te görünmez, davet gelmez
+⚪ Şu an iş aramıyorum   → işverenlerin listesinde görünmez, davet gelmez
 ```
 
 | | |
 |---|---|
 | Kademe 1 | 30 gün giriş yoksa → **Fırsatlara açığım** |
-| Kademe 2 | 90 gün giriş yoksa → **Şu an bakmıyorum** |
+| Kademe 2 | 90 gün giriş yoksa → **Şu an iş aramıyorum** |
 | Başlangıç durumu fark etmez | Zaten "fırsatlara açığım" olan da 90 günde düşer |
-| Önceden haber | Her düşüşten **7 gün önce** bildirim — adayın saat dilimine göre |
+| Önceden haber | Her düşüşten **7 gün önce** telefon + zil + e-posta — adayın saat diliminde sabah · **kapatılamaz** *(aday kataloğu 7.1, 7.2)* |
 | Mevcut başvurular, davetler ve süreçteki ilanlar | **Devam eder** |
-| Geri dönünce | *"Profilin gizli. Tekrar iş aramaya başlamak ister misin?"* **[Aktif et]** — **otomatik açılmaz** |
+| Geri dönünce | Üst bar altında bant: *"Özgeçmişin gizli — işverenler seni göremiyor"* **[Aktif et]** — **otomatik açılmaz** |
 | Süreler | Veritabanında — gerçek veriyle ayarlanabilir |
 
 > **Neden:** Havuz ölü profillerle dolarsa işveren davet atar, cevap alamaz, platforma güveni gider. **Bu, ürünü sessizce öldüren şeylerden biri.**
@@ -1400,8 +1373,8 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 ```
 [Yayınla]
   → Zorunlu adımlar tamam mı?          Hayır → eksik adıma götür
-  → Telefon doğrulanmış mı?             Hayır → SMS doğrulama
-  → Evet → profil yayına girer
+  → Telefon doğrulanmış mı?             Hayır → SMS doğrulama (Profilim)
+  → Evet → özgeçmiş yayına girer
            embedding üretilir
            uygun ilanlar hesaplanır
 ```
@@ -1410,12 +1383,12 @@ Sadece gösterge — ek uyarı yok. *(Eski "sürücü belgesi / seyahat / vardiy
 
 ## 18. Yayın Eşiği
 
-**Adımlar taslak olarak kaydedilir** — aday yarıda bırakıp dönebilir. Ama aşağıdakiler tamamlanmadan **profil yayınlanamaz:**
+**Adımlar taslak olarak kaydedilir** — aday yarıda bırakıp dönebilir. Ama aşağıdakiler tamamlanmadan **özgeçmiş yayınlanamaz:**
 
 | Adım | Zorunlu | Neden |
 |---|:---:|---|
 | **1 — Temel bilgiler** | ✅ | Konum, çalışma şekli ve **çalışma tipi** (filtre), tanıtım (embedding), cinsiyet |
-| **Telefon doğrulaması** | ✅ | Sahte profilleri azaltır; başvuru ve davet için güvence |
+| **Telefon doğrulaması** *(Profilim'de)* | ✅ | Sahte profilleri azaltır; başvuru ve davet için güvence |
 | **2 — Meslek alanı, unvan, ne arıyor** | ✅ | Kaba filtre + embedding |
 | **3 — Eğitim** *(en az bir kayıt)* | ✅ | Eğitim filtresi |
 | 4 — Deneyim | ❌ | Yeni mezun için |
@@ -1488,13 +1461,13 @@ Zorunlu alanlar her profilde dolu olduğu için kriterler sadece **opsiyonel** a
 
 ## 21. Diğer Dokümanlara Etkisi
 
-| Doküman | Değişecek |
+| Doküman | Durum |
 |---|---|
 | **Eşleştirme Motoru** | ✅ İşlendi — `eslestirme-motoru.md` |
-| **Bakım işleri** | Güncellenecek — `bakim-isleri.md`: süreç 60 gün, işe alım onayı 14 / 30 gün, ilan 30 + 45 gün kuralları (otomatik düşme, 1 yıl, 90 gün kuralları zaten yazılı) |
-| **İş ilanı** | ✅ İşlendi — `is-ilani-v3.md`: çalışma tipi çoklu, "Algılanan" satırı, meslek alanı ve unvan kilidi |
+| **Bakım işleri** | ✅ İşlendi — `bakim-isleri.md`: süreç 60 gün, işe alım onayı 14 / 30 gün, ilan 30 + 45 gün, otomatik düşme uyarıları, aday silinince isimsiz kayıtlar |
+| **İş ilanı** | ✅ İşlendi — `is-ilani-v3.md` |
 | **Staj ilanı** | ✅ İşlendi — `staj-ilani.md` |
-| **İşveren Paneli** | ✅ İşlendi — `isveren-paneli-final.md`: iletişim isteği, başvuru bazlı belgeler, PDF indirme, cinsiyet ve askerlik detayda görünür ama süzülemez, şirket raporu |
-| **Aday dokümanı** *(yazılacak)* | Keşfet, Başvurularım, Davetlerim, Süreçteki İlanlar, işe alım onayı, Ayarlar ekranları |
+| **İşveren Paneli** | ✅ İşlendi — `isveren-paneli-final.md`: iletişim isteği, başvuru bazlı belgeler, PDF indirme, cinsiyet ve askerlik detayda görünür ama süzülemez, şirket raporu, silinmiş kullanıcı |
+| **Aday Paneli** | ✅ Yazıldı — `aday-paneli-final.md`: tüm aday ekranları, Profilim, Ayarlar, bildirim kataloğu, hesap silme |
 | **Auth** | Aday telefon doğrulaması artık yayın eşiğinde (sadece başvuruda değil) |
 | **Veri koruma** *(yazılacak)* | Cinsiyet zorunlu ve işverene görünür; belge indirme açık; iletişim bilgisi erişim kaydı; aydınlatma metninde açık bilgilendirme |
