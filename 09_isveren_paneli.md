@@ -2,7 +2,7 @@
 
 > **Sürüm:** Final — işveren tarafının tüm ekranları, akışları ve kuralları
 > **Kapsam:** İşverenin platforma girdiği andan itibaren gördüğü her ekran, bastığı her buton ve sonucunda olan her şey
-> **Kapsam dışı:** Eşleştirmenin nasıl hesaplandığı → `eslestirme-motoru.md` · Zamanla çalışan işler → `bakim-isleri.md` · İlan formu alanları → `is-ilani-v3.md`, `staj-ilani.md` · Aday ekranları → aday dokümanı · Sohbetin içi → sohbet dokümanı
+> **Kapsam dışı:** Eşleştirmenin nasıl hesaplandığı → `eslestirme-motoru.md` · Zamanla çalışan işler → `bakim-isleri.md` · İlan formu alanları → `is-ilani-v3.md`, `staj-ilani.md` · Aday ekranları ve aday bildirim kataloğu → `aday-paneli-final.md` · Sohbetin içi → sohbet dokümanı *(yazılacak)*
 
 ---
 
@@ -77,7 +77,7 @@ Ekran çizimleri her yazı tipinde düzgün hizalansın diye çizimlerin **için
 | `● Yayında` | 🟢 yeşil rozet | İlan yayında |
 | `‖ Duraklatıldı` | ⏸ | İlan duraklatıldı |
 | `● Yüksek uyum` · `○ Orta uyum` · `· Düşük uyum` | 🟢 · 🟡 · ⚪ | Uyum seviyesi |
-| `● Aktif arıyorum` · `○ Fırsatlara açığım` | 🟢 · 🟡 | Adayın arama durumu |
+| `● Aktif iş arıyorum` · `○ Fırsatlara açığım` | 🟢 · 🟡 | Adayın arama durumu |
 | `!` | 🔴 / ⚠️ | İşlem bekliyor veya süre azaldı |
 | `×` | 🔒 | Kilitli / erişim yok |
 | `↻` | ⟳ | Hazırlanıyor |
@@ -762,7 +762,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 │ │ [Foto]  Ayşe Kaya                       ● Yüksek uyum        │ │
 │ │         Bilişim ve Yazılım                                   │ │
 │ │         Backend Geliştirici                                  │ │
-│ │         ● Aktif arıyorum                                     │ │
+│ │         ● Aktif iş arıyorum                                  │ │
 │ │                                                              │ │
 │ │ Kadıköy, İstanbul                                            │ │
 │ │ 4 yıl tecrübe                                                │ │
@@ -799,7 +799,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 |---|---|
 | Fotoğraf · ad soyad · meslek alanı · unvan | |
 | Uyum seviyesi | 🟢 Yüksek (≥ 0.75) · 🟡 Orta (0.55–0.75) · ⚪ Düşük (< 0.55) |
-| Arama durumu | 🟢 Aktif arıyorum · 🟡 Fırsatlara açığım |
+| Arama durumu | 🟢 Aktif iş arıyorum · 🟡 Fırsatlara açığım |
 | 📍 Yaşadığı konum · 💼 Toplam tecrübe · 🎓 En yüksek eğitim · ⏱ Başlama zamanı | |
 | **Neden önerildi? ▾** | Kapalı başlar · açılınca: profil benzerliği, uyan ✅ / eksik ⚠️ nitelikler, tecrübe durumu |
 
@@ -824,7 +824,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 ├────────────────────────────────────────────────────────────────────┤
 │ [Foto]  Ayşe Kaya                            ● Yüksek uyum         │
 │         Backend Geliştirici · Bilişim ve Yazılım                   │
-│         ● Aktif arıyorum · Kadıköy, İstanbul                       │
+│         ● Aktif iş arıyorum · Kadıköy, İstanbul                    │
 │                                                                    │
 │ [Bir daha gösterme]     [+ Karşılaştır]          [Davet et]        │
 ├────────────────────────────────────────────────────────────────────┤  ← üst kısım sabit
@@ -911,7 +911,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 | | |
 |---|---|
 | Aday | **Adaylar**'dan çıkar → **Davet Edilenler → Bekleyen**'e geçer |
-| Adaya | 📱 🔔 *"ABC Teknoloji sizi Senior Backend Developer pozisyonuna davet etti."* · not, davet detayında görünür |
+| Adaya | 📱 🔔 ✉️ *"ABC Teknoloji seni Senior Backend Developer pozisyonuna davet etti."* *(aday kataloğu 2.1)* · not, davet detayında görünür |
 | Süre | **10 gün** — aday cevap vermezse davet sona erer |
 | Kayıt | *"Davet eden: Mehmet Kaya"* |
 | Not | Aday kabul ederse sohbetin **ilk mesajı** olur |
@@ -1024,7 +1024,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 ├──────────────────────────────────────────────────────────────────┤
 │ [Foto]  Ayşe Kaya                            ● Yüksek uyum       │
 │         Backend Geliştirici · Bilişim ve Yazılım                 │
-│         ● Aktif arıyorum · Kadıköy, İstanbul                     │
+│         ● Aktif iş arıyorum · Kadıköy, İstanbul                  │
 │         ~ Karar bekliyor · 25 gün kaldı                          │
 │                                                                  │
 │ [↓ PDF]  [✓ Karşılaştırmada]     [Kabul etme]    [Kabul et]      │
@@ -1071,7 +1071,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 | Aday | **Başvuranlar**'dan çıkar → **Süreçteki Adaylar → Devam eden**'e geçer |
 | Sohbet | Açılır · işveren doğrudan **sohbet ekranına** yönlendirilir |
 | Süreç süresi | **60 gün** başlar *(Bölüm 9)* |
-| Adaya | 📱 🔔 *"ABC Teknoloji başvurunuzu kabul etti. Görüşmeye başlayabilirsiniz."* |
+| Adaya | 📱 🔔 ✉️ *"ABC Teknoloji başvurunu kabul etti. Görüşmeye başlayabilirsin."* *(aday kataloğu 1.1)* |
 | Belgeler | Erişim devam eder |
 
 ### 7.4 [Kabul etme]
@@ -1141,6 +1141,7 @@ Sekmenin yanındaki sayı: **Adaylar** → uygun aday · diğerleri → **bekley
 | ⌛ Yanıtlanmadan sona erdi | İşveren 30 gün cevap vermedi |
 | ↩ Aday başvurusunu geri çekti | Aday vazgeçti |
 | ⏹ Süreç sonlandırıldı | İşveren ilanın sonucunu bildirdi, başvuru hâlâ bekliyordu — **sadece sonuçlanan ilanın özetinde görünür** |
+| 🚫 Aday hesabını kapattı | Aday başvuru beklerken hesabını sildi — kart **"Silinmiş kullanıcı"** olarak görünür *(Bölüm 22.3)* |
 
 | Kural | |
 |---|---|
@@ -1291,6 +1292,7 @@ Aday kabul ederken maaş beklentisi, not ve paylaşacağı belgeleri seçer — 
 | ⌛ Yanıtlanmadan sona erdi | Aday 10 gün cevap vermedi |
 | ↩ Davet geri çekildi | İşveren geri çekti |
 | ⏹ Süreç sonlandırıldı | İşveren ilanın sonucunu bildirdi, davet hâlâ bekliyordu — **sadece sonuçlanan ilanın özetinde görünür** |
+| 🚫 Aday hesabını kapattı | Aday davet beklerken hesabını sildi — kart **"Silinmiş kullanıcı"** olarak görünür *(Bölüm 22.3)* |
 
 **Kabul edenler** burada değil — **Süreçteki Adaylar**'da. **PDF yok** — aday hiç onay vermedi.
 
@@ -1416,7 +1418,7 @@ Sohbetin içinde de aynı seçenek: üstteki **[⋮] → Süreci sonuçlandır.*
 
 | Seçim | Adaya gidecek mesaj | Sonra |
 |---|---|---|
-| **İşe alındı 🎉** | 📱 🔔 *"ABC Teknoloji sizi Senior Backend Developer pozisyonu için işe aldığını bildirdi. Doğru mu?"* **[Evet, işe alındım]** **[Hayır]** | **İşe alım onayı** başlar *(9.6)* · sohbet kapanır |
+| **İşe alındı 🎉** | 📱 🔔 ✉️ *"ABC Teknoloji seni işe aldığını bildirdi. Doğru mu?"* **[Evet, işe alındım]** **[Hayır]** *(aday kataloğu 4.1)* | **İşe alım onayı** başlar *(9.6)* · sohbet kapanır |
 | **Devam etmiyoruz** | 📱 🔔 *"ABC Teknoloji, Senior Backend Developer pozisyonu için başka adaylarla ilerlemeye karar verdi."* | Sohbet kapanır |
 
 | Kural | |
@@ -1441,7 +1443,7 @@ Süreç **başladığı günden itibaren 60 gün** içinde sonuçlandırılmalı
 | | İşveren | Aday |
 |---|---|---|
 | Kartta | ⌛ *Süre doldu — sonuçlandırılmadı* | ⌛ *Süreç sona erdi* |
-| Bildirim | 📱 🔔 *"Ayşe Kaya ile süreç 60 gün dolduğu için sona erdi."* — sorumluya · 🔔 sahip / yöneticiye | 🔔 *"ABC Teknoloji ile Senior Backend Developer süreciniz sona erdi."* — push yok |
+| Bildirim | 📱 🔔 *"Ayşe Kaya ile süreç 60 gün dolduğu için sona erdi."* — sorumluya · 🔔 sahip / yöneticiye | 🔔 *"ABC Teknoloji ile Senior Backend Developer sürecin sona erdi."* — push yok *(aday kataloğu 3.4)* |
 | Sohbet | Kapanır — geçmiş görünür | Kapanır — geçmiş görünür |
 
 | Kural | |
@@ -1484,13 +1486,14 @@ Süreç **başladığı günden itibaren 60 gün** içinde sonuçlandırılmalı
 | Süreçten çekildi | Aday | ↩ Aday süreçten çekildi | ↩ Süreçten çekildin |
 | 60 gün doldu | Sistem | ⌛ Süre doldu — sonuçlandırılmadı | ⌛ Süreç sona erdi |
 | İlanın sonucu bildirildi | İşveren | ⏹ Süreç sonlandırıldı | ⏹ *(sonuca göre mesaj — Bölüm 12)* |
-| Aday hesabını sildi | Sistem | 🚫 Aday hesabını kapattı | — |
+| Aday hesabını sildi | Sistem | 🚫 **Silinmiş kullanıcı** · Aday hesabını kapattı | — *(aday yok)* |
 
 | | |
 |---|---|
 | **[Sohbeti gör]** | Sohbet **salt okunur** açılır |
 | **[⬇ PDF]** | İşe alınanda: profil + belgeler seçilebilir · diğerlerinde: sadece profil · çekilen ve hesabını silen adayda **yok** |
 | Süre | Son **90 gün** |
+| Silinmiş kullanıcı kartı | Ad ve fotoğraf yerine *"Silinmiş kullanıcı"* · sadece unvan ve sonuç · profil, belge, PDF, iletişim yok · **[Sohbeti gör]** salt okunur — sohbetin sonunda *"Bu kullanıcı hesabını sildi"* |
 
 ### 9.6 İşe alım onayı
 
@@ -1504,7 +1507,7 @@ Süreç **başladığı günden itibaren 60 gün** içinde sonuçlandırılmalı
                         │
                         v
 ┌───────────────────────────────────────────────┐
-│  Adaya soru: "ABC Teknoloji sizi işe aldığını │
+│  Adaya soru: "ABC Teknoloji seni işe aldığını │
 │              bildirdi. Doğru mu?"             │
 └──────┬────────────────┬────────────────┬──────┘
        │                │                │
@@ -1537,7 +1540,7 @@ Süreç **başladığı günden itibaren 60 gün** içinde sonuçlandırılmalı
 | Buton | Ne olur |
 |---|---|
 | **[Yanlış işaretledim]** | Aday işe alınanlardan çıkar → sonucu ⏹ *Süreç sonlandırıldı* · adaya bildirim gitmez · çelişki kapanır |
-| **[Adaya tekrar sor]** | Adaya 📱 🔔 *"ABC Teknoloji işe alındığınızı tekrar bildirdi. Cevabınızı kontrol eder misiniz?"* — **sadece bir kez** |
+| **[Adaya tekrar sor]** | Adaya 📱 🔔 *"ABC Teknoloji işe alındığını tekrar bildirdi. Cevabını kontrol eder misin?"* *(aday kataloğu 4.2)* — **sadece bir kez** |
 
 **Aday da** kendi kartında 30 gün içinde **[Cevabımı değiştir]** diyebilir.
 
@@ -1546,7 +1549,7 @@ Süreç **başladığı günden itibaren 60 gün** içinde sonuçlandırılmalı
 | Adayın cevap süresi | **14 gün** |
 | Çelişki düzeltme süresi | **30 gün** — sonra kayıt kesinleşir |
 | [Adaya tekrar sor] | **Bir kez** — işveren adaya baskı yapamasın |
-| Adaya *"Evet"* deyince | *"Arama durumunu 'Şu an bakmıyorum' yapmak ister misin?"* önerisi |
+| Adaya *"Evet"* deyince | *"Arama durumunu 'Şu an iş aramıyorum' yapmak ister misin?"* önerisi |
 
 ---
 
@@ -1722,7 +1725,7 @@ Sonuçlanan kartlarda *"Profil + belgeler"* seçeneği **🔒 gri** ve açıklam
 | Kayıt | Kim, ne zaman, kimin profilini, hangi seçenekle indirdi — admin görür |
 | Toplu indirme | **Yok** — tek tek |
 | Excel'e aktarma | **Yok** |
-| Adaya bilgi | Başvuru ekranında: *"Profiliniz ve paylaştığınız belgeler işveren tarafından indirilebilir."* |
+| Adaya bilgi | Başvuru ekranında: *"Özgeçmişin ve paylaştığın belgeler işveren tarafından görüntülenebilir ve indirilebilir."* *(`aday-paneli-final.md` 9.1)* |
 
 ---
 
@@ -1817,7 +1820,7 @@ Sonuçlanan kartlarda *"Profil + belgeler"* seçeneği **🔒 gri** ve açıklam
 | Duraklatılmışken süre biterse | Kendiliğinden **⏱ Süresi doldu**'ya geçer · [Devam ettir] yerine [Tekrar yayınla] gelir |
 | [Uzat] | Yok — önce devam ettirmeli |
 | Arkada | Eşleşme satırları silinir *(kimse görmüyor)* · devam ettirince taze hesaplanır — duraklatma süresince kaydolan adaylar da listeye girer |
-| Bekleyen başvuruya adayın gördüğü | ⏳ *Değerlendiriliyor · İlan şu an duraklatıldı* |
+| Bekleyen başvuruya adayın gördüğü | İlan başlığında *"İlan geçici olarak durduruldu"* · başvuru *"Değerlendiriliyor"* olarak kalır |
 
 ### 11.3 ⏱ Süresi doldu
 
@@ -1889,7 +1892,7 @@ Gün 0 — süre doldu         Gün 30                         Gün 75
 |---|---|
 | İlan | **❓ Sonuç bildirilmedi** → Sonuçlananlar |
 | Bekleyen başvuru / davet | Zaten kalmadı — en geç 30. günde süreleri doldu |
-| Süreçteki adaylar | Sonlanır · adaya nötr mesaj: *"ABC Teknoloji ile Muhasebe Uzmanı süreciniz sona erdi."* · sohbet kapanır |
+| Süreçteki adaylar | Sonlanır · adaya nötr mesaj: *"ABC Teknoloji ile Muhasebe Uzmanı sürecin sona erdi."* *(aday kataloğu 5.4)* · sohbet kapanır |
 | Şirket raporu | *"❓ Sonuç bildirilmedi"* satırına eklenir — **adaylar da görür** |
 | Sonradan düzeltme | **Yok** |
 
@@ -2022,7 +2025,7 @@ Devam eden hiçbir şey yoksa **⏹** bölümü görünmez. **[Sonucu kaydet]** 
 | **Pozisyon doldu** | *"…pozisyonu doldurulduğu için süreç sona erdi."* | Doğru ve net — kişisel bir ret değil |
 | **Uygun aday bulamadık** | *"…değerlendirme sürecini sonlandırdı."* | **Nötr** — *"uygun aday bulunamadı"* demek adaya *"sen uygun değildin"* diye okunur, gereksiz kırar |
 | **Alımdan vazgeçtik** | *"…pozisyonunu iptal etti. Süreç sona erdi."* | Doğru ve **rahatlatıcı** — aday *"benimle ilgili değil"* der |
-| *İşe alınanlar* | *"…sizi işe aldığını bildirdi. Doğru mu?"* | İşe alım onayı |
+| *İşe alınanlar* | *"…seni işe aldığını bildirdi. Doğru mu?"* | İşe alım onayı |
 
 İşveren ekranda seçim değiştirdikçe mesaj kutusu da değişir — **ne gideceğini önceden bilir.**
 
@@ -2147,7 +2150,7 @@ Devam eden hiçbir şey yoksa **⏹** bölümü görünmez. **[Sonucu kaydet]** 
 
 **Kartta neden sayı sekmeleri yok:** İçeride bekleyen hiçbir şey kalmadı. Yerine ilanın **özeti** görünür: kaç başvuru, kaç davet, kaç kişi sürece alındı.
 
-**İşe alınanların onay durumu** ve çelişki butonları → Bölüm 9.6.
+**İşe alınanların onay durumu** ve çelişki butonları → Bölüm 9.6. İşe alınan aday hesabını sildiyse listede **"Silinmiş kullanıcı"** yazar, onay durumu kalır (*"Silinmiş kullanıcı · ✓ Aday onayladı"*); onay bekleniyorsa *"Aday cevap vermedi"* olarak kesinleşir ve [Adaya tekrar sor] / [Yanlış işaretledim] kalkar.
 
 ### 13.3 [İlan özeti]
 
@@ -2293,7 +2296,7 @@ Devam eden hiçbir şey yoksa **⏹** bölümü görünmez. **[Sonucu kaydet]** 
 | İşverenin İlanlarım listesi | İlan kalkar |
 | İlan özeti, Kopyala | Artık yapılamaz |
 | **Şirket raporu** | **Değişmez** — rapor ayrı bir özet tablosundan okunur *(Bölüm 22)* |
-| Aday tarafı | Değişmez — adayın sonuçlanan kartı kendi listesinde 90 gün kalır · ilana dokunursa *"Bu ilan şirket tarafından kaldırıldı."* |
+| Aday tarafı | Değişmez — adayın sonuçlanan kartı kendi listesinde 90 gün kalır · ilana dokunursa *"Bu ilan artık mevcut değil."* |
 | Bekleyen işe alım onayı | Arka planda devam eder — aday cevap verirse rapora işlenir |
 | Arkada | **Soft delete** — kayıt işaretlenir, işverene gösterilmez · admin görür · 2 yıl sonra tamamen silinir |
 
@@ -2303,6 +2306,20 @@ Devam eden hiçbir şey yoksa **⏹** bölümü görünmez. **[Sonucu kaydet]** 
 | Uzman | Kendi sonuçlanan ilanları |
 
 **Neden şirket raporu değişmiyor:** Kötü sonuçlanan ilanlarını silerek raporunu güzelleştirmek mümkün olmasın.
+
+### 13.5 Admin ilanı kaldırırsa
+
+Adaylar bir ilanı **"İlanı bildir"** ile şikâyet edebilir (sahte ilan, para isteme, ayrımcı ifade…). Admin inceleyip ilanın kurallara aykırı olduğuna karar verirse ilanı **kaldırır.**
+
+| | |
+|---|---|
+| İlan | Hemen Keşfet'ten ve tüm listelerden çıkar · tekrar yayınlanamaz, kopyalanamaz |
+| Bekleyen başvuru, davet, süreçteki adaylar | **Hepsi sonlanır** · sohbetler kapanır |
+| Adaylara | 📱 🔔 ✉️ *"Görüştüğün XYZ Ticaret ilanı platform kurallarına aykırı bulunduğu için kaldırıldı. Senden para veya kişisel bilgi istenirse paylaşma."* *(aday kataloğu 5.6 — kapatılamaz)* |
+| İşverene | Sorumluya 📱 🔔 ✉️, sahibe 🔔 ✉️ *"Senior Backend Developer ilanınız platform kurallarına aykırı bulunduğu için kaldırıldı."* + sebep |
+| Kim bildirdi | İşveren **hiçbir zaman göremez** |
+
+> ⚠️ Kaldırılan ilanın İlanlarım'da nasıl göründüğü, itiraz yolu ve şirket raporuna etkisi **admin paneli** konuşulurken netleşecek.
 
 ---
 ## 14. Şirket Profili ve Şirket Raporu
@@ -2905,7 +2922,7 @@ Ekip → Zeynep Ak → [3 ilan]
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ Roller                                                       [✕]   │
+│ Roller                                                         [✕] │
 ├────────────────────────────────────────────────────────────────────┤
 │                               Sahip       Yönetici    Uzman        │
 │                                                                    │
@@ -3444,7 +3461,7 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 │    6 süreçteki aday — sohbetler kapanacak                        │
 │                                                                  │
 │    Adaylara gidecek mesaj:                                       │
-│    "ABC Teknoloji platformdan ayrıldı. Süreciniz sona erdi."     │
+│    "ABC Teknoloji platformdan ayrıldı. Sürecin sona erdi."       │
 │                                                                  │
 │ Ekip                                                             │
 │    4 üyenin hesabı silinecek.                                    │
@@ -3636,6 +3653,8 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 
 ### 20.1 Kurallar
 
+> Adaya giden bildirimlerin tamamı → `aday-paneli-final.md` Bölüm 14.3. Bu bölüm sadece işverene gidenler.
+
 | Kural | |
 |---|---|
 | **📱 Push** | Sadece **ilanın sorumlusuna** — büyük şirkette herkesin telefonu çalmasın |
@@ -3653,6 +3672,7 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 |---|:---:|:---:|---|
 | Yeni başvuru | 📱 🔔 | 🔔 | *"Senior Backend Developer ilanınıza yeni başvuru: Ayşe Kaya"* |
 | Aday başvurusunu geri çekti | 🔔 | — | *"Ayşe Kaya başvurusunu geri çekti."* |
+| Bekleyen başvurusu olan aday hesabını sildi | 🔔 | — | *"Senior Backend Developer ilanına başvuran bir aday hesabını kapattı."* |
 | Başvurular 7 gün içinde cevapsız kalacak | 🔔 | — | *"3 başvuru 7 gün içinde cevapsız kalacak."* |
 
 **Davet**
@@ -3662,6 +3682,7 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 | Aday daveti kabul etti | 📱 🔔 | 🔔 | *"Burak Can davetinizi kabul etti. Görüşmeye başlayabilirsiniz."* |
 | Aday daveti reddetti | 📱 🔔 | 🔔 | *"Burak Can davetinizi kabul etmedi."* |
 | Davetin süresi doldu (10 gün) | 🔔 | — | *"Burak Can'a gönderdiğiniz davet yanıtlanmadan sona erdi."* |
+| Davet edilen aday hesabını sildi | 🔔 | — | *"Davet ettiğiniz bir aday hesabını kapattı."* |
 
 **Süreç**
 
@@ -3670,6 +3691,7 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 | Yeni mesaj | 📱 🔔 | 🔔 | *"Ayşe Kaya: Salı 14:00 uygun mudur?"* |
 | İletişim bilgisi paylaşıldı | 📱 🔔 | — | *"Ayşe Kaya iletişim bilgilerini paylaştı."* |
 | Aday süreçten çekildi | 📱 🔔 | 🔔 | *"Emre Yıldız süreçten çekildi."* |
+| Süreçteki aday hesabını sildi | 📱 🔔 | 🔔 | *"Senior Backend Developer ilanındaki bir aday hesabını kapattı."* |
 | Süreç 7 gün sonra bitecek (53. gün) | 📱 🔔 | — | *"Ayşe Kaya ile süreç 7 gün sonra sona erecek."* |
 | Süreç 60 günde bitti | 📱 🔔 | 🔔 | *"Ayşe Kaya ile süreç 60 gün dolduğu için sona erdi."* |
 
@@ -3692,6 +3714,7 @@ Ayrıca 📱 🔔 ✉️ bildirim.
 | Sonuç bildirilmediği için kapandı | 🔔 | 🔔 | *"İlan sonuç bildirilmediği için kapatıldı."* |
 | İlan size devredildi | 📱 🔔 | — | *"Senior Backend Developer ilanı size devredildi."* |
 | Taslak 7 gün sonra silinecek | 🔔 | — | *"Frontend Developer taslağınız 7 gün sonra silinecek."* |
+| **Admin ilanı kaldırdı** | 📱 🔔 ✉️ | 🔔 ✉️ *(sahip)* | *"Senior Backend Developer ilanınız platform kurallarına aykırı bulunduğu için kaldırıldı."* — **kapatılamaz** |
 
 **Günlük özet**
 
@@ -3724,7 +3747,7 @@ Hepsi **veritabanında** — gerçek veriyle ayarlanabilir. Zamanla çalışan i
 | **Tekrar yayınlama hakkı** | Süre dolduktan sonra **30 gün** | 23. gün 🔔 | [Tekrar yayınla] kilitlenir |
 | **Sonuç bildirme** | Süre dolduktan sonra **75 gün** *(30 + 45)* | 68. gün 📱 🔔 | ❓ Sonuç bildirilmedi |
 | **Başvuru — işverenin cevabı** | **30 gün** | 23. gün 🔔 | ⌛ Yanıtlanmadan sona erdi |
-| **Davet — adayın cevabı** | **10 gün** | — | ⌛ Yanıtlanmadan sona erdi |
+| **Davet — adayın cevabı** | **10 gün** | 8. gün **adaya** 📱 🔔 *(2 gün kala)* | ⌛ Yanıtlanmadan sona erdi |
 | **Süreç** | Başladığı günden **60 gün** · uzatma yok | 53. gün 📱 🔔 | ⌛ Süre doldu — sonuçlandırılmadı |
 | **İşe alım onayı — adayın cevabı** | **14 gün** | — | ⚪ Aday cevap vermedi |
 | **İşe alım çelişkisini düzeltme** | **30 gün** | — | Kayıt kesinleşir |
@@ -3757,15 +3780,81 @@ Hepsi **veritabanında** — gerçek veriyle ayarlanabilir. Zamanla çalışan i
 | Başvuru ayrıntıları — maaş beklentisi, not, paylaşılan belgeler listesi | Sonuçlandıktan **1 yıl** sonra |
 | Tüm aksiyon kayıtları *(başvuru, davet, süreç, sonuç)* | İlan sonuçlandıktan **2 yıl** sonra |
 | Soft delete edilmiş ilan | **2 yıl** sonra tamamen |
+| Silinmiş adayların isimsiz kayıtları, sohbet geçmişi | İlan sonuçlandıktan **2 yıl** sonra *(sohbet süresi hukuki danışmanla)* |
 
-### 22.3 Hesap silinince — anonimleştirme yok, doğrudan silme
+### 22.3 Hesap silinince
 
-| Olay | Ne olur |
+#### Şirket hesabını sildi
+
+Şirket, ilanlar, ekip, aksiyonlar ve şirket istatistik satırları **tamamen** silinir · belgeler 1 yıl saklanır · adayın tarafındaki kartlar ve sohbetler *"Silinmiş şirket"* olarak kalır *(Bölüm 17.6)*.
+
+#### Aday hesabını sildi
+
+Aday hesabını kendisi siler *(`aday-paneli-final.md` Bölüm 15)*. Silme **anında** olur. Veriler üç gruba ayrılır:
+
+| Grup | Ne | Ne olur |
+|---|---|---|
+| **Hemen silinir** | Adayın hesap ve özgeçmiş bilgileri, fotoğrafı, belgeleri · maaş beklentisi ve notları · embedding, eşleşmeler, aksiyon kayıtları | Tamamen |
+| **İsimsiz kalır, sonra silinir** | İşverenin listelerindeki başvuru, davet, süreç ve işe alım kayıtları · sohbet geçmişi | Ad yerine **"Silinmiş kullanıcı"** · listelerde 90 gün · kayıt ilan sonuçlandıktan **2 yıl** sonra silinir |
+| **Kalıcı** | Şirket ve platform istatistikleri | **Değişmez** — kişisel veri içermez |
+
+**Neden işverendeki kayıt bir anda yok olmuyor:** İşverenin kendi geçmişi (*"bu ilana kim başvurmuştu, kimi işe aldık, kiminle yazıştık"*) iz bırakmadan kaybolursa ne olduğunu anlamaz. Kayıt kalır ama **kim olduğu artık bilinmez.**
+
+**İşveren ne görür — bütün ihtimaller:**
+
+| # | Aday silindiğinde durum | İşveren ne görür | Bildirim |
+|:---:|---|---|---|
+| A1 | Aday sadece **Adaylar** listesinde | Listeden **kaybolur** | — |
+| A2 | İşveren adayı **"Bir daha gösterme"** demişti | Hiçbir şey | — |
+| A3 | Aday **karşılaştırma listesinde** | Listeden otomatik düşer | — |
+| B1 | **Bekleyen başvuru** | Başvuranlar → **Sonuçlanan**: *"Silinmiş kullanıcı · Aday hesabını kapattı"* | 🔔 sorumluya |
+| B2 | Başvuru **zaten sonuçlanmış** | Kart kalır, sonuç aynı, ad *"Silinmiş kullanıcı"* | — |
+| C1 | **Cevap bekleyen davet** | Davet Edilenler → **Sonuçlanan**: *"Silinmiş kullanıcı · Aday hesabını kapattı"* | 🔔 sorumluya |
+| C2 | Davet **zaten sonuçlanmış** | Kart kalır, sonuç aynı, ad *"Silinmiş kullanıcı"* | — |
+| D1 | **Süreç devam ediyor** | Süreçteki → **Sonuçlanan**: *"Silinmiş kullanıcı · Aday hesabını kapattı"* · sohbet kapanır | 📱 🔔 sorumluya · 🔔 sahip / yönetici |
+| D2 | Süreç **zaten sonuçlanmış** | Kart kalır, sonuç aynı, ad *"Silinmiş kullanıcı"* | — |
+| E1 | İşe alındı, **onay bekleniyordu** | İşe alındı kalır · onay *"Aday cevap vermedi"* olarak kesinleşir · [Adaya tekrar sor] ve [Yanlış işaretledim] kalkar | — |
+| E2 | İşe alındı, **aday onaylamıştı** | ✓ Onaylı kalır · ad *"Silinmiş kullanıcı"* | — |
+| E3 | İşe alındı, **aday "işe alınmadım" demişti** | **Tartışmalı** olarak kesinleşir · admin listesinde kalır | — |
+| F1 | Aday, sonuçlanmış bir ilanın **İlan özeti**'nde | Kart kalır, sonuç aynı, ad *"Silinmiş kullanıcı"* | — |
+
+**Ekranda örnekler:**
+
+```
+Süreçteki Adaylar → Sonuçlanan
+┌──────────────────────────────────────────────────────────┐
+│ [?]  Silinmiş kullanıcı · Backend Geliştirici            │
+│ ■ Aday hesabını kapattı · 28 Eylül         [Sohbeti gör] │
+└──────────────────────────────────────────────────────────┘
+
+Sonuçlananlar → ilan kartı → İşe alınanlar
+│ İşe alınanlar                                            │
+│    Ayşe Kaya             ✓ Aday onayladı                 │
+│    Silinmiş kullanıcı    ✓ Aday onayladı                 │
+│    Silinmiş kullanıcı    - Aday cevap vermedi            │
+
+Sohbetin sonu
+│        Bu kullanıcı hesabını sildi · 28 Eylül            │
+│        Bu sohbet kapandı.                                │
+├──────────────────────────────────────────────────────────┤
+│ Bu süreç sona erdi, yeni mesaj gönderilemez.             │
+```
+
+**Silinmiş kullanıcı kartında:**
+
+| | |
 |---|---|
-| **Aday hesabını sildi** | Adayın tüm kayıtları **tamamen** silinir · işverende *"🚫 Aday hesabını kapattı"* |
-| **Şirket hesabını sildi** | Şirket, ilanlar, ekip, kayıtlar **tamamen** silinir · belgeler 1 yıl *(Bölüm 17.6)* |
+| Ad, fotoğraf | **"Silinmiş kullanıcı"** · gri simge |
+| Unvan | Kalır — hangi pozisyondaki aday olduğu anlaşılsın |
+| Özgeçmiş, profil detayı | ❌ Açılmaz |
+| Belgeler, PDF | ❌ Yok — işe alınanda bile |
+| Telefon, e-posta, maaş beklentisi, not | ❌ Gösterilmez |
+| Sohbet geçmişi | ✅ Salt okunur |
+| Önceden indirilmiş PDF | Platform silemez, işverende kalır |
 
-**Peki raporlar nasıl bozulmuyor?** → İstatistikler **ayrı tablolarda**, isimsiz.
+**Şirket raporuna etkisi:** Bekleyen başvurusu silinen aday **cevapsız sayılmaz** · davet ve süreç sayıları değişmez · işe alımlar değişmez. Rapor istatistik defterinden okunduğu için geriye dönük sayılar değişmez.
+
+> ⚠️ İsimsiz kayıtların ve sohbet geçmişinin işverende kalması hukuki danışmanla netleşecek.
 
 ### 22.4 İstatistik tabloları
 
@@ -3787,7 +3876,7 @@ Tarih      Şirket          İlan  Başvuru  Kabul  Red  Cevapsız  Davet  Süre
 | Rapor | Son 365 satırın toplamı → şirket profilindeki **12 aylık rapor** |
 | Aday adı | **Yok** — sadece sayılar |
 | Kim görür | Kullanıcılar sadece **12 aylık toplamı** görür · **admin** aylık ve günlük dökümü görür |
-| Aday hesabını silerse | Rapor **değişmez** |
+| Aday hesabını silerse | Rapor **değişmez** — bekleyen başvurusu *cevapsız* sayılmaz |
 | Şirket hesabını silerse | Şirketin satırları da silinir |
 
 **Platform istatistikleri** — platformun genel gidişatı:
@@ -3809,16 +3898,16 @@ Ağustos 2026  Türkiye   Lojistik         310          98      9.300
 
 ## 23. Diğer Dokümanlara Etkisi
 
-| Doküman | Değişecek |
+| Doküman | Durum |
 |---|---|
-| **`eslestirme-motoru.md`** | Aksiyon listesine işe alım ve süreç sonuçları · sonuç bildirilince temizlik · 2 yıl kuralı · istatistik tabloları · **anonimleştirme yok, doğrudan silme** · "Gizlediklerim / Gizlenenler" listesi yok |
-| **`bakim-isleri.md`** | Taslak 30 gün · süresi dolan ilan 30 + 45 gün ve uyarıları · süreç 60 gün + 53. gün uyarısı · işe alım onayı 14 / 30 gün · başvuru 23. gün uyarısı · günlük şirket ve platform istatistik işi · 2 yıl aksiyon silme · soft delete'in 2 yıl sonra tamamen silinmesi |
-| **`aday-profili-final.md`** | "Gizlediklerim" kalktı · Ayarlar bölümü · işe alım onayı sorusu |
-| **`is-ilani-v3.md`, `staj-ilani.md`** | "Algılanan" satırı · çalışma tipi çoklu · meslek alanı ve unvan yayından sonra kilitli · ilan butonları ve durumları bu dokümana göre |
-| **Aday dokümanı** *(yazılacak)* | Başvurularım, Davetlerim, Süreçteki İlanlar · işe alım onayı · şirket profili ve raporu görünümü · süreçten çekilme |
-| **Sohbet dokümanı** *(yazılacak)* | Mesajlaşma · iletişim bilgisi isteme / paylaşma · süreci sohbetten sonuçlandırma · sonuçlanınca salt okunur · devirde sohbetin devamı |
-| **Admin paneli** *(yazılacak)* | Şirket onayı · değişiklik talepleri · sahiplik talepleri · tartışmalı işe alımlar · PDF indirme kayıtları · şirket aylık / günlük dökümü · platform istatistikleri · hayalet ilan sinyalleri |
-| **Veri koruma** *(yazılacak)* | Saklama süreleri · belgelerin 1 yıl saklanması · PDF indirme bilgisi · aydınlatma metni |
+| **`eslestirme-motoru.md`** | ✅ İşlendi — aksiyon listesi, sonuç bildirilince temizlik, istatistik tabloları, 2 yıl kuralı, aday silinince üç grup |
+| **`bakim-isleri.md`** | ✅ İşlendi — taslak, ilan 30 + 45 gün, süreç 60 gün, işe alım onayı, istatistik, 2 yıl silme, aday silinince isimsiz kayıtlar, davetin 2 gün kala uyarısı |
+| **`is-ilani-v3.md`, `staj-ilani.md`** | ✅ İşlendi — "Algılanan" satırı, çalışma tipi çoklu, kilitler, ilan durumları |
+| **`aday-paneli-final.md`** | ✅ Yazıldı — aday tarafının tüm ekranları, aday bildirim kataloğu, hesap silme |
+| **`aday-profili-final.md`** | Güncellenecek — sekme adı "Özgeçmiş", hesap bilgileri Profilim'e |
+| **Sohbet dokümanı** *(yazılacak)* | Mesajlaşma · iletişim bilgisi isteme / paylaşma · süreci sohbetten sonuçlandırma · sonuçlanınca salt okunur · devirde sohbetin devamı · silinmiş kullanıcı ve silinmiş şirket gösterimi |
+| **Admin paneli** *(yazılacak)* | Şirket onayı · değişiklik talepleri · sahiplik talepleri · tartışmalı işe alımlar · **bildirilen ilanlar ve ilan kaldırma** · PDF indirme kayıtları · şirket aylık / günlük dökümü · platform istatistikleri · hayalet ilan sinyalleri |
+| **Veri koruma** *(yazılacak)* | Saklama süreleri · belgelerin 1 yıl saklanması · PDF indirme bilgisi · silinen adayın isimsiz kayıtları · aydınlatma metni |
 
 ## 24. Açık Konular
 
@@ -3830,3 +3919,5 @@ Ağustos 2026  Türkiye   Lojistik         310          98      9.300
 | 4 | Şirket raporu eşiği (20 başvuru) ve süre (12 ay) | İlk gerçek veriyle |
 | 5 | Excel'e aktarma | Talep gelirse |
 | 6 | İK / işe alım ajansları — müşteri adına ilan | Ayrı konu |
+| 7 | Silinen adayın isimsiz kayıtları ve **sohbet geçmişinin** işverende kalması — "silinme hakkı" | Hukuki danışmanla |
+| 8 | Admin'in kaldırdığı ilanın işverende görünümü, itiraz yolu, rapora etkisi | Admin paneli konuşulurken |
