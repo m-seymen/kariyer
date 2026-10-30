@@ -2,8 +2,9 @@
 
 > Son güncelleme: 20 Eylül 2026
 > **Kapsam: global** — uygulama tüm dünyaya açık olacak
-> **Sürüm: final** — işveren paneli kararlarıyla güncellendi
-> İlgili dokümanlar: `eslestirme-motoru.md`, `aday-profili-final.md`, `isveren-paneli-final.md`, `auth-kararlari.md`
+> **Sürüm: final** — işveren paneli ve aday paneli kararlarıyla güncellendi
+> İlgili dokümanlar: `eslestirme-motoru.md`, `aday-profili-final.md`, `aday-paneli-final.md`, `isveren-paneli-final.md`, `auth-kararlari.md`
+> Bildirim metinleri ve kanalları: aday → `aday-paneli-final.md` Bölüm 14 · işveren → `isveren-paneli-final.md` Bölüm 20
 
 ---
 
@@ -106,7 +107,7 @@ SELECT cron.schedule(
 | **Süreçteki adaylar** | **Devam eder** — sohbet, sonuçlandırma; 60 günlük süre işler |
 | Sonuç tablosu satırları | Silinir |
 | Embedding, "bir daha gösterme" | **Kalır** — ilan geri açılabilir |
-| Adayın gördüğü | ⏳ *Değerlendiriliyor · İlan yayından kalktı* |
+| Adayın gördüğü | İlan başlığında *"İlanın yayın süresi doldu"* · başvuru *"Değerlendiriliyor"* olarak kalır |
 | Sorumluya | 🔔 *"Senior Backend Developer ilanınızın süresi doldu. 3 bekleyen başvuru, 1 süreçteki aday var."* · sahip / yöneticiye 🔔 |
 
 **Neden saatlik:** Günlük olsa ilan 23 saate kadar fazladan yayında kalabilir. Saatlik yük çok az — sadece o saatte süresi dolanlar işlenir.
@@ -125,7 +126,7 @@ SELECT cron.schedule(
 | | |
 |---|---|
 | Bekleyen başvuru / davet | Zaten kalmadı — en geç 30. günde süreleri doldu |
-| Süreçteki adaylar | Sonlanır (`surec_sonlandi`) · adaya nötr 🔔 *"ABC Teknoloji ile Muhasebe Uzmanı süreciniz sona erdi."* · sohbet kapanır |
+| Süreçteki adaylar | Sonlanır (`surec_sonlandi`) · adaya nötr 🔔 *"ABC Teknoloji ile Muhasebe Uzmanı sürecin sona erdi."* *(aday kataloğu 5.4)* · sohbet kapanır |
 | Sorumluya | 🔔 *"İlan sonuç bildirilmediği için kapatıldı."* · sahip / yöneticiye 🔔 |
 | Şirket raporu | *"❓ Sonuç bildirilmedi"* satırına eklenir |
 | Sonradan düzeltme | Yok |
@@ -149,14 +150,14 @@ SELECT cron.schedule(
 
 **Ne yapar:** Cevapsız kalan başvuru ve davetleri sonuçlandırır.
 
-| | Süre | Süre dolunca |
-|---|:---:|---|
-| **Başvuru** — işverenin cevabı | **30 gün** | ⌛ *Yanıtlanmadan sona erdi* |
-| **Davet** — adayın cevabı | **10 gün** | ⌛ *Yanıtlanmadan sona erdi* |
+| | Süre | Süre dolunca — işverende | Süre dolunca — adayda |
+|---|:---:|---|---|
+| **Başvuru** — işverenin cevabı | **30 gün** | ⌛ *Yanıtlanmadan sona erdi* | ~ *Yanıtlanmadan sona erdi* |
+| **Davet** — adayın cevabı | **10 gün** | ⌛ *Yanıtlanmadan sona erdi* | ~ *Cevap vermediğin için sona erdi* |
 
 | | Başvuru | Davet |
 |---|---|---|
-| Kime bildirim | Adaya 🔔 *"Senior Backend Developer başvurunuz yanıtlanmadan sona erdi."* | İlanın sorumlusuna 🔔 *"Ayşe Kaya'ya gönderdiğiniz davet yanıtlanmadan sona erdi."* |
+| Kime bildirim | Adaya 🔔 *"Senior Backend Developer başvurun yanıtlanmadan sona erdi."* *(aday kataloğu 1.3)* | İlanın sorumlusuna 🔔 *"Ayşe Kaya'ya gönderdiğiniz davet yanıtlanmadan sona erdi."* · adaya 🔔 *"PRS Teknoloji'nin davetinin süresi doldu."* *(aday kataloğu 2.3)* |
 | Push | Yok | Yok |
 | Belge erişimi | İşverenin erişimi **kapanır** | — |
 | Tekrar | Aday bu ilana tekrar başvuramaz | Bu ilandan bu adaya tekrar davet gönderilemez |
@@ -167,7 +168,7 @@ SELECT cron.schedule(
 |---|---|
 | Sıklık | **Saatlik** |
 | İlan kapalıysa | Fark etmez — süre işlemeye devam eder |
-| Önceden hatırlatma | **Başvuru:** 23. gün sorumluya 🔔 *"3 başvuru 7 gün içinde cevapsız kalacak."* — cevapsız başvurular şirket raporunda görünür · **Davet:** yok |
+| Önceden hatırlatma | **Başvuru:** 23. gün sorumluya 🔔 *"3 başvuru 7 gün içinde cevapsız kalacak."* — cevapsız başvurular şirket raporunda görünür · **Davet:** **8. gün** (2 gün kala) adaya 📱 🔔 *"PRS Teknoloji'nin davetine cevap vermek için 2 gün kaldı."* *(aday kataloğu 2.2)* — karar adayda, daveti kaçırmasın |
 
 **Neden saatlik — günlük değil:**
 
@@ -184,7 +185,7 @@ CREATE INDEX ON basvurular (basvuru_tarihi) WHERE sonuc = 'bekliyor';
 CREATE INDEX ON davetler   (davet_tarihi)   WHERE sonuc = 'bekliyor';
 ```
 
-**Neden push yok, sadece 🔔:** Acil değil; telefonu titretip "reddedildin" hissi vermesin. Cevap vermeyen taraf zaten durumu biliyor — sadece bekleyen taraf bilgilendirilir.
+**Neden süre dolunca push yok, sadece 🔔:** Acil değil; telefonu titretip "reddedildin" hissi vermesin. *(Davetin 2 gün kala uyarısı push ile gider — o bir sonuç değil, adayın yapması gereken bir şey.)*
 
 ---
 
@@ -194,37 +195,37 @@ CREATE INDEX ON davetler   (davet_tarihi)   WHERE sonuc = 'bekliyor';
 
 ### Sorun
 
-Aday 3 ay önce **"Aktif arıyorum"** seçti, başka yerden işe girdi, uygulamayı bir daha açmadı. İşveren onu 🟢 rozetiyle görüp davet atıyor — cevap gelmiyor. Bunu onlarca adayda yaşayan işveren platformu bırakır.
+Aday 3 ay önce **"Aktif iş arıyorum"** seçti, başka yerden işe girdi, uygulamayı bir daha açmadı. İşveren onu 🟢 rozetiyle görüp davet atıyor — cevap gelmiyor. Bunu onlarca adayda yaşayan işveren platformu bırakır.
 
 > **Ölü profiller ürünü sessizce öldürür.**
 
 ### Kural
 
 ```
-🟢 Aktif arıyorum
+🟢 Aktif iş arıyorum
       │  30 gün uygulamayı açmadı
       ↓
 🟡 Fırsatlara açığım
       │  toplam 90 gün açmadı
       ↓
-⚪ Şu an bakmıyorum   → işverenlerin listesinden çıkar, davet gelmez
+⚪ Şu an iş aramıyorum   → işverenlerin listesinden çıkar, davet gelmez
 ```
 
 | Gün | Ne olur |
 |---|---|
 | 0 | Son giriş |
-| 23 | 📱 *"Bir süredir giriş yapmadın. Arama durumun 7 gün sonra 'Fırsatlara açığım' olacak."* |
+| 23 | 📱 🔔 ✉️ *"Bir süredir giriş yapmadın. Arama durumun 7 gün sonra 'Fırsatlara açığım' olacak."* *(aday kataloğu 7.1 — kapatılamaz)* |
 | 30 | → 🟡 Fırsatlara açığım |
-| 83 | 📱 *"Profilin 7 gün sonra işverenlerden gizlenecek."* |
-| 90 | → ⚪ Şu an bakmıyorum · sonuç tablosu satırları silinir |
-| Geri dönünce | *"Profilin gizli. Tekrar iş aramaya başlamak ister misin?"* **[Aktif et]** |
+| 83 | 📱 🔔 ✉️ *"Özgeçmişin 7 gün sonra işverenlerden gizlenecek."* *(aday kataloğu 7.2 — kapatılamaz)* |
+| 90 | → ⚪ Şu an iş aramıyorum · sonuç tablosu satırları silinir |
+| Geri dönünce | Üst barın altında bant: *"Özgeçmişin gizli — işverenler seni göremiyor"* **[Aktif et]** *(`aday-paneli-final.md` Bölüm 2.3)* |
 
 | | |
 |---|---|
 | "Giriş" ne demek | Uygulamayı **açmak** — bildirim almak sayılmaz |
 | Başlangıç durumu | Fark etmez — zaten "fırsatlara açığım" olan da 90 günde düşer |
 | Bekleyen başvuru / davet, süreçteki ilanlar | **Devam eder** |
-| Profil verisi | Silinmez — sadece görünürlük değişir |
+| Özgeçmiş verisi | Silinmez — sadece görünürlük değişir |
 | Geri dönüşte | **Otomatik açılmaz** — belki işe girmiş, sadece mesajına bakıyor; kendisi seçer |
 | Uyarı zamanı | Adayın saat diliminde sabah |
 | Sıklık | **Günlük** — 30. mı 31. gün mü düştüğü önemli değil |
@@ -331,7 +332,7 @@ Bazı değişiklikler **hiçbir olay tetiklemeden** sıralamayı değiştirir:
 ```
 1 Eylül:  İlan yayınlandı → en iyi 200 aday hesaplandı
           Mehmet 215. sırada → listeye girmedi
-10 gün:   Listedekilerden 30'u "bakmıyorum"a geçti,
+10 gün:   Listedekilerden 30'u "Şu an iş aramıyorum"a geçti,
           20'si hesabını kapattı, 40'ı gizlendi / davet edildi
           → Mehmet artık ilk 200'de olmalı — ama kimse hesaplamadı
 ```
@@ -379,7 +380,7 @@ Bu tablo **geçici bir önbellek** — silinen satır her zaman yeniden hesaplan
 |---|---|
 | 14 günden eski hesaplananlar | Bayat — açılırsa yeniden hesaplanır |
 | Duraklatılan, süresi dolan ve sonuçlanan ilanların satırları | Keşfet'te görünmüyor · duraklatılan / süresi dolan geri açılırsa sıfırdan hesaplanır |
-| "Şu an bakmıyorum" adayların satırları | Kimse görmüyor |
+| "Şu an iş aramıyorum" adayların satırları | Kimse görmüyor |
 | Pasif (14+ gün girmemiş) kullanıcıların satırları | Açarsa anında hesaplanır |
 
 | Silinmez | Neden |
@@ -508,7 +509,15 @@ KVKK ve GDPR'ın temel kuralı: **kişisel veri, toplandığı amaç için gerek
 
 **Aydınlatma metninde:** *"Başvuru ayrıntılarınız sonuçlandıktan 1 yıl sonra silinir; başvuru yaptığınız bilgisi ve süreç adımları hizmetin işleyişi ve istatistik amacıyla saklanır."*
 
-**Aday hesabını silerse** 1 yıl beklenmez — ayrıntılar, aksiyonlar ve aşamalar **hemen ve tamamen** silinir; anonimleştirme yok. Raporlar istatistik tablolarından okunduğu için bozulmaz (Bakım 18).
+**Aday hesabını silerse** 1 yıl beklenmez — bakım işi değil, **anında** olur:
+
+| Grup | Ne | Ne olur |
+|---|---|---|
+| **Hemen silinir** | Hesap ve özgeçmiş bilgileri, belgeler · maaş beklentisi, notlar, paylaşılan belge listesi · embedding, eşleşmeler · aksiyon kayıtları · bildirimler, ayarlar · adayın kendi tarafındaki tüm listeler | Tamamen |
+| **İsimsiz kalır, sonra silinir** | **İşverenin listelerindeki** başvuru, davet, süreç ve işe alım kayıtları · sohbet geçmişi | Ad yerine **"Silinmiş kullanıcı"** — sadece unvan ve sonuç · listelerde **90 gün** (Bakım 10) · kayıt ilan sonuçlandıktan **2 yıl** sonra silinir (Bakım 19) |
+| **Kalıcı** | Şirket ve platform istatistikleri | **Değişmez** — kişisel veri içermez (Bakım 18) |
+
+Devam eden başvuru, davet ve süreçler o anda kapanır; işveren *"Silinmiş kullanıcı · Aday hesabını kapattı"* görür. Bekleyen işe alım onayı *"Aday cevap vermedi"* olarak kesinleşir. Tüm ihtimaller → `aday-paneli-final.md` Bölüm 15.6.
 
 > Aksiyon kaydı, aşama geçmişi ve skor anlık görüntüsü de sonsuza kadar kalmaz — ilan sonuçlandıktan **2 yıl** sonra silinir (Bakım 19).
 
@@ -528,8 +537,9 @@ KVKK ve GDPR'ın temel kuralı: **kişisel veri, toplandığı amaç için gerek
 | | Hemen |
 |---|---|
 | Şirket profili, ekip hesapları, ilanlar, aksiyonlar, şirket istatistik satırları | 🗑 **Tamamen** silinir — anonimleştirme yok |
-| Bekleyen başvuru, davet, süreçteki adaylar | Sonlanır · adaylara 📱 🔔 *"ABC Teknoloji platformdan ayrıldı. Süreciniz sona erdi."* |
+| Bekleyen başvuru, davet, süreçteki adaylar | Sonlanır · adaylara 📱 🔔 *"ABC Teknoloji platformdan ayrıldı. Sürecin sona erdi."* *(aday kataloğu 5.5)* |
 | Sohbetler | Adayın tarafında kalır · şirket adı *"Silinmiş şirket"* |
+| Adayın listelerindeki kartlar | Kalır · *"Silinmiş şirket · Şirket platformdan ayrıldı"* · ilan detayı açılmaz · listelerde 90 gün |
 | Adayların "gizlenecek şirketler" listesi | Şirket düşer |
 | Platform istatistikleri | Değişmez — isimsiz toplu sayılar |
 | **Belgeler** | **1 yıl** saklanır → bu bakım işi siler |
@@ -603,7 +613,7 @@ DROP TABLE ilan_goruntulemeleri_2025_09;
 | | İşveren | Aday |
 |---|---|---|
 | Kartta | ⌛ *Süre doldu — sonuçlandırılmadı* | ⌛ *Süreç sona erdi* |
-| Bildirim | 📱 🔔 sorumluya · 🔔 sahip / yöneticiye | 🔔 *"ABC Teknoloji ile Senior Backend Developer süreciniz sona erdi."* — push yok |
+| Bildirim | 📱 🔔 sorumluya · 🔔 sahip / yöneticiye | 🔔 *"ABC Teknoloji ile Senior Backend Developer sürecin sona erdi."* — push yok *(aday kataloğu 3.4)* |
 | Sohbet | Kapanır — geçmiş görünür | Kapanır — geçmiş görünür |
 | Belgeler | Erişim kapanır | — |
 
@@ -612,6 +622,7 @@ DROP TABLE ilan_goruntulemeleri_2025_09;
 | Uzatma | **Yok** |
 | Süre neyden sayılır | Sürecin **başladığı** gün — mesajlaşma süreyi uzatmaz |
 | İlan yayında değilse | Fark etmez — süre işler |
+| Kalan gün | İşverene gösterilir · **adaya gösterilmez** |
 | Sıklık | **Saatlik** |
 
 ```sql
@@ -633,6 +644,7 @@ CREATE INDEX ON surecler (baslangic_tarihi) WHERE sonuc IS NULL;
 |---|---|
 | Bildirim | Yok — durum değişikliği sessiz |
 | İlan silinmiş olsa da | Çalışır — onay arka planda sürer |
+| Aday hesabını silerse | Beklenmez — onay hemen *"Aday cevap vermedi"* olarak kesinleşir · aday daha önce onayladıysa onaylı kalır · *"işe alınmadım"* dediyse tartışmalı olarak kesinleşir |
 | Sıklık | **Günlük** |
 
 ---
@@ -703,6 +715,8 @@ CREATE INDEX ON surecler (baslangic_tarihi) WHERE sonuc IS NULL;
 | Aşama geçmişi, skor anlık görüntüleri | |
 | Başvuru / davet / süreç kayıtları | Ayrıntılar zaten 1 yılda silinmişti (Bakım 11) |
 | İşe alım onay kayıtları | |
+| **Silinmiş adayların isimsiz kayıtları** | *"Silinmiş kullanıcı"* olarak kalan başvuru, davet, süreç ve işe alım kayıtları |
+| **Sohbet geçmişi** | Sonuçlanan süreçlerin mesajları · *süre hukuki danışmanla netleşecek* |
 | **Soft delete edilmiş ilanlar** | İlan satırı, etiketleri, yayın geçmişi |
 
 | | |
@@ -783,3 +797,4 @@ Uyarılar admin panelinde + e-posta.
 | 2 | Ağır işlerin saati | İlk ayların trafik verisiyle |
 | 3 | Otomatik düşme süreleri (30 / 90) | Kullanıcı davranışı verisiyle |
 | 4 | Sırayla tazeleme günlük adedi | Kuyruk yüküne göre |
+| 5 | Silinen adayın işverendeki isimsiz kayıtları ve **sohbet geçmişinin** saklanması — "silinme hakkı" açısından sohbetin hemen silinmesi gerekebilir | Hukuki danışmanla |
