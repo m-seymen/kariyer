@@ -1,7 +1,7 @@
 # Eşleştirme Motoru
 
 > **Kapsam:** Sadece motorun **nasıl çalıştığı** — arka plan.
-> Kullanıcının ne gördüğü: işveren ekranları, ilan yaşam döngüsü, sonuç bildirme, bildirimler → `isveren-paneli-final.md` · aday ekranları → aday dokümanı
+> Kullanıcının ne gördüğü: işveren ekranları, ilan yaşam döngüsü, sonuç bildirme → `isveren-paneli-final.md` · aday ekranları, bildirim kataloğu, hesap silme → `aday-paneli-final.md`
 > Zamanla çalışan işler (süreler, temizlik, otomatik düşme) → `bakim-isleri.md`
 > **Kapsam: global** — uygulama tüm dünyaya açık · **Mimari: ilk günden 1 milyon+ kullanıcı**
 
@@ -480,15 +480,15 @@ Katı filtre **kesin şartlara uymayanları en başta eler.** Kimseyi sıralamaz
 | İlan tarafı | Aday tarafı |
 |---|---|
 | Durum = **yayında** | Profil **yayında** — zorunlu adımlar tamam + **telefon doğrulanmış** |
-| | Arama durumu **"Şu an bakmıyorum" değil** |
+| | Arama durumu **"Şu an iş aramıyorum" değil** |
 
 #### Arama durumu
 
 | Durum | Filtrede | Puana etkisi |
 |---|:---:|:---:|
-| 🟢 **Aktif arıyorum** | ✅ Geçer | **Yok** — sadece kartta rozet |
+| 🟢 **Aktif iş arıyorum** | ✅ Geçer | **Yok** — sadece kartta rozet |
 | 🟡 **Fırsatlara açığım** *(varsayılan)* | ✅ Geçer | **Yok** — sadece kartta rozet |
-| ⚪ **Şu an bakmıyorum** | ❌ **Elenir** | — |
+| ⚪ **Şu an iş aramıyorum** | ❌ **Elenir** | — |
 
 > **Neden "aktif" puana katkı vermiyor:** Durumu aday kendisi seçiyor; puana katılsa herkes "aktif" seçer, rozet anlamını kaybeder.
 
@@ -496,12 +496,12 @@ Katı filtre **kesin şartlara uymayanları en başta eler.** Kimseyi sıralamaz
 
 | An | Ne olur |
 |---|---|
-| Profili ilk yayınlarken | Yayınla butonunun üstünde seçer — varsayılan 🟡 |
-| İstediği zaman | Profil ana ekranı · Keşfet'in üst köşesi · Ayarlar — tek dokunuş |
+| Özgeçmişi ilk yayınlarken | Yayınla butonunun üstünde seçer — varsayılan 🟡 |
+| İstediği zaman | Her sekmede **üst barın solundaki arama durumu** — tek dokunuş *(`aday-paneli-final.md` Bölüm 2.3)* |
 | Giriş yapmazsa | Otomatik düşme: 30 gün → 🟡 · 90 gün → ⚪ *(bakım işi)* |
 | Geri dönünce | Otomatik açılmaz — aday kendisi **[Aktif et]** der |
 
-"Şu an bakmıyorum"dayken bekleyen başvurular, davetler ve süreçteki görüşmeler devam eder — sadece yeni işverenler göremez.
+"Şu an iş aramıyorum"dayken bekleyen başvurular, davetler ve süreçteki görüşmeler devam eder — sadece yeni işverenler göremez.
 
 **Telefon:** Aday numarasını değiştirip doğrulamazsa profil yayından çıkar → bu filtrede elenir (Bölüm 12.7).
 
@@ -1201,7 +1201,7 @@ Bu tablodaki hiçbir satır **tek kopya bilgi değil** — hepsi başka yerlerde
 | İlan **duraklatıldı** | Kimse görmüyor · devam ettirilince **sıfırdan** hesaplanır |
 | İlanın **süresi doldu** | Keşfet'te görünmüyor · tekrar yayınlanırsa **sıfırdan** hesaplanır |
 | İlanın **sonucu bildirildi** | İlan bir daha Keşfet'e çıkmayacak |
-| Aday "Şu an bakmıyorum" | Kimse görmüyor |
+| Aday "Şu an iş aramıyorum" | Kimse görmüyor |
 | Pasif kullanıcı (14+ gün girmemiş) | Açarsa anında hesaplanır |
 | Aday telefonu değiştirip doğrulamadı | **Silinmez** — profil yayından çıktığı için görünmez; doğrulayınca anında geri gelir |
 
@@ -1248,7 +1248,7 @@ CREATE INDEX ON ilan_aday_aksiyon (ilan_id, taraf);
 
 > **İşe alım onayı** (adayın *"Evet, işe alındım"* / *"Hayır"* cevabı, çelişki düzeltmeleri) ayrı kaydedilir — şirket raporu ve eşleştirme kalitesi ölçümü için. Ayrıntı → `isveren-paneli-final.md` Bölüm 9.6.
 
-> Bu aksiyonların kullanıcıya nasıl göründüğü → `isveren-paneli-final.md` (işveren) · aday dokümanı (aday)
+> Bu aksiyonların kullanıcıya nasıl göründüğü → `isveren-paneli-final.md` (işveren) · `aday-paneli-final.md` (aday)
 
 ### 11.2 Neden sonuç tablosundan ayrı
 
@@ -1285,7 +1285,7 @@ Bir pozisyona uymayan aday başka pozisyona çok uygun olabilir.
 
 ### 11.5 Ne zaman silinir
 
-> **Kural:** Anonimleştirme yok — zamanı gelen kayıt **tamamen** silinir. Raporlar ve istatistikler bu tablodan değil, **günlük istatistik tablolarından** okunduğu için bozulmaz (Bölüm 11.6).
+> **Kural:** Bu tabloda anonimleştirme yok — zamanı gelen kayıt **tamamen** silinir. Raporlar ve istatistikler bu tablodan değil, **günlük istatistik tablolarından** okunduğu için bozulmaz (Bölüm 11.6).
 
 | Durum | `bir_daha_gosterme` | Diğer aksiyonlar |
 |---|---|---|
@@ -1294,8 +1294,20 @@ Bir pozisyona uymayan aday başka pozisyona çok uygun olabilir.
 | İlanın **sonucu bildirildi** | **Silinir** — ilan tekrar yayınlanamaz | Kalır — adayın ve işverenin *Sonuçlanan* listeleri, İlan özeti, işe alım onayı için |
 | İşveren sonuçlanan ilanı **sildi** *(soft delete)* | — | Kalır |
 | İlan sonuçlandıktan **2 yıl** sonra | — | **Silinir** |
-| **Aday hesabını sildi** | Silinir | **Silinir** |
+| **Aday hesabını sildi** *(anında)* | Silinir | **Silinir** — aday artık hiçbir listede eşleşmeyeceği için Filtre 10'a gerek kalmaz |
 | **Şirket hesabını sildi** *(anında)* | Silinir | **Silinir** |
+
+#### Aday hesabını silince — üç grup
+
+| Grup | Ne | Ne olur |
+|---|---|---|
+| **Hemen silinir** | Hesap ve özgeçmiş bilgileri, belgeler · `embeddings` satırı · sonuç tablosu satırları · bu tablodaki tüm aksiyonları | Tamamen |
+| **İsimsiz kalır, sonra silinir** | **İşverenin listelerindeki başvuru, davet, süreç ve işe alım kayıtları** *(bu tablo değil — başvuru / davet / süreç tabloları)* · sohbet geçmişi | Ad yerine **"Silinmiş kullanıcı"**; ad, fotoğraf, özgeçmiş, belge, iletişim, maaş beklentisi, not silinir · sadece unvan ve sonuç kalır · ilan sonuçlandıktan **2 yıl** sonra tamamen silinir |
+| **Kalıcı** | Şirket ve platform istatistikleri (Bölüm 11.6) | Değişmez — kişisel veri içermez |
+
+**Neden işverendeki kayıt bir anda yok olmuyor:** İşverenin kendi geçmişi (*"bu ilana kim başvurmuştu, kimi işe aldık, kiminle yazıştık"*) iz bırakmadan kaybolursa ne olduğunu anlamaz. Kayıt kalır ama **kim olduğu artık bilinmez.** İşveren ekranındaki tüm ihtimaller → `aday-paneli-final.md` Bölüm 15.6.
+
+> ⚠️ İsimsiz kayıtların ve sohbet geçmişinin işverende kalması hukuki danışmanla netleşecek.
 
 **Boyut:** Bir kayıt ~50 bayt. Tablo sadece **son ~2 yılın** kayıtlarını tutar — kullanıcı sayısı artmadıkça büyümesi durur. En kalabalık tür olan `bir_daha_gosterme` ilan bitince hemen silindiği için birikmez.
 
@@ -1316,7 +1328,7 @@ Raporlar canlı kayıtlardan değil, her gece doldurulan **günlük defterlerden
 
 > Ayrıntı ve ekranlar → `isveren-paneli-final.md` Bölüm 14.7 ve 22
 
-> Temizlik işleri → `bakim-isleri.md` · Hesap silme ayrıntısı → Veri koruma dokümanı
+> Temizlik işleri → `bakim-isleri.md` · Hesap silme ayrıntısı → `aday-paneli-final.md` Bölüm 15 · `isveren-paneli-final.md` Bölüm 17.6 · Veri koruma dokümanı
 
 ---
 
@@ -1339,7 +1351,7 @@ Son 14 günde giriş yapmış  → ÖNCEDEN hesaplanır
 14 günden uzun girmemiş    → HESAPLANMAZ
                              Keşfet'i açarsa o an hesaplanır (~200 ms, "Hazırlanıyor...")
 
-"Şu an bakmıyorum"         → Hiç — kimse görmüyor
+"Şu an iş aramıyorum"      → Hiç — kimse görmüyor
 ```
 
 ```
@@ -1389,7 +1401,7 @@ ADIM 1 — ANINDA (kullanıcı bekler, milisaniyeler)
   ├─ Profil → "yayında"
   └─ Metin değiştiyse → sıraya: "Ayşe → embedding üret"   (aynı işlemde)
         ↓
-  Ayşe görür: "Profilin yayında. Sana uygun ilanlar hazırlanıyor..."
+  Ayşe görür: "Özgeçmişin yayında. Sana uygun ilanlar hazırlanıyor..."
 
 ADIM 2 — ARKA PLANDA (1-2 sn)
   ├─ Metinler birleştirilir → embedding üretilir → embeddings tablosu
@@ -1538,7 +1550,7 @@ Bir şey olur          →   Sıraya iş yazılır        →   İşçi sırayla
 | **Eşleştirme** | `eslestirme` | Embedding bitti · filtre / puan alanı değişti · [Daha fazla getir] · pasif kullanıcı Keşfet'i açtı | Filtre + vektör + puan → sonuç tablosu |
 | **Ayrıştırma** | `ayristirma` | LLM ilan kaydında cevap vermedi | LLM'i tekrar dener, etiketleri sessizce uygular |
 
-> Bildirim işçisi → `isveren-paneli-final.md` · Zamanla çalışan bakım işleri → `bakim-isleri.md`
+> Bildirim işçisi ve bildirim katalogları → `isveren-paneli-final.md` Bölüm 20 · `aday-paneli-final.md` Bölüm 14 · Zamanla çalışan bakım işleri → `bakim-isleri.md`
 
 **Neden her biri ayrı:**
 
